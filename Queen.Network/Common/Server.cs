@@ -1,0 +1,62 @@
+﻿using ENet;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Queen.Network.Common
+{
+    public class Server : Node
+    {
+        public int maxConn;
+        private Dictionary<uint, Channel> channelMap = new();
+
+        public Server(string ip, ushort port, int timeout = 15, int maxConn = 32)
+        {
+            this.ip = ip;
+            this.port = port;
+            this.maxConn = maxConn;
+
+            var address = new Address();
+            address.SetIP(ip);
+            address.Port = port;
+            var host = new Host();
+            host.Create(address, maxConn);
+
+            var thread = new Thread(() =>
+            {
+                while (true)
+                {
+                    if (host.CheckEvents(out var netEvent) <= 0) if (host.Service(timeout, out netEvent) <= 0) continue;
+                    switch (netEvent.Type)
+                    {
+                        case EventType.Connect:
+                            var channel = new Channel { id = netEvent.ChannelID, peer = netEvent.Peer };
+                            channelMap.Add(netEvent.Peer.ID, channel);
+                            EmitConnectEvent(channel);
+                            break;
+                        case EventType.Disconnect:
+                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel))
+                            {
+                                channelMap.Remove(netEvent.Peer.ID);
+                                EmitDisconnectEvent(channel);
+                            }
+                            break;
+                        case EventType.Timeout:
+                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel)) EmitTimeoutEvent(channel);
+                            break;
+                        case EventType.Receive:
+                            var data = new byte[netEvent.Packet.Length];
+                            netEvent.Packet.CopyTo(data);
+                            netEvent.Packet.Dispose();
+                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel)) EmitReceiveEvent(channel, data);
+                            break;
+                    }
+                }
+            });
+            thread.IsBackground = true;
+            thread.Start();
+        }
+    }
+}
