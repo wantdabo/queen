@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Common
 {
-    public class Client : Node
+    public class Client : NetNode
     {
         public Channel channel;
 

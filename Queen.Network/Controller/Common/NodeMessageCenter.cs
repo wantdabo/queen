@@ -12,13 +12,13 @@ namespace Queen.Network.Controller.Common
 {
     public class NodeMessageCenter : IDisposable
     {
-        private Node node;
+        private NetNode netNode;
         private Dictionary<Type, List<Action<Channel, object>>> messageActionMap = new();
         private List<NodeMessageController> controllers = new();
 
-        public NodeMessageCenter(Node node)
+        public NodeMessageCenter(NetNode node)
         {
-            this.node = node;
+            netNode = node;
             node.OnConnect += OnConnect;
             node.OnDisconnect += OnDisconnect;
             node.OnTimeout += OnTimeout;
@@ -27,10 +27,10 @@ namespace Queen.Network.Controller.Common
 
         public void Dispose()
         {
-            node.OnConnect -= OnConnect;
-            node.OnDisconnect -= OnDisconnect;
-            node.OnTimeout -= OnTimeout;
-            node.OnReceive -= OnReceive;
+            netNode.OnConnect -= OnConnect;
+            netNode.OnDisconnect -= OnDisconnect;
+            netNode.OnTimeout -= OnTimeout;
+            netNode.OnReceive -= OnReceive;
         }
 
         private void OnConnect(Channel channel) 

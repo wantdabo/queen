@@ -9,7 +9,7 @@ namespace Queen.Core
     /// <summary>
     /// 组件
     /// </summary>
-    public abstract class Comp : Queen
+    public abstract class Comp
     {
         /// <summary>
         /// 引擎
@@ -26,11 +26,27 @@ namespace Queen.Core
         /// </summary>
         private Dictionary<Type, List<Comp>> compDict = null;
 
-        protected override void OnCreate()
+        /// <summary>
+        /// 创建一个 Queen 对象
+        /// </summary>
+        public virtual void Create()
+        {
+            OnCreate();
+        }
+
+        protected virtual void OnCreate()
         {
         }
 
-        protected override void OnDestroy()
+        /// <summary>
+        /// 销毁一个 Queen 对象
+        /// </summary>
+        public virtual void Destroy()
+        {
+            OnDestroy();
+        }
+
+        protected virtual void OnDestroy()
         {
             if (null == compList) return;
             for (int i = compList.Count - 1; i >= 0; i--)

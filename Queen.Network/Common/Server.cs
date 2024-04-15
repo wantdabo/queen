@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Common
 {
-    public class Server : Node
+    public class Server : NetNode
     {
         public int maxConn;
         private Dictionary<uint, Channel> channelMap = new();

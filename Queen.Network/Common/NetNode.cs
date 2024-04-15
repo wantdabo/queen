@@ -8,15 +8,15 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Common
 {
-    public class Node
+    public class NetNode
     {
         public string? ip;
         public ushort port;
-        public NodeMessageCenter nmc;
+        public NodeMessageCenter mc;
 
-        public Node() 
+        public NetNode() 
         {
-            nmc = new NodeMessageCenter(this);
+            mc = new NodeMessageCenter(this);
         }
 
         public event Action<Channel>? OnConnect;
