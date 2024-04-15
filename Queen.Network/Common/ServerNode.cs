@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Common
 {
-    public class Server : NetNode
+    public class ServerNode : NetNode
     {
         public int maxConn;
         private Dictionary<uint, NetChannel> channelMap = new();
 
-        public Server(string ip, ushort port, int timeout = 15, int maxConn = 32)
+        public ServerNode(string ip, ushort port, int timeout = 15, int maxConn = 32)
         {
             this.ip = ip;
             this.port = port;

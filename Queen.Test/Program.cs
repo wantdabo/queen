@@ -1,27 +1,28 @@
 ﻿using MessagePack;
 using Queen.Network.Common;
-using Queen.Network.Controller.Common;
 using Queen.Network.Protocols;
 using Queen.Network.Protocols.Common;
 using System.Text;
 
 ENet.Library.Initialize();
-Server server = new Server("127.0.0.1", 8888);
-server.OnConnect += (channel) =>
+ServerNode server = new("127.0.0.1", 8888);
+server.Listen<NodeConnectMessage>((channel, msg) =>
 {
     Console.WriteLine($"server connect a new client {channel.id}, {channel.peer.ID}");
-};
-server.OnReceive += (channel, data) =>
-{
-    if (ProtoPack.UnPack(data, out var msg))
-    {
-        if (ProtoPack.Pack(new ReqTestMsg { test = 10086 + 1, test2 = 10001 + 1 }, out var bytes)) channel.Send(bytes);
-    }
-    channel.Send(Encoding.UTF8.GetBytes("hello, my goblin."));
-};
+});
 
-Client client = new Client();
-client.mc.RegisterMessageController<ReqTestController>();
+server.Listen<ReqTestMsg>((channel, msg) =>
+{
+    if (ProtoPack.Pack(msg, out var bytes)) channel.Send(bytes);
+    channel.Send(Encoding.UTF8.GetBytes("hello, my goblin."));
+});
+
+ClientNode client = new();
+client.Listen<ReqTestMsg>((c, m) =>
+{
+    var msg = m as ReqTestMsg;
+    Console.WriteLine($"receive a new message {c.id}, {c.peer.ID}, {msg.test}, {msg.test2}");
+});
 client.Connect("127.0.0.1", 8888);
 
 Thread t = new Thread(() =>

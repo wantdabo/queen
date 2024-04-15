@@ -14,9 +14,10 @@ namespace Queen.Network.Protocols.Common
     {
         private static int INT32_LEN = 4;
 
-        public static bool UnPack(byte[] bytes, out object? msg)
+        public static bool UnPack(byte[] bytes, out Type? msgType, out object? msg)
         {
             msg = null;
+            msgType = null;
             byte[] header = new byte[INT32_LEN];
             byte[] data = new byte[bytes.Length - INT32_LEN];
             Array.Copy(bytes, header, INT32_LEN);
@@ -27,6 +28,7 @@ namespace Queen.Network.Protocols.Common
             if (false == messageIdMap.ContainsValue(msgId)) return false;
 
             var kv = messageIdMap.First(kv => kv.Value.Equals(msgId));
+            msgType = kv.Key;
             msg = MessagePackSerializer.Deserialize(kv.Key, data);
 
             return true;
@@ -35,7 +37,7 @@ namespace Queen.Network.Protocols.Common
         public static bool Pack<T>(T msg, out byte[]? bytes)
         {
             bytes = null;
-            if (messageIdMap.TryGetValue(typeof(T), out var msgId))
+            if (messageIdMap.TryGetValue(msg.GetType(), out var msgId))
             {
                 var header = BitConverter.GetBytes(msgId);
                 var data = MessagePackSerializer.Serialize(msg);

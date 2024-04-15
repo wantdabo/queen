@@ -1,5 +1,4 @@
-﻿using ENet;
-using Queen.Network.Controller.Common;
+﻿using Queen.Network.Protocols.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,23 +11,55 @@ namespace Queen.Network.Common
     {
         public string? ip;
         public ushort port;
-        public NodeMessageCenter mc;
 
-        public NetNode() 
+        private Dictionary<Type, List<Action<NetChannel, object>>> messageActionMap = new();
+
+        public void UnListen<T>(Action<NetChannel, object> action) where T : INetMessage
         {
-            mc = new NodeMessageCenter(this);
+            if (false == messageActionMap.TryGetValue(typeof(T), out var actions)) return;
+            if (false == actions.Contains(action)) return;
+
+            actions.Remove(action);
         }
 
-        public event Action<NetChannel>? OnConnect;
-        public void EmitConnectEvent(NetChannel channel) { OnConnect?.Invoke(channel); }
+        public void Listen<T>(Action<NetChannel, object> action) where T : INetMessage
+        {
+            if (false == messageActionMap.TryGetValue(typeof(T), out var actions))
+            {
+                actions = new();
+                messageActionMap.Add(typeof(T), actions);
+            }
 
-        public event Action<NetChannel>? OnDisconnect;
-        public void EmitDisconnectEvent(NetChannel channel) { OnDisconnect?.Invoke(channel); }
+            if (actions.Contains(action)) return;
+            actions.Add(action);
+        }
+        
+        private void Notify(NetChannel channel, Type msgType, object msg)
+        {
+            if (false == messageActionMap.TryGetValue(msgType, out var actions)) return;
+            if (null == actions) return;
+            foreach (var action in actions) action?.Invoke(channel, msg);
+        }
 
-        public event Action<NetChannel>? OnTimeout;
-        public void EmitTimeoutEvent(NetChannel channel) { OnTimeout?.Invoke(channel); }
+        protected void EmitConnectEvent(NetChannel channel)
+        {
+            Notify(channel, typeof(NodeConnectMessage), new NodeConnectMessage { });
+        }
 
-        public event Action<NetChannel, byte[]>? OnReceive;
-        public void EmitReceiveEvent(NetChannel channel, byte[] data) { OnReceive?.Invoke(channel, data); }
+        protected void EmitDisconnectEvent(NetChannel channel)
+        {
+            Notify(channel, typeof(NodeDisconnectMessage), new NodeDisconnectMessage { });
+        }
+
+        protected void EmitTimeoutEvent(NetChannel channel)
+        {
+            Notify(channel, typeof(NodeTimeoutMessage), new NodeTimeoutMessage { });
+        }
+
+        protected void EmitReceiveEvent(NetChannel channel, byte[] data)
+        {
+            if (false == ProtoPack.UnPack(data, out var msgType, out var msg)) return;
+            Notify(channel, msgType, msg);
+        }
     }
 }
