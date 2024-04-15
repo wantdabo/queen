@@ -26,12 +26,12 @@ namespace Queen.Common
 
             AppDomain.CurrentDomain.FirstChanceException += (object sender, FirstChanceExceptionEventArgs e) =>
             {
-                Log(LogLevel.Error, e.Exception.Message);
+                Log(e.Exception.Message);
             };
 
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
-                Log(LogLevel.Error, e.ExceptionObject.ToString());
+                Log(e.ExceptionObject.ToString());
                 while (logInfos.Count > 0) Log(logInfos.Dequeue());
                 writer.Flush();
                 writer.Close();
@@ -53,11 +53,10 @@ namespace Queen.Common
         /// <summary>
         /// 打印日志
         /// </summary>
-        /// <param name="level">日志等级</param>
         /// <param name="message">日志内容</param>
-        public void Log(LogLevel level, string message)
+        public void Log(string message)
         {
-            logInfos.Enqueue(new LogInfo { level = level, time = $"{DateTime.Now.ToShortDateString()} - {DateTime.Now.ToLongTimeString()}", message = message });
+            logInfos.Enqueue(new LogInfo { time = $"{DateTime.Now.ToShortDateString()} - {DateTime.Now.ToLongTimeString()}", message = message });
         }
 
         /// <summary>
@@ -66,11 +65,10 @@ namespace Queen.Common
         /// <param name="log">日志</param>
         private void Log(LogInfo log)
         {
-            writer.WriteLine($"{log.time} --- {log.message}");
+            var logStr = $"{log.time} --- {log.message}";
+            writer.WriteLine(logStr);
             writer.Flush();
-
-            if (null == engine.app) return;
-            engine.app.Logger.Log(log.level, $"{log.time} --- {log.message}");
+            Console.WriteLine(logStr);
         }
 
         /// <summary>
@@ -78,10 +76,6 @@ namespace Queen.Common
         /// </summary>
         private struct LogInfo
         {
-            /// <summary>
-            /// 日志等级
-            /// </summary>
-            public LogLevel level;
             /// <summary>
             /// 日志时间
             /// </summary>

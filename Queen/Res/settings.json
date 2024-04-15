@@ -1,0 +1,22 @@
+{
+  // 服务器名字
+  "name": "测试服-高豪",
+  // HTTP 端口
+  "httpport": 8080,
+  // HTTPS 端口
+  "httpsport": 9090,
+  // 数据库主机
+  "dbhost": "127.0.0.1",
+  // 数据库用户名
+  "dbuser": "root",
+  // 数据库密码
+  "dbpwd": "root",
+  // 数据库名
+  "dbname": "serv_gaohao",
+  // 数据落地时间间隔（秒）
+  "dbsave": 10,
+  // 程序 GC 时间间隔（秒）
+  "appgc": 10,
+  // GM 模式关启
+  "gmmode" : true
+}

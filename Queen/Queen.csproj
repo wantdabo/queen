@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MySqlConnector" Version="2.3.6" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Queen.Network\Queen.Network.csproj" />
   </ItemGroup>
 
