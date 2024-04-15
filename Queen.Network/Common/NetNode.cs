@@ -19,16 +19,16 @@ namespace Queen.Network.Common
             mc = new NodeMessageCenter(this);
         }
 
-        public event Action<Channel>? OnConnect;
-        public void EmitConnectEvent(Channel channel) { OnConnect?.Invoke(channel); }
+        public event Action<NetChannel>? OnConnect;
+        public void EmitConnectEvent(NetChannel channel) { OnConnect?.Invoke(channel); }
 
-        public event Action<Channel>? OnDisconnect;
-        public void EmitDisconnectEvent(Channel channel) { OnDisconnect?.Invoke(channel); }
+        public event Action<NetChannel>? OnDisconnect;
+        public void EmitDisconnectEvent(NetChannel channel) { OnDisconnect?.Invoke(channel); }
 
-        public event Action<Channel>? OnTimeout;
-        public void EmitTimeoutEvent(Channel channel) { OnTimeout?.Invoke(channel); }
+        public event Action<NetChannel>? OnTimeout;
+        public void EmitTimeoutEvent(NetChannel channel) { OnTimeout?.Invoke(channel); }
 
-        public event Action<Channel, byte[]>? OnReceive;
-        public void EmitReceiveEvent(Channel channel, byte[] data) { OnReceive?.Invoke(channel, data); }
+        public event Action<NetChannel, byte[]>? OnReceive;
+        public void EmitReceiveEvent(NetChannel channel, byte[] data) { OnReceive?.Invoke(channel, data); }
     }
 }

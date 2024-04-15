@@ -1,4 +1,5 @@
 ﻿using MessagePack;
+using Queen.Network.Protocols.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +9,7 @@ using System.Threading.Tasks;
 namespace Queen.Network.Protocols
 {
     [MessagePackObject(true)]
-    public class ReqTestMsg
+    public class ReqTestMsg : INetMessage
     {
         [Key(0)]
         public int test { get; set; }
@@ -18,7 +19,7 @@ namespace Queen.Network.Protocols
     }
 
     [MessagePackObject(true)]
-    public class ReqTest2Msg
+    public class ReqTest2Msg : INetMessage
     {
         [Key(0)]
         public int test { get; set; }

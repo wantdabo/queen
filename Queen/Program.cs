@@ -11,8 +11,7 @@ namespace Queen
     {
         public static void Main(string[] args)
         {
-            var engine = Engine.CreateGameEngine();
-            
+            Engine.CreateEngine();
             Console.ReadKey();
         }
     }

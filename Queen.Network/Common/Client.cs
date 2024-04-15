@@ -11,7 +11,7 @@ namespace Queen.Network.Common
 {
     public class Client : NetNode
     {
-        public Channel channel;
+        public NetChannel channel;
 
         public void Connect(string ip, ushort port, int timeout = 15)
         {

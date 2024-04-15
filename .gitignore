@@ -1,11 +1,8 @@
 
+/.vs
 /Queen.Test/bin/Debug
 /Queen.Network/obj/Debug
-/.vs/Queen.Server/DesignTimeBuild
-/.vs/Queen.Server/FileContentIndex
 /Queen.Network/bin/Debug
-/.vs/ProjectEvaluation
-/.vs
 /Queen.Network/obj
 /Queen.Test/obj
 /Queen/obj/Debug

@@ -17,7 +17,7 @@ namespace Queen.Core
         public Logger logger;
         public Eventor eventor;
         public ObjectPool pool;
-        public GameConfig cfg;
+        public Config cfg;
 
         protected override void OnCreate()
         {
@@ -44,7 +44,7 @@ namespace Queen.Core
             pool.Create();
 
             // 配置表
-            cfg = AddComp<GameConfig>();
+            cfg = AddComp<Config>();
             cfg.Initial();
             cfg.Create();
         }
@@ -58,7 +58,7 @@ namespace Queen.Core
         /// 创建一个游戏引擎
         /// </summary>
         /// <returns>游戏引擎组件</returns>
-        public static Engine CreateGameEngine()
+        public static Engine CreateEngine()
         {
             Engine engine = new();
             engine.engine = engine;

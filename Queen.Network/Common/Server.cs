@@ -10,7 +10,7 @@ namespace Queen.Network.Common
     public class Server : NetNode
     {
         public int maxConn;
-        private Dictionary<uint, Channel> channelMap = new();
+        private Dictionary<uint, NetChannel> channelMap = new();
 
         public Server(string ip, ushort port, int timeout = 15, int maxConn = 32)
         {
@@ -32,7 +32,7 @@ namespace Queen.Network.Common
                     switch (netEvent.Type)
                     {
                         case EventType.Connect:
-                            var channel = new Channel { id = netEvent.ChannelID, peer = netEvent.Peer };
+                            var channel = new NetChannel { id = netEvent.ChannelID, peer = netEvent.Peer };
                             channelMap.Add(netEvent.Peer.ID, channel);
                             EmitConnectEvent(channel);
                             break;

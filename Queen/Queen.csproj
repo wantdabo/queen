@@ -17,4 +17,10 @@
     <ProjectReference Include="..\Queen.Network\Queen.Network.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Logic\Login\" />
+    <Folder Include="Res\Datas\" />
+    <Folder Include="Store\" />
+  </ItemGroup>
+
 </Project>

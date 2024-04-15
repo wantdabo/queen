@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Common
 {
-    public class Channel
+    public class NetChannel
     {
         public byte id;
         public Peer peer;

@@ -21,7 +21,7 @@ server.OnReceive += (channel, data) =>
 };
 
 Client client = new Client();
-client.mc.HookNodeMessageController<ReqTestController>();
+client.mc.RegisterMessageController<ReqTestController>();
 client.Connect("127.0.0.1", 8888);
 
 Thread t = new Thread(() =>

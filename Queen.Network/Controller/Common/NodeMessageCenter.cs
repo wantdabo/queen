@@ -13,7 +13,7 @@ namespace Queen.Network.Controller.Common
     public class NodeMessageCenter : IDisposable
     {
         private NetNode netNode;
-        private Dictionary<Type, List<Action<Channel, object>>> messageActionMap = new();
+        private Dictionary<Type, List<Action<NetChannel, object>>> messageActionMap = new();
         private List<NodeMessageController> controllers = new();
 
         public NodeMessageCenter(NetNode node)
@@ -33,52 +33,51 @@ namespace Queen.Network.Controller.Common
             netNode.OnReceive -= OnReceive;
         }
 
-        private void OnConnect(Channel channel) 
+        private void OnConnect(NetChannel channel) 
         {
             Notify(channel, new NodeConnectMessage { });
         }
 
-        private void OnDisconnect(Channel channel)
+        private void OnDisconnect(NetChannel channel)
         {
             Notify(channel, new NodeDisconnectMessage { });
         }
 
-        private void OnTimeout(Channel channel)
+        private void OnTimeout(NetChannel channel)
         {
             Notify(channel, new NodeTimeoutMessage { });
         }
 
-        private void OnReceive(Channel channel, byte[] data)
+        private void OnReceive(NetChannel channel, byte[] data)
         {
             if (false == ProtoPack.UnPack(data, out var msg)) return;
             Notify(channel, msg);
         }
 
-        private void Notify(Channel channel, object msg) 
+        private void Notify(NetChannel channel, object msg) 
         {
             if (false == messageActionMap.TryGetValue(msg.GetType(), out var actions)) return;
             if (null == actions) return;
             foreach (var action in actions) action?.Invoke(channel, msg);
         }
 
-        public void UnHookNodeMessageController(NodeMessageController controller) 
+        public void UnRegisterMessageController(NodeMessageController controller) 
         {
             if (false == controllers.Contains(controller)) return;
 
-            UnListen(controller.msgType, controller.Receive);
+            UnListen(controller.mt, controller.Receive);
         }
 
-        public NodeMessageController HookNodeMessageController<T>(Channel channel = null) where T : NodeMessageController, new()
+        public NodeMessageController RegisterMessageController<T>() where T : NodeMessageController, new()
         {
             T controller = new();
-            controller.Create(channel);
             controllers.Add(controller);
-            Listen(controller.msgType, controller.Receive);
+            Listen(controller.mt, controller.Receive);
 
             return controller;
         }
 
-        private void UnListen(Type msgType, Action<Channel, object> action)
+        private void UnListen(Type msgType, Action<NetChannel, object> action)
         {
             if (false == messageActionMap.TryGetValue(msgType, out var actions)) return;
             if (false == actions.Contains(action)) return;
@@ -86,7 +85,7 @@ namespace Queen.Network.Controller.Common
             actions.Remove(action);
         }
 
-        private void Listen(Type msgType, Action<Channel, object> action)
+        private void Listen(Type msgType, Action<NetChannel, object> action)
         {
             if (false == messageActionMap.TryGetValue(msgType, out var actions))
             {

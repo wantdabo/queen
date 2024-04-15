@@ -11,29 +11,21 @@ namespace Queen.Network.Controller
 {
     public class NodeConnectController : NodeMessageController<NodeConnectMessage>
     {
-        protected override void OnReceive(Channel channel, NodeConnectMessage msg)
-        {
-        }
+
     }
 
     public class NodeDisconnectController : NodeMessageController<NodeDisconnectMessage>
     {
-        protected override void OnReceive(Channel channel, NodeDisconnectMessage msg)
-        {
-        }
+
     }
 
     public class NodeTimeoutController : NodeMessageController<NodeTimeoutMessage>
     {
-        protected override void OnReceive(Channel channel, NodeTimeoutMessage msg)
-        {
-        }
+
     }
 
     public class NodeReceiveController : NodeMessageController<NodeReceiveMessage>
     {
-        protected override void OnReceive(Channel channel, NodeReceiveMessage msg)
-        {
-        }
+
     }
 }

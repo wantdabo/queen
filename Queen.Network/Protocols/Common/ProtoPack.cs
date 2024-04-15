@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Protocols.Common
 {
+    public interface INetMessage { }
+
     public class ProtoPack
     {
         private static int INT32_LEN = 4;

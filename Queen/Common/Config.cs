@@ -10,7 +10,7 @@ namespace Queen.Common
     /// <summary>
     /// 游戏配置
     /// </summary>
-    public class GameConfig : Comp
+    public class Config : Comp
     {
         /// <summary>
         /// 配置表定位器
@@ -33,14 +33,9 @@ namespace Queen.Common
         public string servName { get; private set; }
 
         /// <summary>
-        /// HTTP 端口
+        /// 端口
         /// </summary>
-        public int httpPort { get; private set; }
-
-        /// <summary>
-        /// HTTPS 端口
-        /// </summary>
-        public int httpsPort { get; private set; }
+        public int servPort { get; private set; }
 
         /// <summary>
         /// 数据库主机
@@ -118,8 +113,6 @@ namespace Queen.Common
         {
             var jobj = JObject.Parse(File.ReadAllText($"{resPath}settings.json"));
             servName = jobj.Value<string>("name");
-            httpPort = jobj.Value<int>("httpport");
-            httpsPort = jobj.Value<int>("httpsport");
             dbHost = jobj.Value<string>("dbhost");
             dbUser = jobj.Value<string>("dbuser");
             dbPwd = jobj.Value<string>("dbpwd");
