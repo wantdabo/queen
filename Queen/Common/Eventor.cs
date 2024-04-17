@@ -69,7 +69,7 @@ namespace Queen.Common
         {
             if (null == eventDict) return;
             if (false == eventDict.TryGetValue(typeof(T), out var funcs)) return;
-            for (int i = funcs.Count - 1; i >= 0; i--) (funcs[i] as Action<T>).Invoke(e);
+            for (int i = funcs.Count - 1; i >= 0; i--) funcs[i].DynamicInvoke(e);
         }
     }
 }

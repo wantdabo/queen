@@ -12,8 +12,4 @@
     <PackageReference Include="MessagePack" Version="2.5.140" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controller\" />
-  </ItemGroup>
-
 </Project>

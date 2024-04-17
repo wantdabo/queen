@@ -12,9 +12,9 @@ namespace Queen.Network.Common
         public string? ip;
         public ushort port;
 
-        private Dictionary<Type, List<Action<NetChannel, object>>> messageActionMap = new();
+        private Dictionary<Type, List<Delegate>> messageActionMap = new();
 
-        public void UnListen<T>(Action<NetChannel, object> action) where T : INetMessage
+        public void UnListen<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             if (false == messageActionMap.TryGetValue(typeof(T), out var actions)) return;
             if (false == actions.Contains(action)) return;
@@ -22,7 +22,7 @@ namespace Queen.Network.Common
             actions.Remove(action);
         }
 
-        public void Listen<T>(Action<NetChannel, object> action) where T : INetMessage
+        public void Listen<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             if (false == messageActionMap.TryGetValue(typeof(T), out var actions))
             {
@@ -33,12 +33,12 @@ namespace Queen.Network.Common
             if (actions.Contains(action)) return;
             actions.Add(action);
         }
-        
-        private void Notify(NetChannel channel, Type msgType, object msg)
+
+        private void Notify(NetChannel channel, Type msgType, INetMessage msg)
         {
             if (false == messageActionMap.TryGetValue(msgType, out var actions)) return;
             if (null == actions) return;
-            foreach (var action in actions) action?.Invoke(channel, msg);
+            for (int i = actions.Count - 1; i >= 0; i--) actions[i].DynamicInvoke(channel, msg);
         }
 
         protected void EmitConnectEvent(NetChannel channel)

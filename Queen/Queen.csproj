@@ -18,9 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Logic\Login\" />
-    <Folder Include="Res\Datas\" />
-    <Folder Include="Store\" />
+    <Content Include="Res\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

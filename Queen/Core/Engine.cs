@@ -1,52 +1,79 @@
 ﻿using Queen.Common;
+using Queen.Network.Common;
+using Queen.Network.Protocols.Common;
+using Queen.Network.Protocols;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
+using Queen.Network;
 
 namespace Queen.Core
 {
     /// <summary>
-    /// 游戏引擎组件
+    /// PreTick 事件
+    /// </summary>
+    public struct PreTickEvent : IEvent { }
+
+    /// <summary>
+    /// Tick 事件
+    /// </summary>
+    public struct TickEvent : IEvent { }
+
+    /// <summary>
+    /// LateTick 事件
+    /// </summary>
+    public struct LateTickEvent : IEvent { }
+
+    /// <summary>
+    /// 引擎组件
     /// </summary>
     public class Engine : Comp
     {
+        public Config cfg;
         public Common.Random random;
-        public Ticker ticker;
         public Logger logger;
         public Eventor eventor;
         public ObjectPool pool;
-        public Config cfg;
+        public Slave slave;
 
         protected override void OnCreate()
         {
             base.OnCreate();
-
-            // 随机器
-            random = AddComp<Common.Random>();
-            random.Create();
-
-            // 计时器
-            ticker = AddComp<Ticker>();
-            ticker.Create();
-
             // 日志
             logger = AddComp<Logger>();
             logger.Create();
 
-            // 事件
+            logger.Log("server initial...", ConsoleColor.Cyan);
+            // 事件器
             eventor = AddComp<Eventor>();
             eventor.Create();
-
-            // 对象池
-            pool = AddComp<ObjectPool>();
-            pool.Create();
-
             // 配置表
             cfg = AddComp<Config>();
             cfg.Initial();
             cfg.Create();
+            // 随机器
+            random = AddComp<Common.Random>();
+            random.Create();
+            // 对象池
+            pool = AddComp<ObjectPool>();
+            pool.Create();
+            // 网络
+            ENet.Library.Initialize();
+            slave = AddComp<Slave>();
+            slave.Create();
+            logger.Log("server is running...", ConsoleColor.Green);
+
+            // Tick
+            while (true)
+            {
+                Thread.Sleep(cfg.engineTick);
+                eventor.Tell<PreTickEvent>();
+                eventor.Tell<TickEvent>();
+                eventor.Tell<LateTickEvent>();
+            }
         }
 
         protected override void OnDestroy()
@@ -55,9 +82,9 @@ namespace Queen.Core
         }
 
         /// <summary>
-        /// 创建一个游戏引擎
+        /// 创建一个引擎
         /// </summary>
-        /// <returns>游戏引擎组件</returns>
+        /// <returns>引擎组件</returns>
         public static Engine CreateEngine()
         {
             Engine engine = new();

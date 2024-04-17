@@ -9,15 +9,12 @@ namespace Queen.Network.Common
 {
     public class ServerNode : NetNode
     {
-        public int maxConn;
         private Dictionary<uint, NetChannel> channelMap = new();
 
-        public ServerNode(string ip, ushort port, int timeout = 15, int maxConn = 32)
+        public ServerNode(string ip, ushort port, int maxConn = 32, int timeout = 15)
         {
             this.ip = ip;
             this.port = port;
-            this.maxConn = maxConn;
-
             var address = new Address();
             address.SetIP(ip);
             address.Port = port;

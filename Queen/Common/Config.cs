@@ -18,24 +18,49 @@ namespace Queen.Common
         public Tables location;
 
         /// <summary>
+        /// 系数 0.5
+        /// </summary>
+        public float half = 0.5f;
+
+        /// <summary>
+        /// 系数 1
+        /// </summary>
+        public float one = 1f;
+
+        /// <summary>
+        /// 系数 1000
+        /// </summary>
+        public float thousand = 1000f;
+
+        /// <summary>
         /// 浮点数转整型的乘法系数（10000 表示 1）
         /// </summary>
-        public int Float2Int = 10000;
+        public int float2Int = 10000;
 
         /// <summary>
         /// 整型转浮点的乘法系数（10000 表示 1）
         /// </summary>
-        public float Int2Float = 0.0001f;
+        public float int2Float = 0.0001f;
 
         /// <summary>
         /// 服务器名字
         /// </summary>
-        public string servName { get; private set; }
+        public string hostName { get; private set; }
+
+        /// <summary>
+        /// IP 地址
+        /// </summary>
+        public string host { get; private set; }
 
         /// <summary>
         /// 端口
         /// </summary>
-        public int servPort { get; private set; }
+        public ushort port { get; private set; }
+
+        /// <summary>
+        /// 最大连接数
+        /// </summary>
+        public int maxConn { get; private set; }
 
         /// <summary>
         /// 数据库主机
@@ -63,9 +88,9 @@ namespace Queen.Common
         public int dbSave { get; private set; }
 
         /// <summary>
-        /// 程序 GC 时间间隔（秒）
+        /// 引擎 tick 间隔 (ms)
         /// </summary>
-        public int appGc { get; private set; }
+        public int engineTick { get; private set; }
 
         /// <summary>
         /// GM 模式关启
@@ -76,6 +101,11 @@ namespace Queen.Common
         /// 资源目录
         /// </summary>
         public string resPath { get { return $"{Directory.GetCurrentDirectory()}/Res/"; } }
+
+        /// <summary>
+        /// 日志目录
+        /// </summary>
+        public string logPath { get { return $"{resPath}/Logs/"; } }
 
         /// <summary>
         /// 配置表的名字
@@ -101,33 +131,26 @@ namespace Queen.Common
         };
 
         /// <summary>
-        /// 预加载所有配置的 bytes
-        /// </summary>
-        private Dictionary<string, byte[]> cfgBytesDict = new();
-
-        /// <summary>
         /// 初始化配置表
         /// </summary>
         /// <returns>Task</returns>
         public void Initial()
         {
             var jobj = JObject.Parse(File.ReadAllText($"{resPath}settings.json"));
-            servName = jobj.Value<string>("name");
+            hostName = jobj.Value<string>("hostname");
+            host = jobj.Value<string>("host");
+            port = jobj.Value<ushort>("port");
+            maxConn = jobj.Value<int>("maxconn");
             dbHost = jobj.Value<string>("dbhost");
             dbUser = jobj.Value<string>("dbuser");
             dbPwd = jobj.Value<string>("dbpwd");
             dbName = jobj.Value<string>("dbname");
             dbSave = jobj.Value<int>("dbsave");
-            appGc = jobj.Value<int>("appgc");
+            engineTick = jobj.Value<int>("enginetick");
             gmMode = jobj.Value<bool>("gmmode");
 
             var path = Directory.GetCurrentDirectory();
-            foreach (var cfgName in cfgNames)
-            {
-                var bytes = File.ReadAllBytes($"{path}/Res/Configs/{cfgName}.bytes");
-                cfgBytesDict.Add(cfgName, bytes);
-            }
-            location = new Tables((cfgName) => new ByteBuf(cfgBytesDict[cfgName]));
+            location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{resPath}Configs/{cfgName}.bytes")); });
         }
     }
 }

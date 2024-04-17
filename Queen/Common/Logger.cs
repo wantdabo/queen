@@ -10,6 +10,25 @@ namespace Queen.Common
     public class Logger : Comp
     {
         /// <summary>
+        /// 日志数据结构
+        /// </summary>
+        private struct LogInfo
+        {
+            /// <summary>
+            /// 日志时间
+            /// </summary>
+            public string time;
+            /// <summary>
+            /// 日志内容
+            /// </summary>
+            public string message;
+            /// <summary>
+            /// 日志颜色
+            /// </summary>
+            public ConsoleColor color;
+        }
+
+        /// <summary>
         /// 日志队列
         /// </summary>
         private Queue<LogInfo> logInfos = new();
@@ -19,6 +38,17 @@ namespace Queen.Common
         protected override void OnCreate()
         {
             base.OnCreate();
+
+            Thread thread = new Thread(() =>
+            {
+                while (true)
+                {
+                    Thread.Sleep(100);
+                    if (logInfos.Count > 0) Log(logInfos.Dequeue());
+                }
+            });
+            thread.IsBackground = true;
+            thread.Start();
 
             var logFilePath = $"{AppDomain.CurrentDomain.BaseDirectory}/Logs/{DateTime.Now.ToLongDateString()}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
             var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
@@ -31,16 +61,10 @@ namespace Queen.Common
 
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
-                Log(e.ExceptionObject.ToString());
                 while (logInfos.Count > 0) Log(logInfos.Dequeue());
                 writer.Flush();
                 writer.Close();
             };
-
-            engine.ticker.Timing((t) =>
-            {
-                while (logInfos.Count > 0) Log(logInfos.Dequeue());
-            }, 2000, -1);
         }
 
         protected override void OnDestroy()
@@ -54,9 +78,9 @@ namespace Queen.Common
         /// 打印日志
         /// </summary>
         /// <param name="message">日志内容</param>
-        public void Log(string message)
+        public void Log(string message, ConsoleColor color = ConsoleColor.Yellow)
         {
-            logInfos.Enqueue(new LogInfo { time = $"{DateTime.Now.ToShortDateString()} - {DateTime.Now.ToLongTimeString()}", message = message });
+            logInfos.Enqueue(new LogInfo { time = $"{DateTime.Now.ToShortDateString()} - {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
@@ -68,22 +92,8 @@ namespace Queen.Common
             var logStr = $"{log.time} --- {log.message}";
             writer.WriteLine(logStr);
             writer.Flush();
+            Console.ForegroundColor = log.color;
             Console.WriteLine(logStr);
-        }
-
-        /// <summary>
-        /// 日志数据结构
-        /// </summary>
-        private struct LogInfo
-        {
-            /// <summary>
-            /// 日志时间
-            /// </summary>
-            public string time;
-            /// <summary>
-            /// 日志内容
-            /// </summary>
-            public string message;
         }
     }
 }

@@ -45,7 +45,7 @@ namespace Queen.Common
         /// <returns>结果</returns>
         public float Range(float min, float max)
         {
-            return random.Next((int)(min * engine.cfg.Float2Int), (int)(max * engine.cfg.Float2Int)) * engine.cfg.Int2Float;
+            return random.Next((int)(min * engine.cfg.float2Int), (int)(max * engine.cfg.float2Int)) * engine.cfg.int2Float;
         }
 
         #region 权重计算
