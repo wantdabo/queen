@@ -68,6 +68,11 @@ namespace Queen.Common
         public string dbHost { get; private set; }
 
         /// <summary>
+        /// 数据库名
+        /// </summary>
+        public string dbName { get; private set; }
+
+        /// <summary>
         /// 数据库用户名
         /// </summary>
         public string dbUser { get; private set; }
@@ -76,11 +81,6 @@ namespace Queen.Common
         /// 数据库密码
         /// </summary>
         public string dbPwd { get; private set; }
-
-        /// <summary>
-        /// 数据库名
-        /// </summary>
-        public string dbName { get; private set; }
 
         /// <summary>
         /// 数据落地时间间隔（秒）
@@ -108,29 +108,6 @@ namespace Queen.Common
         public string logPath { get { return $"{resPath}/Logs/"; } }
 
         /// <summary>
-        /// 配置表的名字
-        /// </summary>
-        private List<string> cfgNames = new()
-        {
-            "Conf.Gameplay.ParkourInfo",
-            "Conf.Gameplay.RoguelikeInfo",
-            "Conf.Gameplay.AttributeInfo",
-            "Conf.Gameplay.StageInfo",
-            "Conf.Gameplay.StageGroupInfo",
-            "Conf.Gameplay.HeroInfo",
-            "Conf.Gameplay.MonsterInfo",
-            "Conf.Gameplay.RoguelikeDropInfo",
-            "Conf.Gameplay.SkillInfo",
-            "Conf.Gameplay.SkillComposeInfo",
-            "Conf.Gameplay.EvolutionOptionInfo",
-            "Conf.Gameplay.ItemInfo",
-            "Conf.Gameplay.EquipInfo",
-            "Conf.Gameplay.EquipQualityInfo",
-            "Conf.Gameplay.EquipAttributeInfo",
-            "Conf.Gameplay.EquipAttributeWeightInfo",
-        };
-
-        /// <summary>
         /// 初始化配置表
         /// </summary>
         /// <returns>Task</returns>
@@ -142,9 +119,9 @@ namespace Queen.Common
             port = jobj.Value<ushort>("port");
             maxConn = jobj.Value<int>("maxconn");
             dbHost = jobj.Value<string>("dbhost");
+            dbName = jobj.Value<string>("dbname");
             dbUser = jobj.Value<string>("dbuser");
             dbPwd = jobj.Value<string>("dbpwd");
-            dbName = jobj.Value<string>("dbname");
             dbSave = jobj.Value<int>("dbsave");
             engineTick = jobj.Value<int>("enginetick");
             gmMode = jobj.Value<bool>("gmmode");

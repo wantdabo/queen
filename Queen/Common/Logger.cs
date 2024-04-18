@@ -80,7 +80,7 @@ namespace Queen.Common
         /// <param name="message">日志内容</param>
         public void Log(string message, ConsoleColor color = ConsoleColor.Yellow)
         {
-            logInfos.Enqueue(new LogInfo { time = $"{DateTime.Now.ToShortDateString()} - {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            logInfos.Enqueue(new LogInfo { time = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace Queen.Common
         /// <param name="log">日志</param>
         private void Log(LogInfo log)
         {
-            var logStr = $"{log.time} --- {log.message}";
+            var logStr = $"{log.time} {log.message}";
             writer.WriteLine(logStr);
             writer.Flush();
             Console.ForegroundColor = log.color;

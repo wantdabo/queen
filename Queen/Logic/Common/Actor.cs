@@ -36,7 +36,7 @@ namespace Queen.Logic.Common
         {
             if (false == behaviorMap.TryGetValue(typeof(T), out var behavior)) return null;
 
-            return behavior as T ;
+            return behavior as T;
         }
 
         public T AddBehavior<T>() where T : Behavior, new()

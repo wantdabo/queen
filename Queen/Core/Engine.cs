@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Queen.Network;
+using Queen.Logic.Common.Player;
+using Queen.Common.Database;
 
 namespace Queen.Core
 {
@@ -37,35 +39,56 @@ namespace Queen.Core
         public Logger logger;
         public Eventor eventor;
         public ObjectPool pool;
+        public DBO dbo;
         public Slave slave;
+        public Party party;
 
         protected override void OnCreate()
         {
             base.OnCreate();
+
             // 日志
             logger = AddComp<Logger>();
             logger.Create();
 
             logger.Log("server initial...", ConsoleColor.Cyan);
+
             // 事件器
             eventor = AddComp<Eventor>();
             eventor.Create();
+
             // 配置表
             cfg = AddComp<Config>();
             cfg.Initial();
             cfg.Create();
+
             // 随机器
             random = AddComp<Common.Random>();
             random.Create();
+
             // 对象池
             pool = AddComp<ObjectPool>();
             pool.Create();
+
+            // 数据库
+            dbo = AddComp<DBO>();
+            dbo.Create();
+
             // 网络
             ENet.Library.Initialize();
             slave = AddComp<Slave>();
             slave.Create();
-            logger.Log("server is running...", ConsoleColor.Green);
+            // 角色
+            party = AddComp<Party>();
+            party.Create();
 
+            engine.logger.Log(
+                $"\n\thostname: {engine.cfg.hostName}\n\tipaddress: {engine.cfg.host}\n\tport: {engine.cfg.port}\n\tmaxconn: {engine.cfg.maxConn}" +
+                $"\n\tdbhost: {engine.cfg.dbHost}\n\tdbname: {engine.cfg.dbName}\n\tdbuser: {engine.cfg.dbUser}\n\tdbpwd: {engine.cfg.dbPwd}\n\tdbsave: {engine.cfg.dbSave}"
+            );
+            logger.Log("queen.server is running...", ConsoleColor.Green);
+
+            Console.Title = engine.cfg.hostName;
             // Tick
             while (true)
             {

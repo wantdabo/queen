@@ -1,4 +1,5 @@
 ﻿using ENet;
+using Queen.Network.Protocols.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,11 @@ namespace Queen.Network.Common
     {
         public byte id;
         public Peer peer;
+
+        public void Send<T>(T msg) where T : INetMessage 
+        {
+            if (ProtoPack.Pack(msg, out var bytes)) Send(bytes);
+        }
 
         public void Send(byte[] data)
         {

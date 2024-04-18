@@ -19,7 +19,6 @@ namespace Queen.Network
             engine.logger.Log("slave create.", ConsoleColor.Cyan);
             serverNode = new(engine.cfg.host, engine.cfg.port, engine.cfg.maxConn);
             engine.logger.Log("slave create success.", ConsoleColor.Cyan);
-            engine.logger.Log($"\t\n** hostname: {engine.cfg.hostName} **\n\t\t** ipaddress:{engine.cfg.host} **\n\t\t\t** port:{engine.cfg.port} **");
         }
 
         protected override void OnDestroy()
@@ -27,12 +26,12 @@ namespace Queen.Network
             base.OnDestroy();
         }
 
-        public void UnListen<T>(Action<NetChannel, T> action) where T : INetMessage
+        public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             serverNode.UnListen(action);
         }
 
-        public void Listen<T>(Action<NetChannel, T> action) where T : INetMessage
+        public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             serverNode.Listen(action);
         }

@@ -23,4 +23,8 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Logic\Login\" />
+  </ItemGroup>
+
 </Project>
