@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Common.Player
+namespace Queen.Logic.Player.Common
 {
     public struct RoleJoinEvent : IEvent
     {
@@ -24,6 +24,7 @@ namespace Queen.Logic.Common.Player
     {
         public NetChannel channel;
         public string pid;
+        public string userName;
         public string nickName;
     }
 
@@ -54,6 +55,7 @@ namespace Queen.Logic.Common.Player
             role.session.channel = info.channel;
             role.session.Create();
             role.pid = info.pid;
+            role.userName = info.userName;
             role.nickName = info.nickName;
             role.Create();
 
@@ -66,7 +68,7 @@ namespace Queen.Logic.Common.Player
         {
             eventor.Tell(new RoleQuitEvent { role = role });
 
-            if(roleMap.ContainsKey(role.pid)) roleMap.Remove(role.pid);
+            if (roleMap.ContainsKey(role.pid)) roleMap.Remove(role.pid);
             role.Destroy();
         }
 

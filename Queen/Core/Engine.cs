@@ -8,9 +8,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using Queen.Network;
-using Queen.Logic.Common.Player;
 using Queen.Common.Database;
+using Queen.Logic.Player.Common;
+using Queen.Network;
+using Sys = Queen.Logic.System.Common.Sys;
 
 namespace Queen.Core
 {
@@ -41,6 +42,7 @@ namespace Queen.Core
         public ObjectPool pool;
         public DBO dbo;
         public Slave slave;
+        public Sys sys;
         public Party party;
 
         protected override void OnCreate()
@@ -51,7 +53,7 @@ namespace Queen.Core
             logger = AddComp<Logger>();
             logger.Create();
 
-            logger.Log("server initial...", ConsoleColor.Cyan);
+            logger.Log("server initial...");
 
             // 事件器
             eventor = AddComp<Eventor>();
@@ -78,6 +80,11 @@ namespace Queen.Core
             ENet.Library.Initialize();
             slave = AddComp<Slave>();
             slave.Create();
+
+            // 系统
+            sys = AddComp<Sys>();
+            sys.Create();
+
             // 角色
             party = AddComp<Party>();
             party.Create();
@@ -85,8 +92,8 @@ namespace Queen.Core
             engine.logger.Log(
                 $"\n\thostname: {engine.cfg.hostName}\n\tipaddress: {engine.cfg.host}\n\tport: {engine.cfg.port}\n\tmaxconn: {engine.cfg.maxConn}" +
                 $"\n\tdbhost: {engine.cfg.dbHost}\n\tdbname: {engine.cfg.dbName}\n\tdbuser: {engine.cfg.dbUser}\n\tdbpwd: {engine.cfg.dbPwd}\n\tdbsave: {engine.cfg.dbSave}"
-            );
-            logger.Log("queen.server is running...", ConsoleColor.Green);
+            , ConsoleColor.Yellow);
+            logger.Log("queen is running...", ConsoleColor.Green);
 
             Console.Title = engine.cfg.hostName;
             // Tick

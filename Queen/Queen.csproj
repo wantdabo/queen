@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Logic\Login\" />
+    <None Remove="Res\queen_roles.sql" />
   </ItemGroup>
 
 </Project>

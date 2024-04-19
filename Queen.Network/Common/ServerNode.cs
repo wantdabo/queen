@@ -36,12 +36,17 @@ namespace Queen.Network.Common
                         case EventType.Disconnect:
                             if (channelMap.TryGetValue(netEvent.Peer.ID, out channel))
                             {
-                                channelMap.Remove(netEvent.Peer.ID);
                                 EmitDisconnectEvent(channel);
+                                channelMap.Remove(netEvent.Peer.ID);
                             }
                             break;
                         case EventType.Timeout:
-                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel)) EmitTimeoutEvent(channel);
+                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel))
+                            {
+                                EmitTimeoutEvent(channel);
+                                channelMap.Remove(netEvent.Peer.ID);
+                            }
+                            netEvent.Peer.Disconnect(netEvent.Peer.ID);
                             break;
                         case EventType.Receive:
                             var data = new byte[netEvent.Packet.Length];

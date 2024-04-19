@@ -30,10 +30,10 @@ namespace Queen.Common.Database
 
         private void Connect()
         {
-            engine.logger.Log("connect mysql.", ConsoleColor.Cyan);
+            engine.logger.Log("connect mysql.");
             connect = new MySqlConnection($"Server={engine.cfg.dbHost};User ID={engine.cfg.dbUser};Password={engine.cfg.dbPwd};Database={engine.cfg.dbName}");
             connect.Open();
-            engine.logger.Log("connect mysql success.", ConsoleColor.Cyan);
+            engine.logger.Log("connect mysql success.");
         }
 
         public bool Query<T>(string sql, out List<T>? infos) where T : DBReader, new()
@@ -42,7 +42,8 @@ namespace Queen.Common.Database
             var command = new MySqlCommand(sql, connect);
             var reader = command.ExecuteReader();
 
-            if (reader.HasRows) infos = new(); else infos = null;
+            var hasRow = reader.HasRows;
+            if (hasRow) infos = new(); else infos = null;
 
             while (reader.Read())
             {
@@ -53,14 +54,15 @@ namespace Queen.Common.Database
                     var columnValue = reader.GetFieldValueAsync<object>(i);
 
                     // 将字段值设置到实体对象中
-                    info.SetPropertyValue(columnName, columnValue);
+                    info.SetPropertyValue(columnName, columnValue.Result);
                 }
+                infos.Add(info);
             }
 
             reader.Close();
             command.Dispose();
 
-            return reader.HasRows;
+            return hasRow;
         }
 
         public int Execute(string sql)

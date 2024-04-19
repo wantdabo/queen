@@ -53,8 +53,10 @@ namespace Queen.Network.Protocols.Common
 
         private static Dictionary<Type, int> messageIdMap = new()
         {
-            {typeof(ReqTestMsg), 10001},
-            {typeof(ReqTest2Msg), 10002}
+            {typeof(C2SLoginMsg), 10001},
+            {typeof(C2SRegisterMsg), 10002},
+            {typeof(S2CLoginMsg), 10003},
+            {typeof(S2CRegisterMsg), 10004},
         };
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Queen.Core;
+using Queen.Logic.Common;
 using Queen.Network.Common;
 using Queen.Network.Protocols.Common;
 using System;
@@ -16,9 +17,9 @@ namespace Queen.Network
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.logger.Log("slave create.", ConsoleColor.Cyan);
+            engine.logger.Log("slave create.");
             serverNode = new(engine.cfg.host, engine.cfg.port, engine.cfg.maxConn);
-            engine.logger.Log("slave create success.", ConsoleColor.Cyan);
+            engine.logger.Log("slave create success.");
         }
 
         protected override void OnDestroy()

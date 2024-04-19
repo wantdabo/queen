@@ -1,26 +1,24 @@
-﻿using Queen.Core;
-using Queen.Network.Common;
+﻿using Queen.Logic.Common;
+using Queen.Logic.Sys;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Common.Player
+namespace Queen.Logic.System.Common
 {
-    public class Session : Comp
+    public class Sys : Actor
     {
-        public NetChannel channel;
-
         protected override void OnCreate()
         {
             base.OnCreate();
+            AddBehavior<Login>().Create();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            channel.peer.Disconnect(channel.peer.ID);
         }
     }
 }

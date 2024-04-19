@@ -1,4 +1,5 @@
-﻿using Queen.Network.Common;
+﻿using Queen.Logic.Common;
+using Queen.Network.Common;
 using Queen.Network.Protocols.Common;
 using System;
 using System.Collections.Generic;
@@ -6,12 +7,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Common.Player
+namespace Queen.Logic.Player.Common
 {
     public class Role : Actor
     {
         public Session session;
         public string pid;
+        public string userName;
         public string nickName;
 
         private Dictionary<Delegate, Delegate> actionMap = new();

@@ -44,7 +44,7 @@ namespace Queen.Common
                 while (true)
                 {
                     Thread.Sleep(100);
-                    if (logInfos.Count > 0) Log(logInfos.Dequeue());
+                    while (logInfos.Count > 0) Log(logInfos.Dequeue());
                 }
             });
             thread.IsBackground = true;
@@ -78,7 +78,7 @@ namespace Queen.Common
         /// 打印日志
         /// </summary>
         /// <param name="message">日志内容</param>
-        public void Log(string message, ConsoleColor color = ConsoleColor.Yellow)
+        public void Log(string message, ConsoleColor color = ConsoleColor.White)
         {
             logInfos.Enqueue(new LogInfo { time = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
