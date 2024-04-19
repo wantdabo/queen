@@ -17,7 +17,6 @@ namespace Queen.Network.Protocols.Common
         public static bool UnPack(byte[] bytes, out Type? msgType, out INetMessage? msg)
         {
             msg = null;
-            msgType = null;
             byte[] header = new byte[INT32_LEN];
             byte[] data = new byte[bytes.Length - INT32_LEN];
             Array.Copy(bytes, header, INT32_LEN);
@@ -25,21 +24,22 @@ namespace Queen.Network.Protocols.Common
 
             var msgId = BitConverter.ToInt32(header);
 
-            if (false == messageIdMap.ContainsValue(msgId)) return false;
+            if (messageIdMap.TryGetValue(msgId, out msgType))
+            {
+                msg = MessagePackSerializer.Deserialize(msgType, data) as INetMessage;
+                return true;
+            }
 
-            var kv = messageIdMap.First(kv => kv.Value.Equals(msgId));
-            msgType = kv.Key;
-            msg = MessagePackSerializer.Deserialize(kv.Key, data) as INetMessage;
-
-            return true;
+            return false;
         }
 
         public static bool Pack<T>(T msg, out byte[]? bytes) where T : INetMessage
         {
             bytes = null;
-            if (messageIdMap.TryGetValue(msg.GetType(), out var msgId))
+            var kv = messageIdMap.First(kv => kv.Value.Equals(msg.GetType()));
+            if (null != kv.Value)
             {
-                var header = BitConverter.GetBytes(msgId);
+                var header = BitConverter.GetBytes(kv.Key);
                 var data = MessagePackSerializer.Serialize(msg);
                 bytes = new byte[header.Length + data.Length];
                 Array.Copy(header, 0, bytes, 0, header.Length);
@@ -51,12 +51,12 @@ namespace Queen.Network.Protocols.Common
             return false;
         }
 
-        private static Dictionary<Type, int> messageIdMap = new()
+        private static Dictionary<int, Type> messageIdMap = new()
         {
-            {typeof(C2SLoginMsg), 10001},
-            {typeof(C2SRegisterMsg), 10002},
-            {typeof(S2CLoginMsg), 10003},
-            {typeof(S2CRegisterMsg), 10004},
+            {10001, typeof(C2SLoginMsg)},
+            {10002, typeof(C2SRegisterMsg)},
+            {10003, typeof(S2CLoginMsg)},
+            {10004, typeof(S2CRegisterMsg)},
         };
     }
 }
