@@ -11,10 +11,11 @@ namespace Queen.Network.Common
     {
         private Dictionary<uint, NetChannel> channelMap = new();
 
-        public ServerNode(string ip, ushort port, int maxConn = 32, int timeout = 15)
+        public ServerNode(string ip, ushort port, bool notify = true, int maxConn = 32, int timeout = 15)
         {
             this.ip = ip;
             this.port = port;
+            this.notify = notify;
             var address = new Address();
             address.SetIP(ip);
             address.Port = port;

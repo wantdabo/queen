@@ -13,10 +13,11 @@ namespace Queen.Network.Common
     {
         public NetChannel channel;
 
-        public void Connect(string ip, ushort port, int timeout = 15)
+        public void Connect(string ip, ushort port, bool notify = true, int timeout = 15)
         {
             this.ip = ip;
             this.port = port;
+            this.notify = notify;
             var address = new Address();
             address.SetIP(ip);
             address.Port = port;

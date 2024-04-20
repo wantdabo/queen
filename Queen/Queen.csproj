@@ -27,4 +27,8 @@
     <None Remove="Res\queen_roles.sql" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Queen\" />
+  </ItemGroup>
+
 </Project>

@@ -126,7 +126,6 @@ namespace Queen.Common
             engineTick = jobj.Value<int>("enginetick");
             gmMode = jobj.Value<bool>("gmmode");
 
-            var path = Directory.GetCurrentDirectory();
             location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{resPath}Configs/{cfgName}.bytes")); });
         }
     }

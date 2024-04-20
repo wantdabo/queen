@@ -14,11 +14,11 @@ namespace Queen.Network.Protocols
         /// <summary>
         /// 账号
         /// </summary>
-        public string userName;
+        public string userName { get; set; }
         /// <summary>
         /// 密码
         /// </summary>
-        public string password;
+        public string password { get; set; }
     }
 
     [MessagePackObject(true)]
@@ -27,28 +27,28 @@ namespace Queen.Network.Protocols
         /// <summary>
         /// 账号
         /// </summary>
-        public string userName;
+        public string userName { get; set; }
         /// <summary>
         /// 密码
         /// </summary>
-        public string password;
+        public string password { get; set; }
     }
 
     [MessagePackObject(true)]
-    public class S2CLoginMsg : INetMessage 
+    public class S2CLoginMsg : INetMessage
     {
         /// <summary>
         /// 操作码/ 1 登录成功，2 用户不存在，3 密码错误
         /// </summary>
-        public int opt;
+        public int code { get; set; }
     }
 
     [MessagePackObject(true)]
-    public class S2CRegisterMsg : INetMessage 
+    public class S2CRegisterMsg : INetMessage
     {
         /// <summary>
         /// 操作码/ 1 注册成功，2 用户已存在
         /// </summary>
-        public int opt;
+        public int code { get; set; }
     }
 }
