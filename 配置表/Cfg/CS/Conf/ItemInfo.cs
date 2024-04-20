@@ -22,7 +22,6 @@ public sealed partial class ItemInfo :  Bright.Config.BeanBase
         Name = _buf.ReadString();
         Desc = _buf.ReadString();
         Icon = _buf.ReadString();
-        Link = _buf.ReadInt();
         PostInit();
     }
 
@@ -59,10 +58,6 @@ public sealed partial class ItemInfo :  Bright.Config.BeanBase
     /// 图标
     /// </summary>
     public string Icon { get; private set; }
-    /// <summary>
-    /// 跳转 ID
-    /// </summary>
-    public int Link { get; private set; }
 
     public const int __ID__ = 2765291;
     public override int GetTypeId() => __ID__;
@@ -86,7 +81,6 @@ public sealed partial class ItemInfo :  Bright.Config.BeanBase
         + "Name:" + Name + ","
         + "Desc:" + Desc + ","
         + "Icon:" + Icon + ","
-        + "Link:" + Link + ","
         + "}";
     }
     

@@ -8,11 +8,16 @@ using System.Threading.Tasks;
 
 namespace Queen.Logic.System.Common
 {
+    /// <summary>
+    /// 系统
+    /// </summary>
     public class Sys : Actor
     {
         protected override void OnCreate()
         {
             base.OnCreate();
+
+            // 登录
             AddBehavior<Login>().Create();
         }
 

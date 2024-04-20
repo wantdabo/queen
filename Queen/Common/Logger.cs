@@ -94,6 +94,7 @@ namespace Queen.Common
             writer.Flush();
             Console.ForegroundColor = log.color;
             Console.WriteLine(logStr);
+            Console.ForegroundColor = ConsoleColor.White;
         }
     }
 }

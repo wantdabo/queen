@@ -9,9 +9,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Queen.Common.Database;
-using Queen.Logic.Player.Common;
 using Queen.Network;
 using Sys = Queen.Logic.System.Common.Sys;
+using Queen.Logic.Player.Common;
 
 namespace Queen.Core
 {

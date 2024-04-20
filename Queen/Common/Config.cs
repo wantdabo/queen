@@ -103,6 +103,11 @@ namespace Queen.Common
         public string resPath { get { return $"{Directory.GetCurrentDirectory()}/Res/"; } }
 
         /// <summary>
+        /// 数据目录
+        /// </summary>
+        public string dataPath { get { return $"{resPath}/Datas/"; } }
+
+        /// <summary>
         /// 日志目录
         /// </summary>
         public string logPath { get { return $"{resPath}/Logs/"; } }
@@ -113,6 +118,9 @@ namespace Queen.Common
         /// <returns>Task</returns>
         public void Initial()
         {
+            if (false == Directory.Exists(dataPath)) Directory.CreateDirectory(dataPath);
+            if (false == Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
+
             var jobj = JObject.Parse(File.ReadAllText($"{resPath}settings.json"));
             hostName = jobj.Value<string>("hostname");
             host = jobj.Value<string>("host");

@@ -11,6 +11,6 @@ ClientNode client = new();
 client.Connect("127.0.0.1", 8080);
 
 Thread.Sleep(1000);
-if (ProtoPack.Pack(new C2SLoginMsg { userName = "queen", password = "queen" }, out var bytes)) client.channel.Send(bytes);
+if (ProtoPack.Pack(new C2SRegisterMsg { userName = "queen2", password = "queen2" }, out var bytes)) client.channel.Send(bytes);
 
 Console.ReadKey();

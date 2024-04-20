@@ -1,4 +1,5 @@
 ﻿using Queen.Logic.Common;
+using Queen.Logic.Player.Bags;
 using Queen.Network.Common;
 using Queen.Network.Protocols.Common;
 using System;
@@ -9,15 +10,48 @@ using System.Threading.Tasks;
 
 namespace Queen.Logic.Player.Common
 {
+    /// <summary>
+    /// 玩家
+    /// </summary>
     public class Role : Actor
     {
+        /// <summary>
+        /// 玩家会话
+        /// </summary>
         public Session session;
+        /// <summary>
+        /// 玩家 ID
+        /// </summary>
         public string pid;
+        /// <summary>
+        /// 用户名
+        /// </summary>
         public string userName;
+        /// <summary>
+        /// 密码
+        /// </summary>
         public string nickName;
 
         private Dictionary<Delegate, Delegate> actionMap = new();
 
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+
+            // 背包
+            AddBehavior<Bag>().Create();
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+        }
+
+        /// <summary>
+        /// 注销协议接收
+        /// </summary>
+        /// <typeparam name="T">协议类型</typeparam>
+        /// <param name="action">协议回调</param>
         public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             if (actionMap.TryGetValue(action, out var callback))
@@ -26,7 +60,11 @@ namespace Queen.Logic.Player.Common
                 actionMap.Remove(action);
             }
         }
-
+        /// <summary>
+        /// 注册协议接收
+        /// </summary>
+        /// <typeparam name="T">协议类型</typeparam>
+        /// <param name="action">协议回调</param>
         public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             Action<NetChannel, T> callback = (c, m) => { if (c.id == session.channel.id && c.peer.ID == session.channel.id) action?.Invoke(c, m); };

@@ -15,19 +15,26 @@ namespace Queen.Logic.Common
     /// </summary>
     public struct DBSaveEvent : IEvent { }
 
-    public interface IDBState { }
-
-    public class Behavior : Comp
+    /// <summary>
+    /// Behavior/ 行为
+    /// </summary>
+    public abstract class Behavior : Comp
     {
         public Actor actor;
     }
 
+    public interface IDBState { }
+
+    /// <summary>
+    /// Behavior/ 行为，可存储数据
+    /// </summary>
+    /// <typeparam name="TDBState">存储数据的类型</typeparam>
     public abstract class Behavior<TDBState> : Behavior where TDBState : IDBState, new()
     {
         /// <summary>
         /// 存储地址
         /// </summary>
-        public abstract string path { get; }
+        protected abstract string path { get; }
 
         /// <summary>
         /// 数据
