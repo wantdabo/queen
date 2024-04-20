@@ -16,21 +16,6 @@ using Queen.Logic.Player.Common;
 namespace Queen.Core
 {
     /// <summary>
-    /// PreTick 事件
-    /// </summary>
-    public struct PreTickEvent : IEvent { }
-
-    /// <summary>
-    /// Tick 事件
-    /// </summary>
-    public struct TickEvent : IEvent { }
-
-    /// <summary>
-    /// LateTick 事件
-    /// </summary>
-    public struct LateTickEvent : IEvent { }
-
-    /// <summary>
     /// 引擎组件
     /// </summary>
     public class Engine : Comp
@@ -96,13 +81,10 @@ namespace Queen.Core
             logger.Log("queen is running...", ConsoleColor.Green);
 
             Console.Title = engine.cfg.hostName;
-            // Tick
             while (true)
             {
                 Thread.Sleep(cfg.engineTick);
-                eventor.Tell<PreTickEvent>();
-                eventor.Tell<TickEvent>();
-                eventor.Tell<LateTickEvent>();
+                slave.Notify();
             }
         }
 

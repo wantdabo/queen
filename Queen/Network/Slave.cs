@@ -20,14 +20,11 @@ namespace Queen.Network
             engine.logger.Log("slave create.");
             serverNode = new(engine.cfg.host, engine.cfg.port, false, engine.cfg.maxConn);
             engine.logger.Log("slave create success.");
-
-            engine.eventor.Listen<PreTickEvent>(OnPreTick);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            engine.eventor.UnListen<PreTickEvent>(OnPreTick);
         }
 
         public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
@@ -40,7 +37,7 @@ namespace Queen.Network
             serverNode.Listen(action);
         }
 
-        private void OnPreTick(PreTickEvent e) 
+        public void Notify() 
         {
             serverNode.Notify();
         }
