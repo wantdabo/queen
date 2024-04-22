@@ -10,7 +10,9 @@ ENet.Library.Initialize();
 ClientNode client = new();
 client.Connect("127.0.0.1", 8080);
 
-Thread.Sleep(1000);
-if (ProtoPack.Pack(new C2SLoginMsg { userName = "queen", password = "queen" }, out var bytes)) client.channel.Send(bytes);
-
+while (true)
+{
+    Thread.Sleep(20);
+    if (ProtoPack.Pack(new C2SLoginMsg { userName = "queen", password = "queen" }, out var bytes)) client.channel.Send(bytes);
+}
 Console.ReadKey();

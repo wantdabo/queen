@@ -8,12 +8,28 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Protocols.Common
 {
+    /// <summary>
+    /// 消息结构接口
+    /// </summary>
     public interface INetMessage { }
 
+    /// <summary>
+    /// 协议序列化
+    /// </summary>
     public class ProtoPack
     {
+        /// <summary>
+        /// 协议号长度
+        /// </summary>
         private static int INT32_LEN = 4;
 
+        /// <summary>
+        /// 反序列化消息
+        /// </summary>
+        /// <param name="bytes">二进制数据</param>
+        /// <param name="msgType">消息类型</param>
+        /// <param name="msg">消息</param>
+        /// <returns>YES/NO</returns>
         public static bool UnPack(byte[] bytes, out Type? msgType, out INetMessage? msg)
         {
             msg = null;
@@ -33,6 +49,13 @@ namespace Queen.Network.Protocols.Common
             return false;
         }
 
+        /// <summary>
+        /// 序列化消息
+        /// </summary>
+        /// <typeparam name="T">消息类型</typeparam>
+        /// <param name="msg">消息</param>
+        /// <param name="bytes">二进制数据</param>
+        /// <returns>YES/NO</returns>
         public static bool Pack<T>(T msg, out byte[]? bytes) where T : INetMessage
         {
             bytes = null;
@@ -51,6 +74,9 @@ namespace Queen.Network.Protocols.Common
             return false;
         }
 
+        /// <summary>
+        /// 协议号定义
+        /// </summary>
         private static Dictionary<int, Type> messageIdMap = new()
         {
             {10001, typeof(C2SLoginMsg)},

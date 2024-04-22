@@ -7,17 +7,29 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Protocols.Common
 {
+    /// <summary>
+    /// 网络节点连接消息
+    /// </summary>
     [MessagePackObject(true)]
-    public class NodeConnectMessage : INetMessage { }
+    public class NodeConnectMsg : INetMessage { }
 
+    /// <summary>
+    /// 网络节点断开连接消息
+    /// </summary>
     [MessagePackObject(true)]
-    public class NodeDisconnectMessage : INetMessage { }
+    public class NodeDisconnectMsg : INetMessage { }
 
+    /// <summary>
+    /// 网络节点超时消息
+    /// </summary>
     [MessagePackObject(true)]
-    public class NodeTimeoutMessage : INetMessage { }
+    public class NodeTimeoutMsg : INetMessage { }
 
+    /// <summary>
+    /// 网络节点接收消息
+    /// </summary>
     [MessagePackObject(true)]
-    public class NodeReceiveMessage : INetMessage
+    public class NodeReceiveMsg : INetMessage
     {
         public byte[] data;
     }

@@ -9,10 +9,23 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Common
 {
+    /// <summary>
+    /// 客户端网络节点
+    /// </summary>
     public class ClientNode : NetNode
     {
+        /// <summary>
+        /// 通信渠道
+        /// </summary>
         public NetChannel channel;
 
+        /// <summary>
+        /// 连接服务端网络节点
+        /// </summary>
+        /// <param name="ip">服务端地址</param>
+        /// <param name="port">服务端端口</param>
+        /// <param name="notify">是否自动通知消息（子线程）</param>
+        /// <param name="timeout">轮询超时</param>
         public void Connect(string ip, ushort port, bool notify = true, int timeout = 15)
         {
             this.ip = ip;

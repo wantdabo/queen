@@ -7,10 +7,24 @@ using System.Threading.Tasks;
 
 namespace Queen.Network.Common
 {
+    /// <summary>
+    /// 服务端网络节点
+    /// </summary>
     public class ServerNode : NetNode
     {
+        /// <summary>
+        /// 通信渠道集合
+        /// </summary>
         private Dictionary<uint, NetChannel> channelMap = new();
 
+        /// <summary>
+        /// 创建服务端网络节点
+        /// </summary>
+        /// <param name="ip">地址</param>
+        /// <param name="port">端口</param>
+        /// <param name="notify">是否自动通知消息（子线程）</param>
+        /// <param name="maxConn">最大连接数</param>
+        /// <param name="timeout">轮询超时</param>
         public ServerNode(string ip, ushort port, bool notify = true, int maxConn = 32, int timeout = 15)
         {
             this.ip = ip;

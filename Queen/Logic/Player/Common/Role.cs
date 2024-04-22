@@ -28,7 +28,7 @@ namespace Queen.Logic.Player.Common
         /// </summary>
         public string userName;
         /// <summary>
-        /// 密码
+        /// 昵称
         /// </summary>
         public string nickName;
 
