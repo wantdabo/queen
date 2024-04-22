@@ -45,7 +45,7 @@ namespace Queen.Common
         /// <summary>
         /// 服务器名字
         /// </summary>
-        public string hostName { get; private set; }
+        public string name { get; private set; }
 
         /// <summary>
         /// IP 地址
@@ -90,7 +90,7 @@ namespace Queen.Common
         /// <summary>
         /// 引擎 tick 间隔 (ms)
         /// </summary>
-        public int engineTick { get; private set; }
+        public int tick { get; private set; }
 
         /// <summary>
         /// GM 模式关启
@@ -122,7 +122,7 @@ namespace Queen.Common
             if (false == Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
 
             var jobj = JObject.Parse(File.ReadAllText($"{resPath}settings.json"));
-            hostName = jobj.Value<string>("hostname");
+            name = jobj.Value<string>("name");
             host = jobj.Value<string>("host");
             port = jobj.Value<ushort>("port");
             maxConn = jobj.Value<int>("maxconn");
@@ -131,7 +131,7 @@ namespace Queen.Common
             dbUser = jobj.Value<string>("dbuser");
             dbPwd = jobj.Value<string>("dbpwd");
             dbSave = jobj.Value<int>("dbsave");
-            engineTick = jobj.Value<int>("enginetick");
+            tick = jobj.Value<int>("tick");
             gmMode = jobj.Value<bool>("gmmode");
 
             location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{resPath}Configs/{cfgName}.bytes")); });

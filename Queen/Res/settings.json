@@ -1,6 +1,6 @@
 {
   // 服务器名字
-  "hostname": "queen.server",
+  "name": "queen.server",
   // IP 地址
   "host": "127.0.0.1",
   // 端口
@@ -18,7 +18,7 @@
   // 数据落地时间间隔（秒）
   "dbsave": 10,
   // 引擎 tick 间隔 (ms)
-  "enginetick": 5,
+  "tick": 5,
   // GM 模式关启
   "gmmode": true
 }
