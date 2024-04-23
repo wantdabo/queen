@@ -26,11 +26,11 @@ namespace Queen.Logic.Player.Common
         /// <summary>
         /// 用户名
         /// </summary>
-        public string userName;
+        public string username;
         /// <summary>
         /// 昵称
         /// </summary>
-        public string nickName;
+        public string nickname;
 
         private Dictionary<Delegate, Delegate> actionMap = new();
 

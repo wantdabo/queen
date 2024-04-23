@@ -48,11 +48,11 @@ namespace Queen.Logic.Player.Common
         /// <summary>
         /// 用户名
         /// </summary>
-        public string userName;
+        public string username;
         /// <summary>
         /// 昵称
         /// </summary>
-        public string nickName;
+        public string nickname;
     }
 
     /// <summary>
@@ -93,8 +93,8 @@ namespace Queen.Logic.Player.Common
             role.session.channel = info.channel;
             role.session.Create();
             role.pid = info.pid;
-            role.userName = info.userName;
-            role.nickName = info.nickName;
+            role.username = info.username;
+            role.nickname = info.nickname;
             role.Create();
 
             roleMap.Add(role.pid, role);
