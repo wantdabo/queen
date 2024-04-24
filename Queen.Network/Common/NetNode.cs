@@ -123,6 +123,13 @@ namespace Queen.Network.Common
         protected void EmitReceiveEvent(NetChannel channel, byte[] data)
         {
             if (false == ProtoPack.UnPack(data, out var msgType, out var msg)) return;
+            if (typeof(NodePingMsg) == msgType)
+            {
+                channel.Send(data);
+
+                return;
+            }
+
             EnqueuePackage(channel, msgType, msg);
             if (notify) Notify();
         }

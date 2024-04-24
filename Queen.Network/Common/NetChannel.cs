@@ -39,7 +39,7 @@ namespace Queen.Network.Common
         public void Send(byte[] data)
         {
             var packet = new Packet();
-            packet.Create(data);
+            packet.Create(data, data.Length, PacketFlags.Reliable | PacketFlags.NoAllocate);
             peer.Send(id, ref packet);
             packet.Dispose();
         }
