@@ -34,6 +34,11 @@ namespace Queen.Core
         {
             base.OnCreate();
 
+            // 配置表
+            cfg = AddComp<Config>();
+            cfg.Initial();
+            cfg.Create();
+
             // 日志
             logger = AddComp<Logger>();
             logger.Create();
@@ -43,11 +48,6 @@ namespace Queen.Core
             // 事件器
             eventor = AddComp<Eventor>();
             eventor.Create();
-
-            // 配置表
-            cfg = AddComp<Config>();
-            cfg.Initial();
-            cfg.Create();
 
             // 随机器
             random = AddComp<Common.Random>();

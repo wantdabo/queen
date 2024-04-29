@@ -50,8 +50,6 @@ namespace Queen.Common
             thread.IsBackground = true;
             thread.Start();
 
-            if(false == Directory.Exists(engine.cfg.logPath)) Directory.CreateDirectory(engine.cfg.logPath);
-
             var logFilePath = $"{engine.cfg.logPath}{DateTime.Now.ToLongDateString()}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
             var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
             writer = new StreamWriter(fs);
