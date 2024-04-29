@@ -15,13 +15,13 @@ namespace Queen.Network
     /// </summary>
     public class Slave : Comp
     {
-        private ServerNode? serverNode;
+        private ServerNode node;
 
         protected override void OnCreate()
         {
             base.OnCreate();
             engine.logger.Log("slave create.");
-            serverNode = new(engine.cfg.host, engine.cfg.port, false, engine.cfg.maxConn);
+            node = new(engine.cfg.host, engine.cfg.port, false, engine.cfg.maxConn);
             engine.logger.Log("slave create success.");
         }
 
@@ -37,7 +37,7 @@ namespace Queen.Network
         /// <param name="action">回调</param>
         public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
-            serverNode.UnListen(action);
+            node.UnListen(action);
         }
 
         /// <summary>
@@ -47,7 +47,7 @@ namespace Queen.Network
         /// <param name="action">回调</param>
         public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
-            serverNode.Listen(action);
+            node.Listen(action);
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace Queen.Network
         /// </summary>
         public void Notify() 
         {
-            serverNode.Notify();
+            node.Notify();
         }
     }
 }
