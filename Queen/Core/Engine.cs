@@ -75,8 +75,8 @@ namespace Queen.Core
             party.Create();
 
             engine.logger.Log(
-                $"\n\tname: {engine.cfg.name}\n\tipaddress: {engine.cfg.host}\n\tport: {engine.cfg.port}\n\tmaxconn: {engine.cfg.maxConn}\n\ttick: {engine.cfg.tick} ms" +
-                $"\n\tdbhost: {engine.cfg.dbHost}\n\tdbname: {engine.cfg.dbName}\n\tdbuser: {engine.cfg.dbUser}\n\tdbpwd: {engine.cfg.dbPwd}\n\tdbsave: {engine.cfg.dbSave}"
+                $"\n\tname: {engine.cfg.name}\n\tipaddress: {engine.cfg.host}\n\tport: {engine.cfg.port}\n\tmaxconn: {engine.cfg.maxconn}\n\ttick: {engine.cfg.tick} ms" +
+                $"\n\tdbhost: {engine.cfg.dbhost}\n\tdbname: {engine.cfg.dbname}\n\tdbuser: {engine.cfg.dbuser}\n\tdbpwd: {engine.cfg.dbpwd}\n\tdbsave: {engine.cfg.dbsave}"
             , ConsoleColor.Yellow);
             logger.Log("queen is running...", ConsoleColor.Green);
 

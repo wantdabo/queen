@@ -21,7 +21,7 @@ namespace Queen.Network
         {
             base.OnCreate();
             engine.logger.Log("slave create.");
-            node = new(engine.cfg.host, engine.cfg.port, false, engine.cfg.maxConn);
+            node = new(engine.cfg.host, engine.cfg.port, false, engine.cfg.maxconn);
             engine.logger.Log("slave create success.");
         }
 

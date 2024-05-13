@@ -32,7 +32,7 @@ namespace Queen.Logic.Player.Common
         /// <summary>
         /// 存储地址
         /// </summary>
-        protected override string path => $"{engine.cfg.dataPath}{role.pid}.{suffix}";
+        protected override string path => $"{engine.cfg.datapath}{role.pid}.{suffix}";
 
         /// <summary>
         /// 玩家

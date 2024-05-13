@@ -60,32 +60,32 @@ namespace Queen.Common
         /// <summary>
         /// 最大连接数
         /// </summary>
-        public int maxConn { get; private set; }
+        public int maxconn { get; private set; }
 
         /// <summary>
         /// 数据库主机
         /// </summary>
-        public string dbHost { get; private set; }
+        public string dbhost { get; private set; }
 
         /// <summary>
         /// 数据库名
         /// </summary>
-        public string dbName { get; private set; }
+        public string dbname { get; private set; }
 
         /// <summary>
         /// 数据库用户名
         /// </summary>
-        public string dbUser { get; private set; }
+        public string dbuser { get; private set; }
 
         /// <summary>
         /// 数据库密码
         /// </summary>
-        public string dbPwd { get; private set; }
+        public string dbpwd { get; private set; }
 
         /// <summary>
         /// 数据落地时间间隔（秒）
         /// </summary>
-        public int dbSave { get; private set; }
+        public int dbsave { get; private set; }
 
         /// <summary>
         /// 引擎 tick 间隔 (ms)
@@ -95,22 +95,22 @@ namespace Queen.Common
         /// <summary>
         /// GM 模式关启
         /// </summary>
-        public bool gmMode { get; private set; }
+        public bool gmmode { get; private set; }
 
         /// <summary>
         /// 资源目录
         /// </summary>
-        public string resPath { get { return $"{Directory.GetCurrentDirectory()}/Res/"; } }
+        public string respath { get { return $"{Directory.GetCurrentDirectory()}/Res/"; } }
 
         /// <summary>
         /// 数据目录
         /// </summary>
-        public string dataPath { get { return $"{resPath}/Datas/"; } }
+        public string datapath { get { return $"{respath}/Datas/"; } }
 
         /// <summary>
         /// 日志目录
         /// </summary>
-        public string logPath { get { return $"{resPath}/Logs/"; } }
+        public string logpath { get { return $"{respath}/Logs/"; } }
 
         /// <summary>
         /// 初始化配置表
@@ -118,23 +118,23 @@ namespace Queen.Common
         /// <returns>Task</returns>
         public void Initial()
         {
-            if (false == Directory.Exists(dataPath)) Directory.CreateDirectory(dataPath);
-            if (false == Directory.Exists(logPath)) Directory.CreateDirectory(logPath);
+            if (false == Directory.Exists(datapath)) Directory.CreateDirectory(datapath);
+            if (false == Directory.Exists(logpath)) Directory.CreateDirectory(logpath);
 
-            var jobj = JObject.Parse(File.ReadAllText($"{resPath}settings.json"));
+            var jobj = JObject.Parse(File.ReadAllText($"{respath}settings.json"));
             name = jobj.Value<string>("name");
             host = jobj.Value<string>("host");
             port = jobj.Value<ushort>("port");
-            maxConn = jobj.Value<int>("maxconn");
-            dbHost = jobj.Value<string>("dbhost");
-            dbName = jobj.Value<string>("dbname");
-            dbUser = jobj.Value<string>("dbuser");
-            dbPwd = jobj.Value<string>("dbpwd");
-            dbSave = jobj.Value<int>("dbsave");
+            maxconn = jobj.Value<int>("maxconn");
+            dbhost = jobj.Value<string>("dbhost");
+            dbname = jobj.Value<string>("dbname");
+            dbuser = jobj.Value<string>("dbuser");
+            dbpwd = jobj.Value<string>("dbpwd");
+            dbsave = jobj.Value<int>("dbsave");
             tick = jobj.Value<int>("tick");
-            gmMode = jobj.Value<bool>("gmmode");
+            gmmode = jobj.Value<bool>("gmmode");
 
-            location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{resPath}Configs/{cfgName}.bytes")); });
+            location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{respath}Configs/{cfgName}.bytes")); });
         }
     }
 }
