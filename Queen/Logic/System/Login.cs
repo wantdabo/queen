@@ -69,7 +69,7 @@ namespace Queen.Logic.Sys
             engine.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname });
             engine.logger.Log($"user login success. pid -> {reader.pid}, username -> {msg.username}");
 
-            channel.Send(new S2CLoginMsg { code = 1 });
+            channel.Send(new S2CLoginMsg { pid = reader.pid, code = 1 });
         }
 
         /// <summary>

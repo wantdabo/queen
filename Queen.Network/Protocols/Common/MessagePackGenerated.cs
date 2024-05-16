@@ -305,6 +305,8 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
     {
         // code
         private static global::System.ReadOnlySpan<byte> GetSpan_code() => new byte[1 + 4] { 164, 99, 111, 100, 101 };
+        // pid
+        private static global::System.ReadOnlySpan<byte> GetSpan_pid() => new byte[1 + 3] { 163, 112, 105, 100 };
 
         public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.S2CLoginMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
@@ -314,9 +316,12 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
                 return;
             }
 
-            writer.WriteMapHeader(1);
+            var formatterResolver = options.Resolver;
+            writer.WriteMapHeader(2);
             writer.WriteRaw(GetSpan_code());
             writer.Write(value.code);
+            writer.WriteRaw(GetSpan_pid());
+            global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Serialize(ref writer, value.pid, options);
         }
 
         public global::Queen.Network.Protocols.S2CLoginMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
@@ -327,6 +332,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             }
 
             options.Security.DepthStep(ref reader);
+            var formatterResolver = options.Resolver;
             var length = reader.ReadMapHeader();
             var ____result = new global::Queen.Network.Protocols.S2CLoginMsg();
 
@@ -343,6 +349,11 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
                         if (global::MessagePack.Internal.AutomataKeyGen.GetKey(ref stringKey) != 1701080931UL) { goto FAIL; }
 
                         ____result.code = reader.ReadInt32();
+                        continue;
+                    case 3:
+                        if (global::MessagePack.Internal.AutomataKeyGen.GetKey(ref stringKey) != 6580592UL) { goto FAIL; }
+
+                        ____result.pid = global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Deserialize(ref reader, options);
                         continue;
 
                 }
