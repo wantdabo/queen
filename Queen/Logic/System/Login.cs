@@ -79,7 +79,6 @@ namespace Queen.Logic.Sys
         /// <param name="msg">消息</param>
         private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
         {
-            engine.logger.Log($"user try to logout. pid -> {msg.pid}");
             var role = engine.party.GetRole(msg.pid);
             if (null == role)
             {
