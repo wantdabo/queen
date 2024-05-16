@@ -66,6 +66,13 @@ namespace Queen.Logic.Sys
                 return;
             }
 
+            var role = engine.party.GetRole(reader.pid);
+            if (null != role)
+            {
+                role.session.channel.Send(new S2CLogoutMsg { pid = role.pid, code = 3 });
+                engine.party.Quit(role);
+            }
+
             engine.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname });
             engine.logger.Log($"user login success. pid -> {reader.pid}, username -> {msg.username}");
 
