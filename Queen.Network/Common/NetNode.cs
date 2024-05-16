@@ -19,8 +19,17 @@ namespace Queen.Network.Common
         /// </summary>
         private struct NetPackage
         {
+            /// <summary>
+            /// 通信渠道
+            /// </summary>
             public NetChannel channel;
+            /// <summary>
+            /// 消息类型
+            /// </summary>
             public Type msgType;
+            /// <summary>
+            /// 消息
+            /// </summary>
             public INetMessage msg;
         }
 
