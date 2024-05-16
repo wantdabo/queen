@@ -88,11 +88,6 @@ namespace Queen.Common
         public int dbsave { get; private set; }
 
         /// <summary>
-        /// 引擎 tick 间隔 (ms)
-        /// </summary>
-        public int tick { get; private set; }
-
-        /// <summary>
         /// GM 模式关启
         /// </summary>
         public bool gmmode { get; private set; }
@@ -131,7 +126,6 @@ namespace Queen.Common
             dbuser = jobj.Value<string>("dbuser");
             dbpwd = jobj.Value<string>("dbpwd");
             dbsave = jobj.Value<int>("dbsave");
-            tick = jobj.Value<int>("tick");
             gmmode = jobj.Value<bool>("gmmode");
 
             location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{respath}Configs/{cfgName}.bytes")); });

@@ -43,7 +43,7 @@ namespace Queen.Core
             logger = AddComp<Logger>();
             logger.Create();
 
-            logger.Log("server initial...");
+            logger.Log("queen initial...");
 
             // 事件器
             eventor = AddComp<Eventor>();
@@ -75,7 +75,7 @@ namespace Queen.Core
             party.Create();
 
             engine.logger.Log(
-                $"\n\tname: {engine.cfg.name}\n\tipaddress: {engine.cfg.host}\n\tport: {engine.cfg.port}\n\tmaxconn: {engine.cfg.maxconn}\n\ttick: {engine.cfg.tick} ms" +
+                $"\n\tname: {engine.cfg.name}\n\tipaddress: {engine.cfg.host}\n\tport: {engine.cfg.port}\n\tmaxconn: {engine.cfg.maxconn}" +
                 $"\n\tdbhost: {engine.cfg.dbhost}\n\tdbname: {engine.cfg.dbname}\n\tdbuser: {engine.cfg.dbuser}\n\tdbpwd: {engine.cfg.dbpwd}\n\tdbsave: {engine.cfg.dbsave}"
             , ConsoleColor.Yellow);
             logger.Log("queen is running...", ConsoleColor.Green);
@@ -83,7 +83,6 @@ namespace Queen.Core
             Console.Title = engine.cfg.name;
             while (true)
             {
-                Thread.Sleep(cfg.tick);
                 slave.Notify();
             }
         }

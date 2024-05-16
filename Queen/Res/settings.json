@@ -17,8 +17,6 @@
   "dbpwd": "root",
   // 数据落地时间间隔（秒）
   "dbsave": 10,
-  // 引擎 tick 间隔 (ms)
-  "tick": 5,
   // GM 模式关启
   "gmmode": true
 }

@@ -83,7 +83,7 @@ namespace Queen.Logic.Player.Common
         /// 玩家加入
         /// </summary>
         /// <param name="info">玩家加入数据</param>
-        /// <returns>玩家实例</returns>
+        /// <returns>玩家</returns>
         public Role Join(RoleJoinInfo info)
         {
             if (roleMap.TryGetValue(info.pid, out var role)) Quit(role);
@@ -106,7 +106,7 @@ namespace Queen.Logic.Player.Common
         /// <summary>
         /// 玩家退出
         /// </summary>
-        /// <param name="role">玩家实例</param>
+        /// <param name="role">玩家</param>
         public void Quit(Role role)
         {
             eventor.Tell(new RoleQuitEvent { role = role });
@@ -119,12 +119,27 @@ namespace Queen.Logic.Player.Common
         /// 获取玩家
         /// </summary>
         /// <param name="pid">玩家 ID</param>
-        /// <returns>玩家实例</returns>
+        /// <returns>玩家</returns>
         public Role GetRole(string pid)
         {
             roleMap.TryGetValue(pid, out var role);
 
             return role;
+        }
+
+        /// <summary>
+        /// 获取玩家
+        /// </summary>
+        /// <param name="channel">通信渠道</param>
+        /// <returns>玩家</returns>
+        public Role GetRole(NetChannel channel) 
+        {
+            foreach (var kv in roleMap) 
+            {
+                if(channel.peer.ID == kv.Value.session.channel.peer.ID) return kv.Value;
+            }
+
+            return null;
         }
     }
 }
