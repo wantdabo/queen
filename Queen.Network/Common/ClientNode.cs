@@ -26,7 +26,7 @@ namespace Queen.Network.Common
         /// <param name="port">服务端端口</param>
         /// <param name="notify">是否自动通知消息（子线程）</param>
         /// <param name="timeout">轮询超时</param>
-        public void Connect(string ip, ushort port, bool notify = true, int timeout = 15)
+        public void Connect(string ip, ushort port, bool notify = true, int timeout = 0)
         {
             this.ip = ip;
             this.port = port;

@@ -25,7 +25,7 @@ namespace Queen.Network.Common
         /// <param name="notify">是否自动通知消息（子线程）</param>
         /// <param name="maxConn">最大连接数</param>
         /// <param name="timeout">轮询超时</param>
-        public ServerNode(string ip, ushort port, bool notify = true, int maxConn = 32, int timeout = 15)
+        public ServerNode(string ip, ushort port, bool notify = true, int maxConn = 32, int timeout = 0)
         {
             this.ip = ip;
             this.port = port;
