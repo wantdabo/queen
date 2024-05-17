@@ -60,7 +60,7 @@ namespace Queen.Network.Common
         /// </summary>
         /// <typeparam name="T">消息类型</typeparam>
         /// <param name="action">回调方法</param>
-        public void UnListen<T>(Action<NetChannel, T> action) where T : INetMessage
+        public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             if (false == messageActionMap.TryGetValue(typeof(T), out var actions)) return;
             if (false == actions.Contains(action)) return;
@@ -73,7 +73,7 @@ namespace Queen.Network.Common
         /// </summary>
         /// <typeparam name="T">消息类型</typeparam>
         /// <param name="action">回调方法</param>
-        public void Listen<T>(Action<NetChannel, T> action) where T : INetMessage
+        public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             if (false == messageActionMap.TryGetValue(typeof(T), out var actions))
             {

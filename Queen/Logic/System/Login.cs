@@ -27,7 +27,6 @@ namespace Queen.Logic.Sys
             engine.slave.Recv<C2SRegisterMsg>(OnC2SRegister);
             engine.slave.Recv<NodeConnectMsg>(OnNodeConnect);
             engine.slave.Recv<NodeDisconnectMsg>(OnNodeDisconnect);
-            engine.slave.Recv<NodeTimeoutMsg>(OnNodeTimeout);
         }
 
         protected override void OnDestroy()
@@ -36,7 +35,6 @@ namespace Queen.Logic.Sys
             engine.slave.UnRecv<C2SLoginMsg>(OnC2SLogin);
             engine.slave.UnRecv<C2SLogoutMsg>(OnC2SLogout);
             engine.slave.UnRecv<C2SRegisterMsg>(OnC2SRegister);
-            engine.slave.UnRecv<NodeTimeoutMsg>(OnNodeTimeout);
             engine.slave.UnRecv<NodeConnectMsg>(OnNodeConnect);
             engine.slave.UnRecv<NodeDisconnectMsg>(OnNodeDisconnect);
         }
@@ -133,15 +131,6 @@ namespace Queen.Logic.Sys
             if (null == role) return;
 
             engine.logger.Log($"user logout by disconnect. pid -> {role.pid}, username -> {role.username}");
-            engine.party.Quit(role);
-        }
-
-        private void OnNodeTimeout(NetChannel channel, NodeTimeoutMsg msg)
-        {
-            var role = engine.party.GetRole(channel);
-            if (null == role) return;
-
-            engine.logger.Log($"user logout by timeout. pid -> {role.pid}, username -> {role.username}");
             engine.party.Quit(role);
         }
     }

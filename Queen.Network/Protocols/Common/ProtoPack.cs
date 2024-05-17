@@ -75,6 +75,21 @@ namespace Queen.Network.Protocols.Common
             return false;
         }
 
+
+        /// <summary>
+        /// 初始化自定义解析器
+        /// </summary>
+        static ProtoPack()
+        {
+            StaticCompositeResolver.Instance.Register(
+                 GeneratedResolver.Instance,
+                 StandardResolver.Instance
+            );
+
+            var option = MessagePackSerializerOptions.Standard.WithResolver(StaticCompositeResolver.Instance);
+            MessagePackSerializer.DefaultOptions = option;
+        }
+
         /// <summary>
         /// 协议号定义
         /// </summary>
@@ -88,25 +103,5 @@ namespace Queen.Network.Protocols.Common
             {20005, typeof(S2CLogoutMsg)},
             {20006, typeof(C2SLogoutMsg)},
         };
-
-        private static bool serializerRegistered = false;
-
-        /// <summary>
-        /// 初始化自定义解析器
-        /// </summary>
-        static ProtoPack()
-        {
-            if (serializerRegistered) return;
-
-            StaticCompositeResolver.Instance.Register(
-                 GeneratedResolver.Instance,
-                 StandardResolver.Instance
-            );
-
-            var option = MessagePackSerializerOptions.Standard.WithResolver(StaticCompositeResolver.Instance);
-            MessagePackSerializer.DefaultOptions = option;
-
-            serializerRegistered = true;
-        }
     }
 }

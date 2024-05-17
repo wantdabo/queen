@@ -45,6 +45,7 @@ namespace Queen.Network.Common
                     {
                         case EventType.Connect:
                             var channel = new NetChannel { id = netEvent.ChannelID, peer = netEvent.Peer };
+                            channel.peer.Timeout(32, 1000, 30000);
                             channelMap.Add(netEvent.Peer.ID, channel);
                             EmitConnectEvent(channel);
                             break;
@@ -59,9 +60,10 @@ namespace Queen.Network.Common
                             if (channelMap.TryGetValue(netEvent.Peer.ID, out channel))
                             {
                                 EmitTimeoutEvent(channel);
+                                channel.peer.DisconnectNow(0);
+                                EmitDisconnectEvent(channel);
                                 channelMap.Remove(netEvent.Peer.ID);
                             }
-                            netEvent.Peer.Disconnect(netEvent.Peer.ID);
                             break;
                         case EventType.Receive:
                             var data = new byte[netEvent.Packet.Length];
