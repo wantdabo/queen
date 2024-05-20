@@ -89,6 +89,7 @@ namespace Queen.Core
             Console.Title = Settings.name;
             while (true)
             {
+                rpc.Poll();
                 slave.Poll();
             }
         }

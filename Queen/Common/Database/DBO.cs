@@ -37,7 +37,7 @@ namespace Queen.Common.Database
         {
             base.OnCreate();
             engine.logger.Log("create mysql connect.");
-            connect = new MySqlConnection($"Server={Settings.host};User ID={Settings.dbuser};Password={Settings.dbpwd};Database={Settings.dbname}");
+            connect = new MySqlConnection($"Server={Settings.dbhost};User ID={Settings.dbuser};Password={Settings.dbpwd};Database={Settings.dbname}");
             engine.logger.Log("create mysql connect success.");
         }
 

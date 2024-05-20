@@ -6,8 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Channels;
-using System.Threading.Tasks;
 
 namespace Queen.Network.Remote
 {
@@ -46,7 +44,7 @@ namespace Queen.Network.Remote
             settings.Create();
 
             engine.logger.Log("rpc create.");
-            servNode = new(settings.host, settings.port, true, settings.maxconn);
+            servNode = new(settings.host, settings.port, false, settings.maxconn);
             engine.logger.Log("rpc create success.");
 
             clientNodes = new ClientNode[settings.rpcServs.Length];
@@ -62,6 +60,14 @@ namespace Queen.Network.Remote
         protected override void OnDestroy()
         {
             base.OnDestroy();
+        }
+
+        /// <summary>
+        /// 轮询
+        /// </summary>
+        public void Poll()
+        {
+            servNode.Notify();
         }
 
         /// <summary>
