@@ -14,10 +14,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Queen.Network\Queen.Network.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="Res\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -25,6 +21,11 @@
 
   <ItemGroup>
     <None Remove="Res\queen_roles.sql" />
+    <None Remove="Res\rpc_settings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Queen.Protocols\Queen.Protocols.csproj" />
   </ItemGroup>
 
 </Project>

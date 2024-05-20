@@ -1,5 +1,5 @@
 ﻿using ENet;
-using Queen.Network.Protocols.Common;
+using Queen.Protocols.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;

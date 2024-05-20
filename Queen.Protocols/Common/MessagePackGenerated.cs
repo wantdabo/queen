@@ -49,17 +49,17 @@ namespace MessagePack.Resolvers
         {
             lookup = new global::System.Collections.Generic.Dictionary<global::System.Type, int>(11)
             {
-                { typeof(global::Queen.Network.Protocols.C2SLoginMsg), 0 },
-                { typeof(global::Queen.Network.Protocols.C2SLogoutMsg), 1 },
-                { typeof(global::Queen.Network.Protocols.C2SRegisterMsg), 2 },
-                { typeof(global::Queen.Network.Protocols.Common.NodeConnectMsg), 3 },
-                { typeof(global::Queen.Network.Protocols.Common.NodeDisconnectMsg), 4 },
-                { typeof(global::Queen.Network.Protocols.Common.NodePingMsg), 5 },
-                { typeof(global::Queen.Network.Protocols.Common.NodeReceiveMsg), 6 },
-                { typeof(global::Queen.Network.Protocols.Common.NodeTimeoutMsg), 7 },
-                { typeof(global::Queen.Network.Protocols.S2CLoginMsg), 8 },
-                { typeof(global::Queen.Network.Protocols.S2CLogoutMsg), 9 },
-                { typeof(global::Queen.Network.Protocols.S2CRegisterMsg), 10 },
+                { typeof(global::Queen.Protocols.C2SLoginMsg), 0 },
+                { typeof(global::Queen.Protocols.C2SLogoutMsg), 1 },
+                { typeof(global::Queen.Protocols.C2SRegisterMsg), 2 },
+                { typeof(global::Queen.Protocols.Common.NodeConnectMsg), 3 },
+                { typeof(global::Queen.Protocols.Common.NodeDisconnectMsg), 4 },
+                { typeof(global::Queen.Protocols.Common.NodePingMsg), 5 },
+                { typeof(global::Queen.Protocols.Common.NodeReceiveMsg), 6 },
+                { typeof(global::Queen.Protocols.Common.NodeTimeoutMsg), 7 },
+                { typeof(global::Queen.Protocols.S2CLoginMsg), 8 },
+                { typeof(global::Queen.Protocols.S2CLogoutMsg), 9 },
+                { typeof(global::Queen.Protocols.S2CRegisterMsg), 10 },
             };
         }
 
@@ -73,17 +73,17 @@ namespace MessagePack.Resolvers
 
             switch (key)
             {
-                case 0: return new MessagePack.Formatters.Queen.Network.Protocols.C2SLoginMsgFormatter();
-                case 1: return new MessagePack.Formatters.Queen.Network.Protocols.C2SLogoutMsgFormatter();
-                case 2: return new MessagePack.Formatters.Queen.Network.Protocols.C2SRegisterMsgFormatter();
-                case 3: return new MessagePack.Formatters.Queen.Network.Protocols.Common.NodeConnectMsgFormatter();
-                case 4: return new MessagePack.Formatters.Queen.Network.Protocols.Common.NodeDisconnectMsgFormatter();
-                case 5: return new MessagePack.Formatters.Queen.Network.Protocols.Common.NodePingMsgFormatter();
-                case 6: return new MessagePack.Formatters.Queen.Network.Protocols.Common.NodeReceiveMsgFormatter();
-                case 7: return new MessagePack.Formatters.Queen.Network.Protocols.Common.NodeTimeoutMsgFormatter();
-                case 8: return new MessagePack.Formatters.Queen.Network.Protocols.S2CLoginMsgFormatter();
-                case 9: return new MessagePack.Formatters.Queen.Network.Protocols.S2CLogoutMsgFormatter();
-                case 10: return new MessagePack.Formatters.Queen.Network.Protocols.S2CRegisterMsgFormatter();
+                case 0: return new MessagePack.Formatters.Queen.Protocols.C2SLoginMsgFormatter();
+                case 1: return new MessagePack.Formatters.Queen.Protocols.C2SLogoutMsgFormatter();
+                case 2: return new MessagePack.Formatters.Queen.Protocols.C2SRegisterMsgFormatter();
+                case 3: return new MessagePack.Formatters.Queen.Protocols.Common.NodeConnectMsgFormatter();
+                case 4: return new MessagePack.Formatters.Queen.Protocols.Common.NodeDisconnectMsgFormatter();
+                case 5: return new MessagePack.Formatters.Queen.Protocols.Common.NodePingMsgFormatter();
+                case 6: return new MessagePack.Formatters.Queen.Protocols.Common.NodeReceiveMsgFormatter();
+                case 7: return new MessagePack.Formatters.Queen.Protocols.Common.NodeTimeoutMsgFormatter();
+                case 8: return new MessagePack.Formatters.Queen.Protocols.S2CLoginMsgFormatter();
+                case 9: return new MessagePack.Formatters.Queen.Protocols.S2CLogoutMsgFormatter();
+                case 10: return new MessagePack.Formatters.Queen.Protocols.S2CRegisterMsgFormatter();
                 default: return null;
             }
         }
@@ -117,16 +117,16 @@ namespace MessagePack.Resolvers
 #pragma warning disable SA1403 // File may only contain a single namespace
 #pragma warning disable SA1649 // File name should match first type name
 
-namespace MessagePack.Formatters.Queen.Network.Protocols
+namespace MessagePack.Formatters.Queen.Protocols
 {
-    public sealed class C2SLoginMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.C2SLoginMsg>
+    public sealed class C2SLoginMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.C2SLoginMsg>
     {
         // username
         private static global::System.ReadOnlySpan<byte> GetSpan_username() => new byte[1 + 8] { 168, 117, 115, 101, 114, 110, 97, 109, 101 };
         // password
         private static global::System.ReadOnlySpan<byte> GetSpan_password() => new byte[1 + 8] { 168, 112, 97, 115, 115, 119, 111, 114, 100 };
 
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.C2SLoginMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.C2SLoginMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -142,7 +142,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Serialize(ref writer, value.password, options);
         }
 
-        public global::Queen.Network.Protocols.C2SLoginMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.C2SLoginMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -152,7 +152,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             options.Security.DepthStep(ref reader);
             var formatterResolver = options.Resolver;
             var length = reader.ReadMapHeader();
-            var ____result = new global::Queen.Network.Protocols.C2SLoginMsg();
+            var ____result = new global::Queen.Protocols.C2SLoginMsg();
 
             for (int i = 0; i < length; i++)
             {
@@ -183,12 +183,12 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
         }
     }
 
-    public sealed class C2SLogoutMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.C2SLogoutMsg>
+    public sealed class C2SLogoutMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.C2SLogoutMsg>
     {
         // pid
         private static global::System.ReadOnlySpan<byte> GetSpan_pid() => new byte[1 + 3] { 163, 112, 105, 100 };
 
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.C2SLogoutMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.C2SLogoutMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -202,7 +202,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Serialize(ref writer, value.pid, options);
         }
 
-        public global::Queen.Network.Protocols.C2SLogoutMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.C2SLogoutMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -212,7 +212,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             options.Security.DepthStep(ref reader);
             var formatterResolver = options.Resolver;
             var length = reader.ReadMapHeader();
-            var ____result = new global::Queen.Network.Protocols.C2SLogoutMsg();
+            var ____result = new global::Queen.Protocols.C2SLogoutMsg();
 
             for (int i = 0; i < length; i++)
             {
@@ -237,14 +237,14 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
         }
     }
 
-    public sealed class C2SRegisterMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.C2SRegisterMsg>
+    public sealed class C2SRegisterMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.C2SRegisterMsg>
     {
         // username
         private static global::System.ReadOnlySpan<byte> GetSpan_username() => new byte[1 + 8] { 168, 117, 115, 101, 114, 110, 97, 109, 101 };
         // password
         private static global::System.ReadOnlySpan<byte> GetSpan_password() => new byte[1 + 8] { 168, 112, 97, 115, 115, 119, 111, 114, 100 };
 
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.C2SRegisterMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.C2SRegisterMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -260,7 +260,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Serialize(ref writer, value.password, options);
         }
 
-        public global::Queen.Network.Protocols.C2SRegisterMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.C2SRegisterMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -270,7 +270,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             options.Security.DepthStep(ref reader);
             var formatterResolver = options.Resolver;
             var length = reader.ReadMapHeader();
-            var ____result = new global::Queen.Network.Protocols.C2SRegisterMsg();
+            var ____result = new global::Queen.Protocols.C2SRegisterMsg();
 
             for (int i = 0; i < length; i++)
             {
@@ -301,14 +301,14 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
         }
     }
 
-    public sealed class S2CLoginMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.S2CLoginMsg>
+    public sealed class S2CLoginMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.S2CLoginMsg>
     {
         // code
         private static global::System.ReadOnlySpan<byte> GetSpan_code() => new byte[1 + 4] { 164, 99, 111, 100, 101 };
         // pid
         private static global::System.ReadOnlySpan<byte> GetSpan_pid() => new byte[1 + 3] { 163, 112, 105, 100 };
 
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.S2CLoginMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.S2CLoginMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -324,7 +324,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Serialize(ref writer, value.pid, options);
         }
 
-        public global::Queen.Network.Protocols.S2CLoginMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.S2CLoginMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -334,7 +334,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             options.Security.DepthStep(ref reader);
             var formatterResolver = options.Resolver;
             var length = reader.ReadMapHeader();
-            var ____result = new global::Queen.Network.Protocols.S2CLoginMsg();
+            var ____result = new global::Queen.Protocols.S2CLoginMsg();
 
             for (int i = 0; i < length; i++)
             {
@@ -364,14 +364,14 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
         }
     }
 
-    public sealed class S2CLogoutMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.S2CLogoutMsg>
+    public sealed class S2CLogoutMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.S2CLogoutMsg>
     {
         // code
         private static global::System.ReadOnlySpan<byte> GetSpan_code() => new byte[1 + 4] { 164, 99, 111, 100, 101 };
         // pid
         private static global::System.ReadOnlySpan<byte> GetSpan_pid() => new byte[1 + 3] { 163, 112, 105, 100 };
 
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.S2CLogoutMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.S2CLogoutMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -387,7 +387,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Serialize(ref writer, value.pid, options);
         }
 
-        public global::Queen.Network.Protocols.S2CLogoutMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.S2CLogoutMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -397,7 +397,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             options.Security.DepthStep(ref reader);
             var formatterResolver = options.Resolver;
             var length = reader.ReadMapHeader();
-            var ____result = new global::Queen.Network.Protocols.S2CLogoutMsg();
+            var ____result = new global::Queen.Protocols.S2CLogoutMsg();
 
             for (int i = 0; i < length; i++)
             {
@@ -427,12 +427,12 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
         }
     }
 
-    public sealed class S2CRegisterMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.S2CRegisterMsg>
+    public sealed class S2CRegisterMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.S2CRegisterMsg>
     {
         // code
         private static global::System.ReadOnlySpan<byte> GetSpan_code() => new byte[1 + 4] { 164, 99, 111, 100, 101 };
 
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.S2CRegisterMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.S2CRegisterMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -445,7 +445,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
             writer.Write(value.code);
         }
 
-        public global::Queen.Network.Protocols.S2CRegisterMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.S2CRegisterMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -454,7 +454,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
 
             options.Security.DepthStep(ref reader);
             var length = reader.ReadMapHeader();
-            var ____result = new global::Queen.Network.Protocols.S2CRegisterMsg();
+            var ____result = new global::Queen.Protocols.S2CRegisterMsg();
 
             for (int i = 0; i < length; i++)
             {
@@ -508,11 +508,11 @@ namespace MessagePack.Formatters.Queen.Network.Protocols
 #pragma warning disable SA1403 // File may only contain a single namespace
 #pragma warning disable SA1649 // File name should match first type name
 
-namespace MessagePack.Formatters.Queen.Network.Protocols.Common
+namespace MessagePack.Formatters.Queen.Protocols.Common
 {
-    public sealed class NodeConnectMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.Common.NodeConnectMsg>
+    public sealed class NodeConnectMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.Common.NodeConnectMsg>
     {
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.Common.NodeConnectMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.Common.NodeConnectMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -523,7 +523,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             writer.WriteMapHeader(0);
         }
 
-        public global::Queen.Network.Protocols.Common.NodeConnectMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.Common.NodeConnectMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -531,14 +531,14 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             }
 
             reader.Skip();
-            var ____result = new global::Queen.Network.Protocols.Common.NodeConnectMsg();
+            var ____result = new global::Queen.Protocols.Common.NodeConnectMsg();
             return ____result;
         }
     }
 
-    public sealed class NodeDisconnectMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.Common.NodeDisconnectMsg>
+    public sealed class NodeDisconnectMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.Common.NodeDisconnectMsg>
     {
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.Common.NodeDisconnectMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.Common.NodeDisconnectMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -549,7 +549,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             writer.WriteMapHeader(0);
         }
 
-        public global::Queen.Network.Protocols.Common.NodeDisconnectMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.Common.NodeDisconnectMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -557,14 +557,14 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             }
 
             reader.Skip();
-            var ____result = new global::Queen.Network.Protocols.Common.NodeDisconnectMsg();
+            var ____result = new global::Queen.Protocols.Common.NodeDisconnectMsg();
             return ____result;
         }
     }
 
-    public sealed class NodePingMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.Common.NodePingMsg>
+    public sealed class NodePingMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.Common.NodePingMsg>
     {
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.Common.NodePingMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.Common.NodePingMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -575,7 +575,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             writer.WriteMapHeader(0);
         }
 
-        public global::Queen.Network.Protocols.Common.NodePingMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.Common.NodePingMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -583,17 +583,17 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             }
 
             reader.Skip();
-            var ____result = new global::Queen.Network.Protocols.Common.NodePingMsg();
+            var ____result = new global::Queen.Protocols.Common.NodePingMsg();
             return ____result;
         }
     }
 
-    public sealed class NodeReceiveMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.Common.NodeReceiveMsg>
+    public sealed class NodeReceiveMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.Common.NodeReceiveMsg>
     {
         // data
         private static global::System.ReadOnlySpan<byte> GetSpan_data() => new byte[1 + 4] { 164, 100, 97, 116, 97 };
 
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.Common.NodeReceiveMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.Common.NodeReceiveMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -606,7 +606,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             writer.Write(value.data);
         }
 
-        public global::Queen.Network.Protocols.Common.NodeReceiveMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.Common.NodeReceiveMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -615,7 +615,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
 
             options.Security.DepthStep(ref reader);
             var length = reader.ReadMapHeader();
-            var ____result = new global::Queen.Network.Protocols.Common.NodeReceiveMsg();
+            var ____result = new global::Queen.Protocols.Common.NodeReceiveMsg();
 
             for (int i = 0; i < length; i++)
             {
@@ -640,9 +640,9 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
         }
     }
 
-    public sealed class NodeTimeoutMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Network.Protocols.Common.NodeTimeoutMsg>
+    public sealed class NodeTimeoutMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.Common.NodeTimeoutMsg>
     {
-        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Network.Protocols.Common.NodeTimeoutMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.Common.NodeTimeoutMsg value, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (value is null)
             {
@@ -653,7 +653,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             writer.WriteMapHeader(0);
         }
 
-        public global::Queen.Network.Protocols.Common.NodeTimeoutMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        public global::Queen.Protocols.Common.NodeTimeoutMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
         {
             if (reader.TryReadNil())
             {
@@ -661,7 +661,7 @@ namespace MessagePack.Formatters.Queen.Network.Protocols.Common
             }
 
             reader.Skip();
-            var ____result = new global::Queen.Network.Protocols.Common.NodeTimeoutMsg();
+            var ____result = new global::Queen.Protocols.Common.NodeTimeoutMsg();
             return ____result;
         }
     }

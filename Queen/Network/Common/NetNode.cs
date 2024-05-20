@@ -1,4 +1,4 @@
-﻿using Queen.Network.Protocols.Common;
+﻿using Queen.Protocols.Common;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -44,7 +44,7 @@ namespace Queen.Network.Common
         /// <summary>z
         /// 是否自动通知消息
         /// </summary>
-        public bool notify { get; protected set; }
+        protected bool notify { get; set; }
 
         /// <summary>
         /// 注册消息回调集合
@@ -151,7 +151,7 @@ namespace Queen.Network.Common
             {
                 if (false == messageActionMap.TryGetValue(package.msgType, out var actions)) return;
                 if (null == actions) return;
-                for (int i = actions.Count - 1; i >= 0; i--) actions[i].DynamicInvoke(package.channel, package.msg);
+                for (int i = actions.Count - 1; i >= 0; i--) actions[i]?.DynamicInvoke(package.channel, package.msg);
             }
         }
     }

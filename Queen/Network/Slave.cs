@@ -1,8 +1,6 @@
 ﻿using Queen.Core;
-using Queen.Logic.Common;
 using Queen.Network.Common;
-using Queen.Network.Protocols;
-using Queen.Network.Protocols.Common;
+using Queen.Protocols.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,10 +19,6 @@ namespace Queen.Network
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.logger.Log("slave create.");
-            node = new(engine.cfg.host, engine.cfg.port, false, engine.cfg.maxconn);
-            engine.logger.Log("slave create success.");
-
             Recv<NodeConnectMsg>(OnNodeConnect);
             Recv<NodeDisconnectMsg>(OnNodeDisconnect);
             Recv<NodeTimeoutMsg>(OnNodeTimeout);
@@ -36,6 +30,28 @@ namespace Queen.Network
             UnRecv<NodeTimeoutMsg>(OnNodeTimeout);
             UnRecv<NodeConnectMsg>(OnNodeConnect);
             UnRecv<NodeDisconnectMsg>(OnNodeDisconnect);
+        }
+
+        /// <summary>
+        /// 配置主网
+        /// </summary>
+        /// <param name="ip">地址</param>
+        /// <param name="port">端口</param>
+        /// <param name="maxConn">最大连接数</param>
+        /// <param name="timeout">轮询超时</param>
+        public void Initialize(string ip, ushort port, int maxConn = 32, int timeout = 0) 
+        {
+            engine.logger.Log("slave create.");
+            node = new(ip, port, false, maxConn, timeout);
+            engine.logger.Log("slave create success.");
+        }
+
+        /// <summary>
+        /// 轮询
+        /// </summary>
+        public void Poll()
+        {
+            node.Notify();
         }
 
         /// <summary>
@@ -56,14 +72,6 @@ namespace Queen.Network
         public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             node.Recv(action);
-        }
-
-        /// <summary>
-        /// 消息派发
-        /// </summary>
-        public void Notify()
-        {
-            node.Notify();
         }
 
         private void OnNodeConnect(NetChannel channel, NodeConnectMsg msg)

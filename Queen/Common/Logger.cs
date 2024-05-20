@@ -1,5 +1,6 @@
 ﻿using Queen.Core;
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 
 namespace Queen.Common
@@ -31,7 +32,7 @@ namespace Queen.Common
         /// <summary>
         /// 日志队列
         /// </summary>
-        private Queue<LogInfo> logInfos = new();
+        private ConcurrentQueue<LogInfo> logInfos = new();
 
         private StreamWriter writer;
 
@@ -44,7 +45,7 @@ namespace Queen.Common
                 while (true)
                 {
                     Thread.Sleep(100);
-                    while (logInfos.Count > 0) Log(logInfos.Dequeue());
+                    while (logInfos.TryDequeue(out var log)) Log(log);
                 }
             });
             thread.IsBackground = true;
@@ -61,7 +62,8 @@ namespace Queen.Common
 
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
-                while (logInfos.Count > 0) Log(logInfos.Dequeue());
+                while (logInfos.TryDequeue(out var log)) Log(log);
+
                 writer.Flush();
                 writer.Close();
             };

@@ -1,5 +1,6 @@
 ﻿using MessagePack;
 using MessagePack.Resolvers;
+using Queen.Protocols;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Network.Protocols.Common
+namespace Queen.Protocols.Common
 {
     /// <summary>
     /// 消息结构接口

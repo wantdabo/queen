@@ -1,7 +1,7 @@
 ﻿using Queen.Logic.Common;
 using Queen.Logic.Player.Bags;
 using Queen.Network.Common;
-using Queen.Network.Protocols.Common;
+using Queen.Protocols.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -1,7 +1,7 @@
 ﻿using Queen.Common;
 using Queen.Network.Common;
-using Queen.Network.Protocols.Common;
-using Queen.Network.Protocols;
+using Queen.Protocols.Common;
+using Queen.Protocols;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +12,7 @@ using Queen.Common.Database;
 using Queen.Network;
 using Sys = Queen.Logic.System.Common.Sys;
 using Queen.Logic.Player.Common;
+using Queen.Network.Remote;
 
 namespace Queen.Core
 {
@@ -26,6 +27,7 @@ namespace Queen.Core
         public Eventor eventor;
         public ObjectPool pool;
         public DBO dbo;
+        public RPC rpc;
         public Slave slave;
         public Sys sys;
         public Party party;
@@ -33,10 +35,10 @@ namespace Queen.Core
         protected override void OnCreate()
         {
             base.OnCreate();
+            ENet.Library.Initialize();
 
             // 配置表
             cfg = AddComp<Config>();
-            cfg.Initial();
             cfg.Create();
 
             // 日志
@@ -61,9 +63,13 @@ namespace Queen.Core
             dbo = AddComp<DBO>();
             dbo.Create();
 
+            // RPC
+            rpc = AddComp<RPC>();
+            rpc.Create();
+
             // 网络
-            ENet.Library.Initialize();
             slave = AddComp<Slave>();
+            slave.Initialize(Settings.host, Settings.port, Settings.maxconn);
             slave.Create();
 
             // 系统
@@ -75,21 +81,22 @@ namespace Queen.Core
             party.Create();
 
             engine.logger.Log(
-                $"\n\tname: {engine.cfg.name}\n\tipaddress: {engine.cfg.host}\n\tport: {engine.cfg.port}\n\tmaxconn: {engine.cfg.maxconn}" +
-                $"\n\tdbhost: {engine.cfg.dbhost}\n\tdbname: {engine.cfg.dbname}\n\tdbuser: {engine.cfg.dbuser}\n\tdbpwd: {engine.cfg.dbpwd}\n\tdbsave: {engine.cfg.dbsave}"
+                $"\n\tname: {Settings.name}\n\tipaddress: {Settings.host}\n\tport: {Settings.port}\n\tmaxconn: {Settings.maxconn}" +
+                $"\n\tdbhost: {Settings.dbhost}\n\tdbname: {Settings.dbname}\n\tdbuser: {Settings.dbuser}\n\tdbpwd: {Settings.dbpwd}\n\tdbsave: {Settings.dbsave}"
             , ConsoleColor.Yellow);
             logger.Log("queen is running...", ConsoleColor.Green);
 
-            Console.Title = engine.cfg.name;
+            Console.Title = Settings.name;
             while (true)
             {
-                slave.Notify();
+                slave.Poll();
             }
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            ENet.Library.Deinitialize();
         }
 
         /// <summary>
