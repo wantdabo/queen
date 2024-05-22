@@ -36,7 +36,7 @@ namespace Queen.Network.Remote
     /// <summary>
     /// RPC 配置
     /// </summary>
-    public class Settings : Comp
+    public class RPCSettings : Comp
     {
         /// <summary>
         /// RPC 名字

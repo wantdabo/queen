@@ -33,11 +33,28 @@ namespace Queen.Common.Database
         /// </summary>
         private MySqlConnection connect;
 
+        /// <summary>
+        /// DB 主机
+        /// </summary>
+        private string dbhost;
+        /// <summary>
+        /// DB 用户名
+        /// </summary>
+        private string dbuser;
+        /// <summary>
+        /// DB 密码
+        /// </summary>
+        private string dbpwd;
+        /// <summary>
+        /// DB 名字
+        /// </summary>
+        private string dbname;
+
         protected override void OnCreate()
         {
             base.OnCreate();
             engine.logger.Log("create mysql connect.");
-            connect = new MySqlConnection($"Server={Settings.dbhost};User ID={Settings.dbuser};Password={Settings.dbpwd};Database={Settings.dbname}");
+            connect = new MySqlConnection($"Server={dbhost};User ID={dbuser};Password={dbpwd};Database={dbname}");
             engine.logger.Log("create mysql connect success.");
         }
 
@@ -45,6 +62,21 @@ namespace Queen.Common.Database
         {
             base.OnDestroy();
             connect = null;
+        }
+
+        /// <summary>
+        /// 配置数据库
+        /// </summary>
+        /// <param name="dbhost">DB 主机</param>
+        /// <param name="dbuser">DB 用户名</param>
+        /// <param name="dbpwd">DB 密码</param>
+        /// <param name="dbname">DB 名字</param>
+        public void Settings(string dbhost, string dbuser, string dbpwd, string dbname) 
+        {
+            this.dbhost = dbhost;
+            this.dbuser = dbuser;
+            this.dbpwd = dbpwd;
+            this.dbname = dbname;
         }
 
         /// <summary>
@@ -77,10 +109,10 @@ namespace Queen.Common.Database
                     for (int i = 0; i < reader.FieldCount; i++)
                     {
                         var columnName = reader.GetName(i);
-                        var columnValue = reader.GetFieldValueAsync<object>(i);
+                        var columnValue = reader.GetFieldValue<object>(i);
 
                         // 将字段值设置到实体对象中
-                        info.SetPropertyValue(columnName, columnValue.Result);
+                        info.SetPropertyValue(columnName, columnValue);
                     }
                     infos.Add(info);
                 }

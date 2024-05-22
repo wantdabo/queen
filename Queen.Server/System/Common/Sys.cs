@@ -1,32 +1,29 @@
-﻿using Queen.Core;
-using Queen.Network.Common;
+﻿using Queen.Server.Common;
+using Queen.Server.System;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Player.Common
+namespace Queen.Server.System.Common
 {
     /// <summary>
-    /// 会话
+    /// 系统
     /// </summary>
-    public class Session : Comp
+    public class Sys : Actor
     {
-        /// <summary>
-        /// 通信渠道
-        /// </summary>
-        public NetChannel channel;
-
         protected override void OnCreate()
         {
             base.OnCreate();
+
+            // 登录
+            AddBehavior<Login>().Create();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            channel.peer.Disconnect(channel.peer.ID);
         }
     }
 }

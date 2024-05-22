@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Queen.Common;
-using Queen.Core;
+using Queen.Server.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Common
+namespace Queen.Server.Common
 {
     /// <summary>
     /// 数据保存事件

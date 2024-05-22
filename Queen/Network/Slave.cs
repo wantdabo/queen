@@ -19,6 +19,7 @@ namespace Queen.Network
         protected override void OnCreate()
         {
             base.OnCreate();
+            engine.eventor.Listen<EngineExecuteEvent>(OnEngineExecute);
             Recv<NodeConnectMsg>(OnNodeConnect);
             Recv<NodeDisconnectMsg>(OnNodeDisconnect);
             Recv<NodeTimeoutMsg>(OnNodeTimeout);
@@ -27,6 +28,7 @@ namespace Queen.Network
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            engine.eventor.UnListen<EngineExecuteEvent>(OnEngineExecute);
             UnRecv<NodeTimeoutMsg>(OnNodeTimeout);
             UnRecv<NodeConnectMsg>(OnNodeConnect);
             UnRecv<NodeDisconnectMsg>(OnNodeDisconnect);
@@ -46,10 +48,7 @@ namespace Queen.Network
             engine.logger.Log("slave create success.");
         }
 
-        /// <summary>
-        /// 轮询
-        /// </summary>
-        public void Poll()
+        private void OnEngineExecute(EngineExecuteEvent e)
         {
             node.Notify();
         }

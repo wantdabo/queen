@@ -1,14 +1,14 @@
-﻿using Queen.Logic.Common;
-using Queen.Logic.Player.Bags;
-using Queen.Network.Common;
+﻿using Queen.Network.Common;
 using Queen.Protocols.Common;
+using Queen.Server.Common;
+using Queen.Server.Player.Bags;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Player.Common
+namespace Queen.Server.Player.Common
 {
     /// <summary>
     /// 玩家

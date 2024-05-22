@@ -1,10 +1,10 @@
 ﻿using Queen.Common.Database;
 using Queen.Common.Database.Readers;
-using Queen.Logic.Common;
-using Queen.Logic.Player.Common;
 using Queen.Network.Common;
 using Queen.Protocols;
 using Queen.Protocols.Common;
+using Queen.Server.Common;
+using Queen.Server.Player.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +12,7 @@ using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Sys
+namespace Queen.Server.System
 {
     /// <summary>
     /// 登录

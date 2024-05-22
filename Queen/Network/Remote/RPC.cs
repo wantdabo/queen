@@ -33,18 +33,29 @@ namespace Queen.Network.Remote
             Timeout,
         }
 
-        private Settings settings;
-        private ServerNode servNode;
+        /// <summary>
+        /// RPC 配置
+        /// </summary>
+        private RPCSettings settings;
+        /// <summary>
+        /// RPC 影响节点
+        /// </summary>
+        private ServerNode node;
+        /// <summary>
+        /// RPC 请求节点
+        /// </summary>
         private ClientNode[] clientNodes;
 
         protected override void OnCreate()
         {
             base.OnCreate();
-            settings = AddComp<Settings>();
+            engine.eventor.Listen<EngineExecuteEvent>(OnEngineExecute);
+
+            settings = AddComp<RPCSettings>();
             settings.Create();
 
             engine.logger.Log("rpc create.");
-            servNode = new(settings.host, settings.port, false, settings.maxconn);
+            node = new(settings.host, settings.port, false, settings.maxconn);
             engine.logger.Log("rpc create success.");
 
             clientNodes = new ClientNode[settings.rpcServs.Length];
@@ -60,14 +71,12 @@ namespace Queen.Network.Remote
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            engine.eventor.UnListen<EngineExecuteEvent>(OnEngineExecute);
         }
 
-        /// <summary>
-        /// 轮询
-        /// </summary>
-        public void Poll()
+        private void OnEngineExecute(EngineExecuteEvent e) 
         {
-            servNode.Notify();
+            node.Notify();
         }
 
         /// <summary>
@@ -77,7 +86,7 @@ namespace Queen.Network.Remote
         /// <param name="action">回调</param>
         public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
-            servNode.UnRecv(action);
+            node.UnRecv(action);
         }
 
         /// <summary>
@@ -87,7 +96,7 @@ namespace Queen.Network.Remote
         /// <param name="action">回调</param>
         public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
-            servNode.Recv(action);
+            node.Recv(action);
         }
 
         /// <summary>

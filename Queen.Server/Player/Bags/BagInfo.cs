@@ -1,18 +1,18 @@
 ﻿using Newtonsoft.Json;
-using Queen.Logic.Common;
+using Queen.Server.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Player.Bags
+namespace Queen.Server.Player.Bags
 {
     /// <summary>
     /// 背包物品数据
     /// </summary>
     [JsonObject(MemberSerialization.OptIn)]
-    public class BagItem 
+    public class BagItem
     {
         /// <summary>
         /// 唯一 ID

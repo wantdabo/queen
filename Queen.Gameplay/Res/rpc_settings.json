@@ -1,10 +1,10 @@
 {
   // RPC 名字
-  "name": "queen.server",
+  "name": "queen.gameplay",
   // RPC 主机
   "host": "0.0.0.0",
   // RPC 端口
-  "port": 12811,
+  "port": 12812,
   // RPC 最大连接数 (最大 4095)
   "maxconn": 4095,
   // RPC 目标
@@ -14,15 +14,5 @@
       "host": "127.0.0.1",
       "port": 12811
     }
-    // {
-    //   "name": "queen.gameplay",
-    //   "host": "127.0.0.1",
-    //   "port": 12812
-    // }
-    // {
-    //   "name": "queen.chat",
-    //   "host": "127.0.0.1",
-    //   "port": 12813
-    // }
   ]
 }

@@ -1,6 +1,6 @@
 ﻿using Queen.Common;
-using Queen.Core;
 using Queen.Network.Common;
+using Queen.Server.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Player.Common
+namespace Queen.Server.Player.Common
 {
     /// <summary>
     /// 玩家加入事件
@@ -132,11 +132,11 @@ namespace Queen.Logic.Player.Common
         /// </summary>
         /// <param name="channel">通信渠道</param>
         /// <returns>玩家</returns>
-        public Role GetRole(NetChannel channel) 
+        public Role GetRole(NetChannel channel)
         {
-            foreach (var kv in roleMap) 
+            foreach (var kv in roleMap)
             {
-                if(channel.peer.ID == kv.Value.session.channel.peer.ID) return kv.Value;
+                if (channel.peer.ID == kv.Value.session.channel.peer.ID) return kv.Value;
             }
 
             return null;

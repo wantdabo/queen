@@ -56,10 +56,7 @@ namespace Queen.Core
                 comp.Destroy();
             }
             compList.Clear();
-            compList = null;
-
             compDict.Clear();
-            compDict = null;
         }
 
         /// <summary>
@@ -140,5 +137,17 @@ namespace Queen.Core
             if (compDict.TryGetValue(comp.GetType(), out var comps)) comps.Remove(comp);
             compList.Remove(comp);
         }
+    }
+
+    /// <summary>
+    /// 组件
+    /// </summary>
+    /// <typeparam name="T">引擎类型</typeparam>
+    public abstract class Comp<T> : Comp where T : Engine, new()
+    {
+        /// <summary>
+        /// 引擎
+        /// </summary>
+        public new T engine { get { return base.engine as T; }}
     }
 }

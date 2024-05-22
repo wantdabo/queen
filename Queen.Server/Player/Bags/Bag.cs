@@ -1,12 +1,11 @@
-﻿using Queen.Logic.Common;
-using Queen.Logic.Player.Common;
+﻿using Queen.Server.Player.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Logic.Player.Bags
+namespace Queen.Server.Player.Bags
 {
     /// <summary>
     /// 背包
