@@ -122,7 +122,7 @@ namespace Queen.Network.Remote
         /// <param name="index">RPC 目标下标</param>
         /// <param name="sm">发送消息</param>
         /// <param name="rm">接收消息</param>
-        /// <param name="timeout"></param>
+        /// <param name="timeout">调用超时</param>
         /// <returns>调用成功，YES/NO</returns>
         public bool Call<ST, RT>(int index, ST sm, out RT rm, uint timeout = 100) where ST : INetMessage where RT : INetMessage
         {

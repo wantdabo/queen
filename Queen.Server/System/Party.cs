@@ -1,6 +1,8 @@
 ﻿using Queen.Common;
 using Queen.Network.Common;
+using Queen.Server.Common;
 using Queen.Server.Core;
+using Queen.Server.Player.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Player.Common
+namespace Queen.Server.System
 {
     /// <summary>
     /// 玩家加入事件
@@ -58,26 +60,12 @@ namespace Queen.Server.Player.Common
     /// <summary>
     /// 派对/ 玩家办事处
     /// </summary>
-    public class Party : Comp
+    public class Party : Behavior
     {
-        public Eventor eventor;
-
         /// <summary>
         /// 玩家集合
         /// </summary>
         private Dictionary<string, Role> roleMap = new();
-
-        protected override void OnCreate()
-        {
-            base.OnCreate();
-            eventor = AddComp<Eventor>();
-            eventor.Create();
-        }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-        }
 
         /// <summary>
         /// 玩家加入
@@ -98,7 +86,7 @@ namespace Queen.Server.Player.Common
             role.Create();
 
             roleMap.Add(role.pid, role);
-            eventor.Tell(new RoleJoinEvent { role = role });
+            engine.sys.eventor.Tell(new RoleJoinEvent { role = role });
 
             return role;
         }
@@ -109,7 +97,7 @@ namespace Queen.Server.Player.Common
         /// <param name="role">玩家</param>
         public void Quit(Role role)
         {
-            eventor.Tell(new RoleQuitEvent { role = role });
+            engine.sys.eventor.Tell(new RoleQuitEvent { role = role });
 
             if (roleMap.ContainsKey(role.pid)) roleMap.Remove(role.pid);
             role.Destroy();

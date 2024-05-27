@@ -3,7 +3,8 @@ using Queen.Network;
 using Sys = Queen.Server.System.Common.Sys;
 using Queen.Network.Remote;
 using Queen.Core;
-using Queen.Server.Player.Common;
+using Queen.Server.System;
+using Queen.Protocols;
 
 namespace Queen.Server.Core
 {
@@ -12,42 +13,47 @@ namespace Queen.Server.Core
     /// </summary>
     public class Server : Engine<Server>
     {
+        /// <summary>
+        /// 服务器配置
+        /// </summary>
         public Settings settings;
+        /// <summary>
+        /// 数据库
+        /// </summary>
         public DBO dbo;
+        /// <summary>
+        /// RPC
+        /// </summary>
         public RPC rpc;
+        /// <summary>
+        /// 网络
+        /// </summary>
         public Slave slave;
+        /// <summary>
+        /// 系统
+        /// </summary>
         public Sys sys;
-        public Party party;
 
         protected override void OnCreate()
         {
             base.OnCreate();
             logger.Log("queen.server initial...");
-            // 服务器配置
             settings = AddComp<Settings>();
             settings.Create();
 
-            // 数据库
             dbo = AddComp<DBO>();
             dbo.Settings(settings.dbhost, settings.dbuser, settings.dbpwd, settings.dbname);
             dbo.Create();
 
-            // RPC
             rpc = AddComp<RPC>();
             rpc.Create();
 
-            // 网络
             slave = AddComp<Slave>();
             slave.Initialize(settings.host, settings.port, settings.maxconn);
             slave.Create();
 
-            // 系统
             sys = AddComp<Sys>();
             sys.Create();
-
-            // 角色
-            party = AddComp<Party>();
-            party.Create();
 
             engine.logger.Log(
                 $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +

@@ -64,14 +64,14 @@ namespace Queen.Server.System
                 return;
             }
 
-            var role = engine.party.GetRole(reader.pid);
+            var role = engine.sys.party.GetRole(reader.pid);
             if (null != role)
             {
                 role.session.channel.Send(new S2CLogoutMsg { pid = role.pid, code = 3 });
-                engine.party.Quit(role);
+                engine.sys.party.Quit(role);
             }
 
-            engine.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname });
+            engine.sys.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname });
             engine.logger.Log($"user login success. pid -> {reader.pid}, username -> {msg.username}");
 
             channel.Send(new S2CLoginMsg { pid = reader.pid, code = 1 });
@@ -84,7 +84,7 @@ namespace Queen.Server.System
         /// <param name="msg">消息</param>
         private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
         {
-            var role = engine.party.GetRole(msg.pid);
+            var role = engine.sys.party.GetRole(msg.pid);
             if (null == role)
             {
                 engine.logger.Log($"this user is not logged in is no. pid -> {msg.pid}");
@@ -94,7 +94,7 @@ namespace Queen.Server.System
             }
 
             engine.logger.Log($"user logout success. pid -> {msg.pid}");
-            engine.party.Quit(role);
+            engine.sys.party.Quit(role);
             channel.Send(new S2CLogoutMsg { pid = msg.pid, code = 1 });
         }
 
@@ -127,11 +127,11 @@ namespace Queen.Server.System
 
         private void OnNodeDisconnect(NetChannel channel, NodeDisconnectMsg msg)
         {
-            var role = engine.party.GetRole(channel);
+            var role = engine.sys.party.GetRole(channel);
             if (null == role) return;
 
             engine.logger.Log($"user logout by disconnect. pid -> {role.pid}, username -> {role.username}");
-            engine.party.Quit(role);
+            engine.sys.party.Quit(role);
         }
     }
 }

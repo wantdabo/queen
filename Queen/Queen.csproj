@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ENet-CSharp" Version="2.4.8" />
     <PackageReference Include="MySqlConnector" Version="2.3.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>

@@ -24,38 +24,51 @@ namespace Queen.Core
     /// </summary>
     public class Engine : Comp
     {
+        /// <summary>
+        /// 配置表
+        /// </summary>
         public Config cfg;
+        /// <summary>
+        /// 日志
+        /// </summary>
         public Logger logger;
-        public Common.Random random;
-        public Ticker ticker;
+        /// <summary>
+        /// 事件器
+        /// </summary>
         public Eventor eventor;
+        /// <summary>
+        /// 随机器
+        /// </summary>
+        public Common.Random random;
+        /// <summary>
+        /// 事件器
+        /// </summary>
+        public Ticker ticker;
+        /// <summary>
+        /// 对象池
+        /// </summary>
         public ObjectPool pool;
 
         protected override void OnCreate()
         {
             base.OnCreate();
             ENet.Library.Initialize();
-            // 配置表
+
             cfg = AddComp<Config>();
             cfg.Create();
 
-            // 日志
             logger = AddComp<Logger>();
             logger.Create();
 
-            // 事件器
             eventor = AddComp<Eventor>();
             eventor.Create();
 
-            // 随机器
             random = AddComp<Common.Random>();
             random.Create();
 
-            // 引擎 Tick
             ticker = AddComp<Ticker>();
             ticker.Create();
 
-            // 对象池
             pool = AddComp<ObjectPool>();
             pool.Create();
         }
