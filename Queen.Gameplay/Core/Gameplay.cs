@@ -1,5 +1,4 @@
-﻿using Queen.Common.Database;
-using Queen.Network;
+﻿using Queen.Network;
 using Queen.Network.Remote;
 using Queen.Core;
 using System.Numerics;
@@ -11,23 +10,30 @@ namespace Queen.Gameplay.Core
     /// </summary>
     public class Gameplay : Engine<Gameplay>
     {
+        /// <summary>
+        /// 服务器配置
+        /// </summary>
         public Settings settings;
+        /// <summary>
+        /// RPC
+        /// </summary>
         public RPC rpc;
+        /// <summary>
+        /// 网络
+        /// </summary>
         public Slave slave;
 
         protected override void OnCreate()
         {
             base.OnCreate();
             logger.Log("queen.gameplay initial...");
-            // 服务器配置
             settings = AddComp<Settings>();
             settings.Create();
 
-            // RPC
             rpc = AddComp<RPC>();
+            rpc.Initialize(RPC.T.GAMEPLAY);
             rpc.Create();
 
-            // 网络
             slave = AddComp<Slave>();
             slave.Initialize(settings.host, settings.port, settings.maxconn);
             slave.Create();

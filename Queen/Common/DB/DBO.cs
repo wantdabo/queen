@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Common.Database
+namespace Queen.Common.DB
 {
     /// <summary>
     /// SQL 指令，传参结构
@@ -71,7 +71,7 @@ namespace Queen.Common.Database
         /// <param name="dbuser">DB 用户名</param>
         /// <param name="dbpwd">DB 密码</param>
         /// <param name="dbname">DB 名字</param>
-        public void Settings(string dbhost, string dbuser, string dbpwd, string dbname) 
+        public void Initialize(string dbhost, string dbuser, string dbpwd, string dbname) 
         {
             this.dbhost = dbhost;
             this.dbuser = dbuser;

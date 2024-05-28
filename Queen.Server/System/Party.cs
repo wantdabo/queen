@@ -2,7 +2,7 @@
 using Queen.Network.Common;
 using Queen.Server.Common;
 using Queen.Server.Core;
-using Queen.Server.Player.Common;
+using Queen.Server.Roles.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,13 +48,17 @@ namespace Queen.Server.System
         /// </summary>
         public string pid;
         /// <summary>
+        /// 昵称
+        /// </summary>
+        public string nickname;
+        /// <summary>
         /// 用户名
         /// </summary>
         public string username;
         /// <summary>
-        /// 昵称
+        /// 密码
         /// </summary>
-        public string nickname;
+        public string password;
     }
 
     /// <summary>
@@ -81,8 +85,9 @@ namespace Queen.Server.System
             role.session.channel = info.channel;
             role.session.Create();
             role.pid = info.pid;
-            role.username = info.username;
             role.nickname = info.nickname;
+            role.username = info.username;
+            role.password = info.password;
             role.Create();
 
             roleMap.Add(role.pid, role);

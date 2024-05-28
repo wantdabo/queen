@@ -11,11 +11,6 @@ using System.Threading.Tasks;
 namespace Queen.Server.Common
 {
     /// <summary>
-    /// 数据保存事件
-    /// </summary>
-    public struct DBSaveEvent : IEvent { }
-
-    /// <summary>
     /// Behavior/ 行为
     /// </summary>
     public abstract class Behavior : Comp
@@ -77,7 +72,7 @@ namespace Queen.Server.Common
         private void SaveData()
         {
             var json = JsonConvert.SerializeObject(data);
-            File.WriteAllText(path, json);
+            File.WriteAllTextAsync(path, json);
         }
 
         private void OnDBSave(DBSaveEvent e) { SaveData(); }

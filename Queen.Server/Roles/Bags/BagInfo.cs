@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Player.Bags
+namespace Queen.Server.Roles.Bags
 {
     /// <summary>
     /// 背包物品数据

@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace Queen.Server.Player.Common
+namespace Queen.Server.Roles.Common
 {
     /// <summary>
     /// 玩家行为

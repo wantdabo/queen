@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Common.Database.Readers
+namespace Queen.Common.DB
 {
     /// <summary>
     /// 玩家数据库信息读取器

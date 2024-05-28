@@ -57,9 +57,13 @@ namespace Queen.Common
         public float tick { get; private set; } = 1 / 50f;
 
         /// <summary>
+        /// 最新的毫秒
+        /// </summary>
+        private long nowMilliSeconds { get { return DateTimeOffset.Now.ToUnixTimeMilliseconds(); } }
+        /// <summary>
         /// 上一次 Execute 记录的毫秒
         /// </summary>
-        private int lastMilliSeconds = 0;
+        private long lastMilliSeconds = 0;
         /// <summary>
         /// 时间流逝溢出记录
         /// </summary>
@@ -69,6 +73,8 @@ namespace Queen.Common
         {
             base.OnCreate();
             engine.eventor.Listen<EngineExecuteEvent>(OnEngineExecute);
+            eventor = AddComp<Eventor>();
+            eventor.Create();
         }
 
         protected override void OnDestroy()
@@ -81,14 +87,14 @@ namespace Queen.Common
         {
             if (0 == lastMilliSeconds)
             {
-                lastMilliSeconds = DateTime.Now.Millisecond;
+                lastMilliSeconds = nowMilliSeconds;
 
                 return;
             }
 
-            var nowMilliSeconds = DateTime.Now.Millisecond;
-            lastMilliSeconds = nowMilliSeconds;
-            elapsed += (nowMilliSeconds - lastMilliSeconds) / engine.cfg.thousand;
+            var nms = nowMilliSeconds;
+            elapsed += (nms - lastMilliSeconds) / engine.cfg.thousand;
+            lastMilliSeconds = nms;
 
             while (elapsed >= tick)
             {

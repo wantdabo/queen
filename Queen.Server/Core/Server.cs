@@ -1,10 +1,10 @@
-﻿using Queen.Common.Database;
-using Queen.Network;
-using Sys = Queen.Server.System.Common.Sys;
+﻿using Queen.Network;
 using Queen.Network.Remote;
 using Queen.Core;
 using Queen.Server.System;
 using Queen.Protocols;
+using Queen.Common.DB;
+using Queen.Server.System.Common;
 
 namespace Queen.Server.Core
 {
@@ -42,12 +42,13 @@ namespace Queen.Server.Core
             settings.Create();
 
             dbo = AddComp<DBO>();
-            dbo.Settings(settings.dbhost, settings.dbuser, settings.dbpwd, settings.dbname);
+            dbo.Initialize(settings.dbhost, settings.dbuser, settings.dbpwd, settings.dbname);
             dbo.Create();
 
             rpc = AddComp<RPC>();
+            rpc.Initialize(RPC.T.SERV);
             rpc.Create();
-
+            
             slave = AddComp<Slave>();
             slave.Initialize(settings.host, settings.port, settings.maxconn);
             slave.Create();

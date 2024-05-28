@@ -15,9 +15,24 @@ namespace Queen.Network.Remote
     public class RPC : Comp
     {
         /// <summary>
+        /// RPC 目标
+        /// </summary>
+        public class T
+        {
+            /// <summary>
+            /// RPC.SERVER
+            /// </summary>
+            public static readonly string SERV = "queen.server";
+            /// <summary>
+            /// RPC.GAMEPLAY
+            /// </summary>
+            public static readonly string GAMEPLAY = "queen.gameplay";
+        }
+
+        /// <summary>
         /// RPC 状态
         /// </summary>
-        private enum RPCState
+        public enum RPCState
         {
             /// <summary>
             /// 等待
@@ -31,8 +46,32 @@ namespace Queen.Network.Remote
             /// 超时
             /// </summary>
             Timeout,
+            /// <summary>
+            /// 错误
+            /// </summary>
+            Error,
         }
 
+        /// <summary>
+        /// RPC 结果
+        /// </summary>
+        /// <typeparam name="RT">响应消息类型</typeparam>
+        public struct RPCResult<RT> where RT : INetMessage
+        {
+            /// <summary>
+            /// 状态
+            /// </summary>
+            public RPCState state;
+            /// <summary>
+            /// 响应的消息
+            /// </summary>
+            public RT msg;
+        }
+
+        /// <summary>
+        /// RPC 名字
+        /// </summary>
+        private string name;
         /// <summary>
         /// RPC 配置
         /// </summary>
@@ -44,7 +83,7 @@ namespace Queen.Network.Remote
         /// <summary>
         /// RPC 请求节点
         /// </summary>
-        private ClientNode[] clientNodes;
+        private Dictionary<string, ClientNode> clientNodes = new();
 
         protected override void OnCreate()
         {
@@ -55,17 +94,20 @@ namespace Queen.Network.Remote
             settings.Create();
 
             engine.logger.Log("rpc create.");
-            node = new(settings.host, settings.port, false, settings.maxconn);
-            engine.logger.Log("rpc create success.");
-
-            clientNodes = new ClientNode[settings.rpcServs.Length];
-            for (int i = 0; i < settings.rpcServs.Length; i++)
+            if (false == settings.servs.TryGetValue(name, out var info))
             {
-                var rpcServ = settings.rpcServs[i];
-                var clientNode = new ClientNode();
-                clientNode.Connect(rpcServ.host, rpcServ.port);
-                clientNodes[i] = clientNode;
+                engine.logger.Log("rpc create failed.", ConsoleColor.Red);
+                throw new Exception("rpc create failed.");
             }
+
+            node = new(info.host, info.port, false, 4095);
+            foreach (var serv in settings.servs.Values)
+            {
+                var clientNode = new ClientNode();
+                clientNode.Connect(serv.host, serv.port);
+                clientNodes.Add(serv.name, clientNode);
+            }
+            engine.logger.Log("rpc create success.");
         }
 
         protected override void OnDestroy()
@@ -74,9 +116,13 @@ namespace Queen.Network.Remote
             engine.eventor.UnListen<EngineExecuteEvent>(OnEngineExecute);
         }
 
-        private void OnEngineExecute(EngineExecuteEvent e) 
+        /// <summary>
+        /// 配置 RPC
+        /// </summary>
+        /// <param name="name">RPC 名字</param>
+        public void Initialize(string name)
         {
-            node.Notify();
+            this.name = name;
         }
 
         /// <summary>
@@ -100,40 +146,41 @@ namespace Queen.Network.Remote
         }
 
         /// <summary>
-        /// RPC.Call
+        /// RPC 调用
         /// </summary>
         /// <typeparam name="ST">发送消息类型</typeparam>
-        /// <param name="index">RPC 目标下标</param>
-        /// <param name="sm">发送消息</param>
-        /// <returns>调用成功，YES/NO</returns>
-        public bool Call<ST>(int index, ST sm) where ST : INetMessage
+        /// <param name="name">RPC 目标的</param>
+        /// <param name="sm">发送的消息</param>
+        public void Remote<ST>(string name, ST sm) where ST : INetMessage
         {
-            var clientNode = clientNodes[index];
+            if (false == clientNodes.TryGetValue(name, out var clientNode)) return;
             clientNode.channel.Send(sm);
-
-            return true;
         }
 
         /// <summary>
-        /// RPC.Call
+        /// RPC 调用
         /// </summary>
-        /// <typeparam name="ST">发送消息类型</typeparam>
-        /// <typeparam name="RT">接收消息类型</typeparam>
-        /// <param name="index">RPC 目标下标</param>
-        /// <param name="sm">发送消息</param>
-        /// <param name="rm">接收消息</param>
-        /// <param name="timeout">调用超时</param>
-        /// <returns>调用成功，YES/NO</returns>
-        public bool Call<ST, RT>(int index, ST sm, out RT rm, uint timeout = 100) where ST : INetMessage where RT : INetMessage
+        /// <typeparam name="RT">响应的消息类型</typeparam>
+        /// <param name="name">RPC 目标的</param>
+        /// <param name="sm">发送的消息</param>
+        /// <param name="timeout">超时阈值</param>
+        /// <returns>RPC 结果</returns>
+        public RPCResult<RT> Remote<RT>(string name, INetMessage sm, uint timeout = 100) where RT : INetMessage
         {
-            var state = RPCState.Wait;
-            RT result = default;
+            RPCResult<RT> result = default;
+            result.state = RPCState.Wait;
 
-            var clientNode = clientNodes[index];
+            if (false == clientNodes.TryGetValue(name, out var clientNode))
+            {
+                result.state = RPCState.Error;
+
+                return result;
+            }
+
             var action = (NetChannel channel, RT msg) =>
             {
-                result = msg;
-                state = RPCState.Success;
+                result.msg = msg;
+                result.state = RPCState.Success;
             };
             clientNode.Recv(action);
             clientNode.channel.Send(sm);
@@ -141,14 +188,18 @@ namespace Queen.Network.Remote
             Task.Run(async () =>
             {
                 await Task.Delay((int)timeout);
-                if (RPCState.Wait == state) state = RPCState.Timeout;
+                if (RPCState.Wait == result.state) result.state = RPCState.Timeout;
             });
 
-            while (RPCState.Wait == state) { }
+            while (RPCState.Wait == result.state) { }
             clientNode.UnRecv(action);
 
-            rm = result;
-            return RPCState.Success == state;
+            return result;
+        }
+
+        private void OnEngineExecute(EngineExecuteEvent e)
+        {
+            node.Notify();
         }
     }
 }

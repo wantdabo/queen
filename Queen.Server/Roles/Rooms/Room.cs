@@ -1,6 +1,6 @@
 ﻿using Queen.Network.Common;
 using Queen.Protocols;
-using Queen.Server.Player.Common;
+using Queen.Server.Roles.Common;
 using Queen.Server.System;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Player.Rooms
+namespace Queen.Server.Roles.Rooms
 {
     /// <summary>
     /// 房间

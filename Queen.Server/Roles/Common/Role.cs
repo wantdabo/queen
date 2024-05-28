@@ -1,16 +1,16 @@
-﻿using ENet;
+﻿using Queen.Common.DB;
 using Queen.Network.Common;
 using Queen.Protocols.Common;
 using Queen.Server.Common;
-using Queen.Server.Player.Bags;
-using Queen.Server.Player.Rooms;
+using Queen.Server.Roles.Bags;
+using Queen.Server.Roles.Rooms;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Player.Common
+namespace Queen.Server.Roles.Common
 {
     /// <summary>
     /// 玩家
@@ -34,6 +34,11 @@ namespace Queen.Server.Player.Common
         /// </summary>
         public string nickname;
         /// <summary>
+        /// 密码
+        /// </summary>
+        public string password;
+
+        /// <summary>
         /// 协议映射集合
         /// </summary>
         private Dictionary<Delegate, Delegate> actionMap = new();
@@ -41,6 +46,7 @@ namespace Queen.Server.Player.Common
         protected override void OnCreate()
         {
             base.OnCreate();
+            eventor.Listen<DBSaveEvent>(OnDBSave);
 
             // 背包
             AddBehavior<Bag>().Create();
@@ -51,6 +57,7 @@ namespace Queen.Server.Player.Common
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            eventor.UnListen<DBSaveEvent>(OnDBSave);
         }
 
         /// <summary>
@@ -89,6 +96,16 @@ namespace Queen.Server.Player.Common
         public void Send<T>(T msg) where T : INetMessage
         {
             session.channel.Send(msg);
+        }
+
+        private void OnDBSave(DBSaveEvent e)
+        {
+            engine.dbo.Execute("update roles set nickname=@nickname, username=@username, password=@password where pid=@pid",
+                new SQLParamInfo { key = "@nickname", value = nickname },
+                new SQLParamInfo { key = "@username", value = username },
+                new SQLParamInfo { key = "@password", value = password },
+                new SQLParamInfo { key = "@pid", value = pid }
+            );
         }
     }
 }

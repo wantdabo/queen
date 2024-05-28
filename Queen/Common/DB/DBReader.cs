@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Common.Database
+namespace Queen.Common.DB
 {
     /// <summary>
     /// 数据库读取器

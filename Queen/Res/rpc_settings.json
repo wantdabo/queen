@@ -1,0 +1,15 @@
+{
+  // RPC 目标
+  "servs": [
+    {
+      "name": "queen.server",
+      "host": "127.0.0.1",
+      "port": 12811
+    },
+    {
+      "name": "queen.gameplay",
+      "host": "127.0.0.1",
+      "port": 12812
+    }
+  ]
+}

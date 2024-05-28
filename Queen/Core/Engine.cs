@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using Queen.Common.Database;
 using Queen.Network;
 using Queen.Network.Remote;
 

@@ -1,10 +1,8 @@
-﻿using Queen.Common.Database;
-using Queen.Common.Database.Readers;
+﻿using Queen.Common.DB;
 using Queen.Network.Common;
 using Queen.Protocols;
 using Queen.Protocols.Common;
 using Queen.Server.Common;
-using Queen.Server.Player.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -71,7 +69,7 @@ namespace Queen.Server.System
                 engine.sys.party.Quit(role);
             }
 
-            engine.sys.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname });
+            engine.sys.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname, password = reader.password });
             engine.logger.Log($"user login success. pid -> {reader.pid}, username -> {msg.username}");
 
             channel.Send(new S2CLoginMsg { pid = reader.pid, code = 1 });

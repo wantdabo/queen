@@ -1,11 +1,11 @@
-﻿using Queen.Server.Player.Common;
+﻿using Queen.Server.Roles.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Player.Bags
+namespace Queen.Server.Roles.Bags
 {
     /// <summary>
     /// 背包

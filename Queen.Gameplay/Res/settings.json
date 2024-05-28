@@ -6,5 +6,7 @@
   // 端口
   "port": 12802,
   // 最大连接数 (最大 4095)
-  "maxconn": 4095
+  "maxconn": 4095,
+  // RPC
+  "rpc": "queen.gameplay"
 }

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Player.Common
+namespace Queen.Server.Roles.Common
 {
     /// <summary>
     /// 会话

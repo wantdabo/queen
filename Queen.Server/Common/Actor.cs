@@ -10,6 +10,11 @@ using System.Threading.Tasks;
 namespace Queen.Server.Common
 {
     /// <summary>
+    /// 数据保存事件
+    /// </summary>
+    public struct DBSaveEvent : IEvent { }
+
+    /// <summary>
     /// Actor/ Behavior 的载体
     /// </summary>
     public class Actor : Comp
@@ -29,12 +34,14 @@ namespace Queen.Server.Common
             base.OnCreate();
             eventor = AddComp<Eventor>();
             eventor.Create();
+
+            // 数据写盘
+            engine.ticker.Timing((t) => eventor.Tell<DBSaveEvent>(), engine.settings.dbsave, -1);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            eventor = null;
             behaviorMap.Clear();
         }
 
