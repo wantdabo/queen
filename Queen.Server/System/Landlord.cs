@@ -1,9 +1,12 @@
 ﻿using Queen.Common;
 using Queen.Network.Common;
+using Queen.Network.Remote;
 using Queen.Protocols;
 using Queen.Server.Common;
+using Queen.Server.Roles.Common;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,6 +37,7 @@ namespace Queen.Server.System
     }
     #endregion
 
+    #region Defines
     /// <summary>
     /// 房间状态
     /// </summary>
@@ -87,6 +91,7 @@ namespace Queen.Server.System
         /// </summary>
         public List<string> members { get; set; }
     }
+    #endregion
 
     /// <summary>
     /// 房东
@@ -101,18 +106,10 @@ namespace Queen.Server.System
         /// 房间列表
         /// </summary>
         public Dictionary<uint, RoomInfo> rooms { get; private set; } = new();
-
-        protected override void OnCreate()
-        {
-            base.OnCreate();
-            engine.sys.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
-        }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-            engine.sys.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
-        }
+        /// <summary>
+        /// 开局的座位信息
+        /// </summary>
+        public Dictionary<string, SeatInfo> seats { get; private set; } = new();
 
         /// <summary>
         /// 退出房间
@@ -121,6 +118,9 @@ namespace Queen.Server.System
         public void ExitRoom(string pid)
         {
             if (false == GetRoom(pid, out var room)) return;
+
+            // 对局中，不允许退出房间
+            if (RoomState.GAMING == room.state) return;
 
             room.members.Remove(pid);
 
@@ -193,6 +193,43 @@ namespace Queen.Server.System
         }
 
         /// <summary>
+        /// 房间开局
+        /// </summary>
+        /// <param name="id">房间 ID</param>
+        /// <returns>开局成功</returns>
+        public bool Room2Game(uint id)
+        {
+            if (false == GetRoom(id, out var room)) return false;
+            if (RoomState.GAMING == room.state) return false;
+
+            List<SeatInfo> seatInfos = new();
+            uint index = 0;
+            foreach (var member in room.members)
+            {
+                var role = engine.sys.party.GetRole(member);
+                var seat = new SeatInfo
+                {
+                    seat = index,
+                    pid = role.pid,
+                    nickname = role.nickname,
+                    password = Guid.NewGuid().ToString()
+                };
+                seatInfos.Add(seat);
+                index++;
+            }
+
+            // RPC 调用 GAMEPLAY 开局
+            var result = engine.rpc.Execute<S2G_CreateStageMsg, G2S_CreateStageMsg>(RPC.TAR.GAMEPLAY, new() { id = room.id, name = room.name, seats = seatInfos.ToArray() });
+            if (RPCState.Success != result.state) return false;
+            foreach (var seatInfo in seatInfos) seats.Add(seatInfo.pid, seatInfo);
+            // 修改房间状态
+            room.state = RoomState.GAMING;
+            actor.eventor.Tell(new RoomUpdateEvent { id = room.id });
+
+            return true;
+        }
+
+        /// <summary>
         /// 获取房间
         /// </summary>
         /// <param name="id">房间 ID</param>
@@ -223,15 +260,6 @@ namespace Queen.Server.System
             }
 
             return false;
-        }
-
-        private void OnRoleQuit(RoleQuitEvent e)
-        {
-            if (GetRoom(e.role.pid, out var room))
-            {
-                if (RoomState.GAMING == room.state) return;
-                ExitRoom(e.role.pid);
-            }
         }
     }
 }

@@ -10,6 +10,29 @@ using System.Text;
 namespace Queen.Network.Remote
 {
     /// <summary>
+    /// RPC 状态
+    /// </summary>
+    public enum RPCState
+    {
+        /// <summary>
+        /// 等待
+        /// </summary>
+        Wait,
+        /// <summary>
+        /// 成功
+        /// </summary>
+        Success,
+        /// <summary>
+        /// 超时
+        /// </summary>
+        Timeout,
+        /// <summary>
+        /// 错误
+        /// </summary>
+        Error,
+    }
+
+    /// <summary>
     /// RPC，远程调用
     /// </summary>
     public class RPC : Comp
@@ -17,7 +40,7 @@ namespace Queen.Network.Remote
         /// <summary>
         /// RPC 目标
         /// </summary>
-        public class T
+        public class TAR
         {
             /// <summary>
             /// RPC.SERVER
@@ -27,29 +50,6 @@ namespace Queen.Network.Remote
             /// RPC.GAMEPLAY
             /// </summary>
             public static readonly string GAMEPLAY = "queen.gameplay";
-        }
-
-        /// <summary>
-        /// RPC 状态
-        /// </summary>
-        public enum RPCState
-        {
-            /// <summary>
-            /// 等待
-            /// </summary>
-            Wait,
-            /// <summary>
-            /// 成功
-            /// </summary>
-            Success,
-            /// <summary>
-            /// 超时
-            /// </summary>
-            Timeout,
-            /// <summary>
-            /// 错误
-            /// </summary>
-            Error,
         }
 
         /// <summary>
@@ -94,13 +94,11 @@ namespace Queen.Network.Remote
             settings.Create();
 
             engine.logger.Log("rpc create.");
-            if (false == settings.servs.TryGetValue(name, out var info))
+            if (settings.servs.TryGetValue(name, out var info))
             {
-                engine.logger.Log("rpc create failed.", ConsoleColor.Red);
-                throw new Exception("rpc create failed.");
+                node = new(info.host, info.port, false, 4095);
             }
 
-            node = new(info.host, info.port, false, 4095);
             foreach (var serv in settings.servs.Values)
             {
                 var clientNode = new ClientNode();
@@ -120,9 +118,9 @@ namespace Queen.Network.Remote
         /// 配置 RPC
         /// </summary>
         /// <param name="name">RPC 名字</param>
-        public void Initialize(string name)
+        public void Initialize(string name = null)
         {
-            this.name = name;
+            this.name = name ?? string.Empty;
         }
 
         /// <summary>
@@ -151,8 +149,13 @@ namespace Queen.Network.Remote
         /// <typeparam name="ST">发送消息类型</typeparam>
         /// <param name="name">RPC 目标的</param>
         /// <param name="sm">发送的消息</param>
-        public void Remote<ST>(string name, ST sm) where ST : INetMessage
+        public void Execute<ST>(string name, ST sm) where ST : INetMessage
         {
+            if (this.name.Equals(name))
+            {
+                return;
+            }
+
             if (false == clientNodes.TryGetValue(name, out var clientNode)) return;
             clientNode.channel.Send(sm);
         }
@@ -165,10 +168,17 @@ namespace Queen.Network.Remote
         /// <param name="sm">发送的消息</param>
         /// <param name="timeout">超时阈值</param>
         /// <returns>RPC 结果</returns>
-        public RPCResult<RT> Remote<RT>(string name, INetMessage sm, uint timeout = 100) where RT : INetMessage
+        public RPCResult<RT> Execute<ST, RT>(string name, ST sm, uint timeout = 500) where ST : INetMessage where RT : INetMessage
         {
             RPCResult<RT> result = default;
             result.state = RPCState.Wait;
+
+            if (this.name.Equals(name))
+            {
+                result.state = RPCState.Error;
+
+                return result;
+            }
 
             if (false == clientNodes.TryGetValue(name, out var clientNode))
             {
@@ -199,6 +209,7 @@ namespace Queen.Network.Remote
 
         private void OnEngineExecute(EngineExecuteEvent e)
         {
+            if (null == node) return;
             node.Notify();
         }
     }

@@ -46,7 +46,7 @@ namespace Queen.Server.Core
             dbo.Create();
 
             rpc = AddComp<RPC>();
-            rpc.Initialize(RPC.T.SERV);
+            rpc.Initialize(RPC.TAR.SERV);
             rpc.Create();
             
             slave = AddComp<Slave>();

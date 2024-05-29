@@ -23,6 +23,14 @@ namespace Queen.Network.Common
         public Peer peer;
 
         /// <summary>
+        /// 断开连接
+        /// </summary>
+        public void Disconnect() 
+        {
+            peer.DisconnectNow(0);
+        }
+
+        /// <summary>
         /// 发送数据
         /// </summary>
         /// <typeparam name="T">数据类型</typeparam>

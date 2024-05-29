@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Queen.Protocols", "Queen.Pr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Queen.Server", "Queen.Server\Queen.Server.csproj", "{199E2CC2-219A-4CE8-AAFF-DE93FF3C1457}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Queen.Gameplay", "Queen.Gameplay\Queen.Gameplay.csproj", "{6021541E-6FD1-4E8E-94F2-59FE4AE86BAA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Queen.Gameplay", "Queen.Gameplay\Queen.Gameplay.csproj", "{6021541E-6FD1-4E8E-94F2-59FE4AE86BAA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Queen.Protocols.Gen", "Queen.Protocols.Gen\Queen.Protocols.Gen.csproj", "{13BED56F-E5C0-43F3-90EA-BA9530777BCE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{6021541E-6FD1-4E8E-94F2-59FE4AE86BAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6021541E-6FD1-4E8E-94F2-59FE4AE86BAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6021541E-6FD1-4E8E-94F2-59FE4AE86BAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13BED56F-E5C0-43F3-90EA-BA9530777BCE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13BED56F-E5C0-43F3-90EA-BA9530777BCE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13BED56F-E5C0-43F3-90EA-BA9530777BCE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13BED56F-E5C0-43F3-90EA-BA9530777BCE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

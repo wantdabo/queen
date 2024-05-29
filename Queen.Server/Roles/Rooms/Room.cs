@@ -44,12 +44,14 @@ namespace Queen.Server.Roles.Rooms
         protected override void OnCreate()
         {
             base.OnCreate();
+            actor.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
+            actor.eventor.Listen<RoleJoinEvent>(OnRoleJoin);
             engine.sys.eventor.Listen<RoomDestroyEvent>(OnRoomDestroy);
             engine.sys.eventor.Listen<RoomUpdateEvent>(OnRoomUpdate);
-            engine.sys.eventor.Listen<RoleJoinEvent>(OnRoleJoin);
             role.Recv<C2S_ExitRoomMsg>(OnC2SExitRoom);
             role.Recv<C2S_KickRoomMsg>(OnC2SKickRoom);
             role.Recv<C2S_JoinRoomMsg>(OnC2SJoinRoom);
+            role.Recv<C2S_Room2GameMsg>(OnRoom2Game);
             role.Recv<C2S_DestroyRoomMsg>(OnC2SDestroyRoom);
             role.Recv<C2S_CreateRoomMsg>(OnC2SCreateRoom);
             role.Recv<C2S_PullRoomsMsg>(OnC2SPullRooms);
@@ -58,12 +60,14 @@ namespace Queen.Server.Roles.Rooms
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            actor.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
+            actor.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
             engine.sys.eventor.UnListen<RoomDestroyEvent>(OnRoomDestroy);
             engine.sys.eventor.UnListen<RoomUpdateEvent>(OnRoomUpdate);
-            engine.sys.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
             role.UnRecv<C2S_ExitRoomMsg>(OnC2SExitRoom);
             role.UnRecv<C2S_KickRoomMsg>(OnC2SKickRoom);
             role.UnRecv<C2S_JoinRoomMsg>(OnC2SJoinRoom);
+            role.UnRecv<C2S_Room2GameMsg>(OnRoom2Game);
             role.UnRecv<C2S_DestroyRoomMsg>(OnC2SDestroyRoom);
             role.UnRecv<C2S_CreateRoomMsg>(OnC2SCreateRoom);
             role.UnRecv<C2S_PullRoomsMsg>(OnC2SPullRooms);
@@ -123,6 +127,16 @@ namespace Queen.Server.Roles.Rooms
             });
         }
 
+        private void PushRoom2GameInfo()
+        {
+            if (false == engine.sys.landlord.GetRoom(role.pid, out var room)) return;
+            if (RoomState.GAMING != room.state) return;
+            if (false == engine.sys.landlord.seats.TryGetValue(role.pid, out var seat)) return;
+
+            // 下发对局信息，时间有限，DEMO 写死 GAMEPLAY 主机
+            role.Send(new S2C_GameInfoMsg { host = "127.0.0.1", port = 12802, id = room.id, seat = seat.seat, pid = role.pid, password = seat.password });
+        }
+
         private void OnRoomDestroy(RoomDestroyEvent e)
         {
             role.Send(new S2C_DestroyRoomMsg { code = 1, id = e.id });
@@ -131,13 +145,18 @@ namespace Queen.Server.Roles.Rooms
         private void OnRoomUpdate(RoomUpdateEvent e)
         {
             PushRoomInfo(e.id);
+            PushRoom2GameInfo();
+        }
+
+        private void OnRoleQuit(RoleQuitEvent e)
+        {
+            engine.sys.landlord.ExitRoom(role.pid);
         }
 
         private void OnRoleJoin(RoleJoinEvent e)
         {
-            if (false == role.pid.Equals(e.role.pid)) return;
-
             PushRoomInfos();
+            PushRoom2GameInfo();
         }
 
         /// <summary>
@@ -224,6 +243,14 @@ namespace Queen.Server.Roles.Rooms
                 return;
             }
 
+            // 游戏进行中
+            if (RoomState.GAMING == room.state) 
+            {
+                role.Send(new S2C_JoinRoomMsg { code = 6 });
+
+                return;
+            }
+
             // 密码错误
             if (room.needpwd && room.password != msg.password)
             {
@@ -242,6 +269,39 @@ namespace Queen.Server.Roles.Rooms
             // 加入成功
             engine.sys.landlord.JoinRoom(msg.id, role.pid, msg.password);
             role.Send(new S2C_JoinRoomMsg { code = 1 });
+        }
+
+        /// <summary>
+        /// 请求房间开局消息
+        /// </summary>
+        /// <param name="msg">消息</param>
+        private void OnRoom2Game(C2S_Room2GameMsg msg)
+        {
+            // 房间不存在
+            if (false == engine.sys.landlord.GetRoom(role.pid, out var room))
+            {
+                role.Send(new S2C_Room2GameMsg { code = 3 });
+
+                return;
+            }
+
+            // 房间已经在对局中
+            if (RoomState.GAMING == room.state)
+            {
+                role.Send(new S2C_Room2GameMsg { code = 2 });
+
+                return;
+            }
+
+            if (false == engine.sys.landlord.Room2Game(room.id))
+            {
+                role.Send(new S2C_Room2GameMsg { code = 4 });
+
+                return;
+            }
+
+            // 开局成功
+            role.Send(new S2C_Room2GameMsg { code = 1 });
         }
 
         /// <summary>

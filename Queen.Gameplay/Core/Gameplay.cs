@@ -2,6 +2,8 @@
 using Queen.Network.Remote;
 using Queen.Core;
 using System.Numerics;
+using Queen.Gameplay.Game;
+using System.IO;
 
 namespace Queen.Gameplay.Core
 {
@@ -22,6 +24,10 @@ namespace Queen.Gameplay.Core
         /// 网络
         /// </summary>
         public Slave slave;
+        /// <summary>
+        /// 导演
+        /// </summary>
+        public Director director;
 
         protected override void OnCreate()
         {
@@ -31,15 +37,19 @@ namespace Queen.Gameplay.Core
             settings.Create();
 
             rpc = AddComp<RPC>();
-            rpc.Initialize(RPC.T.GAMEPLAY);
+            rpc.Initialize(RPC.TAR.GAMEPLAY);
             rpc.Create();
 
             slave = AddComp<Slave>();
             slave.Initialize(settings.host, settings.port, settings.maxconn);
             slave.Create();
 
+            director = AddComp<Director>();
+            director.Create();
+
             engine.logger.Log(
-                $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}"
+                $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
+                $"\n\tframe: {settings.frame}"
             , ConsoleColor.Yellow);
             engine.logger.Log("queen.gameplay is running...", ConsoleColor.Green);
 

@@ -43,9 +43,8 @@ namespace Queen.Network.Remote
         {
             base.OnCreate();
             var jobj = JObject.Parse(File.ReadAllText($"{Directory.GetCurrentDirectory()}/Res/rpc_settings.json"));
-            var index = 0;
-            var servs = jobj.Value<JArray>("servs");
-            foreach (var jtoken in servs)
+            var jarray = jobj.Value<JArray>("servs");
+            foreach (var jtoken in jarray)
             {
                 var serv = new RPCServInfo
                 {
@@ -53,7 +52,7 @@ namespace Queen.Network.Remote
                     host = jtoken.Value<string>("host"),
                     port = jtoken.Value<ushort>("port")
                 };
-                this.servs.Add(serv.name, serv);
+                servs.Add(serv.name, serv);
             }
         }
 

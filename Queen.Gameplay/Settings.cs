@@ -30,6 +30,11 @@ namespace Queen.Gameplay
         /// </summary>
         public int maxconn { get; private set; }
 
+        /// <summary>
+        /// 帧数
+        /// </summary>
+        public int frame { get; private set; }
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -38,6 +43,7 @@ namespace Queen.Gameplay
             host = jobj.Value<string>("host");
             port = jobj.Value<ushort>("port");
             maxconn = jobj.Value<int>("maxconn");
+            frame = jobj.Value<int>("frame");
         }
 
         protected override void OnDestroy()

@@ -26,7 +26,7 @@ namespace Queen.Server.Roles.Common
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            channel.peer.Disconnect(channel.peer.ID);
+            channel.Disconnect();
         }
     }
 }
