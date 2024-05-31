@@ -74,6 +74,7 @@ namespace Queen.Gameplay.Game
             if (stages.TryGetValue(id, out var stage))
             {
                 stage.Destroy();
+                RmvComp(stage);
                 stages.Remove(id);
             }
 
