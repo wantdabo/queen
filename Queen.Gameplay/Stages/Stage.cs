@@ -24,25 +24,36 @@ namespace Queen.Gameplay.Stages
         /// </summary>
         private string name { get; set; }
         /// <summary>
+        /// 运行中
+        /// </summary>
+        public bool running { get; private set; } = false;
+        /// <summary>
         /// 座位信息列表
         /// </summary>
         private SeatInfo[] seatInfos { get; set; }
         /// <summary>
         /// 对局房间管理者
         /// </summary>
-        public Director director;
+        public Director director { get; set; }
+
+        /// <summary>
+        /// 最大帧号, 5 分钟
+        /// </summary>
+        public uint mframe { get; private set; } = 6000;
+
+        /// <summary>
+        /// 帧号
+        /// </summary>
+        public uint frame { get; private set; }
 
         /// <summary>
         /// Stage 驱动计时器
         /// </summary>
         private uint timingId;
 
-        /// <summary>
-        /// 时间流逝
-        /// </summary>
-        public float elapsedSeconds { get; private set; }
-
         private Dictionary<uint, Seat> seats = new();
+        private Dictionary<uint, SeatInputInfo> seatInputs = new();
+
         /// <summary>
         /// 历史帧
         /// </summary>
@@ -52,6 +63,7 @@ namespace Queen.Gameplay.Stages
         {
             base.OnCreate();
             engine.slave.Recv<C2G_StartStageMsg>(OnC2SStartStage);
+            engine.slave.Recv<C2G_SetInputMsg>(OnC2GSetInput);
             timingId = engine.ticker.Timing(Tick, 1f / engine.settings.frame, -1);
         }
 
@@ -59,6 +71,7 @@ namespace Queen.Gameplay.Stages
         {
             base.OnDestroy();
             engine.slave.UnRecv<C2G_StartStageMsg>(OnC2SStartStage);
+            engine.slave.UnRecv<C2G_SetInputMsg>(OnC2GSetInput);
             engine.ticker.StopTimer(timingId);
         }
 
@@ -73,11 +86,33 @@ namespace Queen.Gameplay.Stages
             this.id = id;
             this.name = name;
             this.seatInfos = seatInfos;
+            running = true;
         }
 
         private void Tick(float tick)
         {
-            elapsedSeconds += tick;
+            if (false == running) return;
+
+            frame++;
+
+            if (frame > mframe)
+            {
+                running = false;
+                director.DestroyRoom(id);
+
+                return;
+            }
+
+            var inputs = new List<SeatInputInfo>();
+            foreach (var input in seatInputs.Values) inputs.Add(input);
+
+            var frameInfo = new FrameInfo { frame = frame, seatInputInfos = inputs.ToArray() };
+            frames.Add(frameInfo);
+
+            foreach (var seat in seats.Values)
+            {
+                seat.channel.Send(new G2C_LogicTickMsg { frameInfo = frameInfo });
+            }
         }
 
         private void OnC2SStartStage(NetChannel channel, C2G_StartStageMsg msg)
@@ -109,12 +144,23 @@ namespace Queen.Gameplay.Stages
             }
 
             // 顶号，断开连接
-            // TODO DEMO 战斗就不做顶号表现了，时间有限
-            if (null != seat.channel) seat.channel.Disconnect();
+            // DEMO 战斗就不做顶号表现了，时间有限
             seat.id = msg.seat;
             seat.channel = channel;
 
-            channel.Send(new G2C_StartStageMsg { code = 1, id = id, frames = frames.ToArray() });
+            channel.Send(new G2C_StartStageMsg { code = 1, id = id, seat = seat.id, mframe = mframe, seatInfos = seatInfos, frameInfos = frames.ToArray() });
+        }
+
+        private void OnC2GSetInput(NetChannel channel, C2G_SetInputMsg msg)
+        {
+            if (false == running) return;
+
+            var seat = seats.Values.FirstOrDefault((seat) => channel == seat.channel);
+            if (null == seat) return;
+
+            if (seatInputs.ContainsKey(seat.id)) seatInputs.Remove(seat.id);
+            msg.inputInfo.seat = seat.id;
+            seatInputs.Add(seat.id, msg.inputInfo);
         }
 
         /// <summary>

@@ -111,29 +111,43 @@ namespace Queen.Server.System
         /// </summary>
         public Dictionary<string, SeatInfo> seats { get; private set; } = new();
 
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+            engine.rpc.Recv<G2S_DestroyStageMsg>(OnG2SDestroyStage);
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            engine.rpc.UnRecv<G2S_DestroyStageMsg>(OnG2SDestroyStage);
+        }
+
         /// <summary>
         /// 退出房间
         /// </summary>
         /// <param name="pid">玩家 ID</param>
-        public void ExitRoom(string pid)
+        /// <returns>退出成功</returns>
+        public bool ExitRoom(string pid)
         {
-            if (false == GetRoom(pid, out var room)) return;
+            if (false == GetRoom(pid, out var room)) return false;
 
             // 对局中，不允许退出房间
-            if (RoomState.GAMING == room.state) return;
+            if (RoomState.GAMING == room.state) return false;
 
             room.members.Remove(pid);
 
             if (room.members.Count <= 0)
             {
                 DestroyRoom(room.id);
-                actor.eventor.Tell(new RoomDestroyEvent { id = room.id });
 
-                return;
+                return false;
             }
 
             if (pid.Equals(room.owner)) room.owner = room.members.First();
             actor.eventor.Tell(new RoomUpdateEvent { id = room.id });
+
+            return true;
         }
 
         /// <summary>
@@ -142,27 +156,40 @@ namespace Queen.Server.System
         /// <param name="id">房间 ID</param>
         /// <param name="pid">玩家 ID</param>
         /// <param name="password">密码</param>
-        public void JoinRoom(uint id, string pid, uint password)
+        /// <returns>加入成功</returns>
+        public bool JoinRoom(uint id, string pid, uint password)
         {
-            if (false == rooms.TryGetValue(id, out var room)) return;
-            if (room.needpwd && room.password != password) return;
-            if (room.members.Count >= room.mlimit) return;
-            if (room.members.Contains(pid)) return;
+            if (false == rooms.TryGetValue(id, out var room)) return false;
+            if (room.needpwd && room.password != password) return false;
+            if (room.members.Count >= room.mlimit) return false;
+            if (room.members.Contains(pid)) return false;
 
             room.members.Add(pid);
             actor.eventor.Tell(new RoomUpdateEvent { id = room.id });
+
+            return true;
         }
+
 
         /// <summary>
         /// 销毁房间
         /// </summary>
         /// <param name="id">房间 ID</param>
-        public void DestroyRoom(uint id)
+        /// <returns>销毁成功</returns>
+        public bool DestroyRoom(uint id)
         {
-            if (false == rooms.ContainsKey(id)) return;
+            if (false == GetRoom(id, out var room)) return false;
+
+            foreach (var member in room.members)
+            {
+                if (false == seats.ContainsKey(member)) continue;
+                seats.Remove(member);
+            }
 
             rooms.Remove(id);
             actor.eventor.Tell(new RoomDestroyEvent { id = id });
+
+            return true;
         }
 
         /// <summary>
@@ -173,9 +200,10 @@ namespace Queen.Server.System
         /// <param name="needpwd">需要密码</param>
         /// <param name="password">密码</param>
         /// <param name="mlimit">人数限制</param>
-        public void CreateRoom(string owner, string name, bool needpwd, uint password, int mlimit)
+        /// <returns>创建成功</returns>
+        public bool CreateRoom(string owner, string name, bool needpwd, uint password, int mlimit)
         {
-            if (GetRoom(owner, out var room)) return;
+            if (GetRoom(owner, out var room)) return false;
 
             room = new RoomInfo();
             room.id = ++incrementId;
@@ -190,6 +218,8 @@ namespace Queen.Server.System
 
             // 自动加入房间
             JoinRoom(room.id, owner, password);
+
+            return true;
         }
 
         /// <summary>
@@ -260,6 +290,11 @@ namespace Queen.Server.System
             }
 
             return false;
+        }
+
+        private void OnG2SDestroyStage(NetChannel channel, G2S_DestroyStageMsg msg)
+        {
+            DestroyRoom(msg.id);
         }
     }
 }

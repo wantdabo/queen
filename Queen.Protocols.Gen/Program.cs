@@ -17,4 +17,3 @@ var code = sb.ToString();
 File.WriteAllText($"../../../../Queen.Protocols/Common/__PROTO__DEFINE__.cs", code);
 
 Console.WriteLine("Queen.Protocols.Gen Finised.");
-Console.ReadKey();

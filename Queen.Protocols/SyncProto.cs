@@ -33,18 +33,6 @@ namespace Queen.Protocols
     }
 
     /// <summary>
-    /// 请求上传操作消息
-    /// </summary>
-    [MessagePackObject(true)]
-    public class C2G_SetInputMsg : INetMessage
-    {
-        /// <summary>
-        /// 输入
-        /// </summary>
-        public SeatInputInfo inputInfo { get; set; }
-    }
-
-    /// <summary>
     /// 响应开始游戏消息
     /// </summary>
     [MessagePackObject(true)]
@@ -59,9 +47,33 @@ namespace Queen.Protocols
         /// </summary>
         public uint id { get; set; }
         /// <summary>
+        /// 座位
+        /// </summary>
+        public uint seat { get; set; }
+        /// <summary>
+        /// 最大帧
+        /// </summary>
+        public uint mframe { get; set; }
+        /// <summary>
+        /// 座位信息列表
+        /// </summary>
+        public SeatInfo[] seatInfos { get; set; }
+        /// <summary>
         /// 历史帧
         /// </summary>
-        public FrameInfo[] frames { get; set; }
+        public FrameInfo[] frameInfos { get; set; }
+    }
+
+    /// <summary>
+    /// 请求上传操作消息
+    /// </summary>
+    [MessagePackObject(true)]
+    public class C2G_SetInputMsg : INetMessage
+    {
+        /// <summary>
+        /// 输入
+        /// </summary>
+        public SeatInputInfo inputInfo { get; set; }
     }
 
     /// <summary>
@@ -73,7 +85,7 @@ namespace Queen.Protocols
         /// <summary>
         /// 最新帧
         /// </summary>
-        public FrameInfo frame { get; set; }
+        public FrameInfo frameInfo { get; set; }
     }
 
     /// <summary>
@@ -106,14 +118,6 @@ namespace Queen.Protocols
         /// 移动方向 X
         /// </summary>
         public int moveX { get; set; }
-        /// <summary>
-        /// 移动方向 Y
-        /// </summary>
-        public int moveY { get; set; }
-        /// <summary>
-        /// 跳跃触发
-        /// </summary>
-        public bool jump { get; set; }
     }
 
     /// <summary>

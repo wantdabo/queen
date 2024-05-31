@@ -45,7 +45,7 @@ namespace Queen.Network.Common
                     {
                         case EventType.Connect:
                             var channel = new NetChannel { id = netEvent.ChannelID, peer = netEvent.Peer };
-                            channel.peer.Timeout(32, 1000, 30000);
+                            channel.peer.Timeout(32, 30000, 30000);
                             channelMap.Add(netEvent.Peer.ID, channel);
                             EmitConnectEvent(channel);
                             break;

@@ -72,7 +72,7 @@ namespace Queen.Server.Common
         private void SaveData()
         {
             var json = JsonConvert.SerializeObject(data);
-            File.WriteAllTextAsync(path, json);
+            File.WriteAllText(path, json);
         }
 
         private void OnDBSave(DBSaveEvent e) { SaveData(); }

@@ -1,4 +1,5 @@
 ﻿using Queen.Network.Common;
+using Queen.Network.Remote;
 using Queen.Protocols;
 using Queen.Server.Roles.Common;
 using Queen.Server.System;
@@ -145,7 +146,7 @@ namespace Queen.Server.Roles.Rooms
         private void OnRoomUpdate(RoomUpdateEvent e)
         {
             PushRoomInfo(e.id);
-            PushRoom2GameInfo();
+            if (e.id == id) PushRoom2GameInfo();
         }
 
         private void OnRoleQuit(RoleQuitEvent e)
@@ -244,7 +245,7 @@ namespace Queen.Server.Roles.Rooms
             }
 
             // 游戏进行中
-            if (RoomState.GAMING == room.state) 
+            if (RoomState.GAMING == room.state)
             {
                 role.Send(new S2C_JoinRoomMsg { code = 6 });
 
@@ -266,8 +267,14 @@ namespace Queen.Server.Roles.Rooms
                 role.Send(new S2C_JoinRoomMsg { code = 5 });
             }
 
-            // 加入成功
-            engine.sys.landlord.JoinRoom(msg.id, role.pid, msg.password);
+            // 加入失败
+            if (false == engine.sys.landlord.JoinRoom(msg.id, role.pid, msg.password)) 
+            {
+                role.Send(new S2C_JoinRoomMsg { code = 3 });
+
+                return;
+            }
+
             role.Send(new S2C_JoinRoomMsg { code = 1 });
         }
 
@@ -285,6 +292,14 @@ namespace Queen.Server.Roles.Rooms
                 return;
             }
 
+            // 您没有该权限这么做
+            if (false == room.owner.Equals(role.pid))
+            {
+                role.Send(new S2C_Room2GameMsg { code = 5 });
+
+                return;
+            }
+
             // 房间已经在对局中
             if (RoomState.GAMING == room.state)
             {
@@ -293,6 +308,7 @@ namespace Queen.Server.Roles.Rooms
                 return;
             }
 
+            // 无法开启房间
             if (false == engine.sys.landlord.Room2Game(room.id))
             {
                 role.Send(new S2C_Room2GameMsg { code = 4 });
@@ -327,7 +343,11 @@ namespace Queen.Server.Roles.Rooms
             }
 
             // 销毁成功
-            engine.sys.landlord.DestroyRoom(room.id);
+            if (engine.sys.landlord.DestroyRoom(room.id))
+            {
+                // 通知 GAMEPLAY 关闭对局房间
+                engine.rpc.Execute(RPC.TAR.GAMEPLAY, new S2G_DestroyStageMsg { id = room.id });
+            }
         }
 
         /// <summary>
@@ -343,7 +363,13 @@ namespace Queen.Server.Roles.Rooms
                 return;
             }
 
-            engine.sys.landlord.CreateRoom(role.pid, msg.name, msg.needpwd, msg.password, msg.mlimit);
+            if (false == engine.sys.landlord.CreateRoom(role.pid, msg.name, msg.needpwd, msg.password, msg.mlimit))
+            {
+                role.Send(new S2C_CreateRoomMsg { code = 2 });
+
+                return;
+            }
+
             role.Send(new S2C_CreateRoomMsg { code = 1 });
             role.Send(new S2C_JoinRoomMsg { code = 1 });
         }
