@@ -149,6 +149,7 @@ namespace Queen.Gameplay.Stages
             seat.channel = channel;
 
             channel.Send(new G2C_StartStageMsg { code = 1, id = id, seat = seat.id, mframe = mframe, seatInfos = seatInfos, frameInfos = frames.ToArray() });
+            engine.logger.Log($"stage have a new start. id -> {msg.id}, seat -> {seat.id}");
         }
 
         private void OnC2GSetInput(NetChannel channel, C2G_SetInputMsg msg)
@@ -161,6 +162,7 @@ namespace Queen.Gameplay.Stages
             if (seatInputs.ContainsKey(seat.id)) seatInputs.Remove(seat.id);
             msg.inputInfo.seat = seat.id;
             seatInputs.Add(seat.id, msg.inputInfo);
+            engine.logger.Log($"recv a new input. id -> {id}, seat -> {seat.id}, input.moveX -> {msg.inputInfo.moveX}");
         }
 
         /// <summary>

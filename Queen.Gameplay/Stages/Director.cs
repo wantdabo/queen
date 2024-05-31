@@ -46,6 +46,7 @@ namespace Queen.Gameplay.Game
                 return;
             }
 
+            // 正式项目，此处应该开多线程会好些
             // 创建成功
             var stage = AddComp<Stage>();
             stage.director = this;
@@ -53,18 +54,21 @@ namespace Queen.Gameplay.Game
             stages.Add(msg.id, stage);
             stage.Create();
             channel.Send(new G2S_CreateStageMsg { code = 1, id = msg.id });
+
+            engine.logger.Log($"create a new stage. id -> {msg.id}, seatc -> {msg.seats.Count()}");
         }
 
         private void OnC2GDestroyStage(NetChannel channel, S2G_DestroyStageMsg msg)
         {
             DestroyRoom(msg.id);
+            engine.logger.Log($"destroy the stage. id -> {msg.id}");
         }
 
         /// <summary>
         /// 销毁对局房间
         /// </summary>
         /// <param name="id">房间 ID</param>
-        public void DestroyRoom(uint id) 
+        public void DestroyRoom(uint id)
         {
             // 对局房间销毁
             if (stages.TryGetValue(id, out var stage))
