@@ -17,6 +17,11 @@ namespace Queen.Core
         public Engine engine;
 
         /// <summary>
+        /// 父组件
+        /// </summary>
+        private Comp parent;
+
+        /// <summary>
         /// 组件列表
         /// </summary>
         private List<Comp> compList = null;
@@ -57,6 +62,7 @@ namespace Queen.Core
             }
             compList.Clear();
             compDict.Clear();
+            parent.RmvComp(this);
         }
 
         /// <summary>
@@ -117,6 +123,7 @@ namespace Queen.Core
 
             T comp = new();
             comp.engine = engine;
+            comp.parent = this;
             if (false == compDict.TryGetValue(typeof(T), out var comps))
             {
                 comps = new();

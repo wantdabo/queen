@@ -108,7 +108,6 @@ namespace Queen.Server.System
 
             if (roleMap.ContainsKey(role.pid)) roleMap.Remove(role.pid);
             role.Destroy();
-            RmvComp(role);
         }
 
         /// <summary>
