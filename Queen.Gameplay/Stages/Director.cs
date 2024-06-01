@@ -61,7 +61,6 @@ namespace Queen.Gameplay.Game
         private void OnC2GDestroyStage(NetChannel channel, S2G_DestroyStageMsg msg)
         {
             DestroyRoom(msg.id);
-            engine.logger.Log($"destroy the stage. id -> {msg.id}");
         }
 
         /// <summary>
@@ -79,6 +78,7 @@ namespace Queen.Gameplay.Game
 
             // 通知 SERV 销毁房间
             engine.rpc.Execute(RPC.TAR.SERV, new G2S_DestroyStageMsg { id = id });
+            engine.logger.Log($"destroy the stage. id -> {id}");
         }
     }
 }

@@ -30,6 +30,10 @@ namespace Queen.Network.Remote
         /// 错误
         /// </summary>
         Error,
+        /// <summary>
+        /// 错误，不能对自己 Execute
+        /// </summary>
+        ErrorSelfExecute
     }
 
     /// <summary>
@@ -149,15 +153,18 @@ namespace Queen.Network.Remote
         /// <typeparam name="ST">发送消息类型</typeparam>
         /// <param name="name">RPC 目标的</param>
         /// <param name="sm">发送的消息</param>
-        public void Execute<ST>(string name, ST sm) where ST : INetMessage
+        /// <returns>RPC 状态</returns>
+        public RPCState Execute<ST>(string name, ST sm) where ST : INetMessage
         {
             if (this.name.Equals(name))
             {
-                return;
+                return RPCState.ErrorSelfExecute;
             }
 
-            if (false == clientNodes.TryGetValue(name, out var clientNode)) return;
+            if (false == clientNodes.TryGetValue(name, out var clientNode)) return RPCState.Error;
             clientNode.channel.Send(sm);
+
+            return RPCState.Success;
         }
 
         /// <summary>
