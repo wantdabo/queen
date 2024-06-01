@@ -29,6 +29,8 @@ namespace Queen.Server.Common
         /// </summary>
         private Dictionary<Type, Behavior> behaviorMap = new();
 
+        private uint dbsaveTiming;
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -36,12 +38,13 @@ namespace Queen.Server.Common
             eventor.Create();
 
             // 数据写盘
-            engine.ticker.Timing((t) => eventor.Tell<DBSaveEvent>(), engine.settings.dbsave, -1);
+            dbsaveTiming = engine.ticker.Timing((t) => eventor.Tell<DBSaveEvent>(), engine.settings.dbsave, -1);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            engine.ticker.StopTimer(dbsaveTiming);
             behaviorMap.Clear();
         }
 
