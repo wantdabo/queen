@@ -27,7 +27,7 @@ namespace Queen.Server.Common
         /// <summary>
         /// behaviors 集合
         /// </summary>
-        private Dictionary<Type, Behavior> behaviorMap = new();
+        private Dictionary<Type, Behavior> behaviorDict = new();
 
         private uint dbsaveTiming;
 
@@ -45,7 +45,7 @@ namespace Queen.Server.Common
         {
             base.OnDestroy();
             engine.ticker.StopTimer(dbsaveTiming);
-            behaviorMap.Clear();
+            behaviorDict.Clear();
         }
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace Queen.Server.Common
         /// <returns>Behavior 实例</returns>
         public T GetBehavior<T>() where T : Behavior
         {
-            if (false == behaviorMap.TryGetValue(typeof(T), out var behavior)) return null;
+            if (false == behaviorDict.TryGetValue(typeof(T), out var behavior)) return null;
 
             return behavior as T;
         }
@@ -68,11 +68,11 @@ namespace Queen.Server.Common
         /// <exception cref="Exception">不能添加重复的 Behavior</exception>
         public T AddBehavior<T>() where T : Behavior, new()
         {
-            if (behaviorMap.ContainsKey(typeof(T))) throw new Exception("can't add repeat behavior.");
+            if (behaviorDict.ContainsKey(typeof(T))) throw new Exception("can't add repeat behavior.");
 
             T behavior = AddComp<T>();
             behavior.actor = this;
-            behaviorMap.Add(typeof(T), behavior);
+            behaviorDict.Add(typeof(T), behavior);
 
             return behavior;
         }

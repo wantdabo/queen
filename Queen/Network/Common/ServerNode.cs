@@ -15,7 +15,7 @@ namespace Queen.Network.Common
         /// <summary>
         /// 通信渠道集合
         /// </summary>
-        private Dictionary<uint, NetChannel> channelMap = new();
+        private Dictionary<uint, NetChannel> channelDict = new();
 
         /// <summary>
         /// 创建服务端网络节点
@@ -40,36 +40,42 @@ namespace Queen.Network.Common
             {
                 while (true)
                 {
+                    foreach (var channel in channelDict.Values.ToArray()) 
+                    {
+                        if (PeerState.Disconnected != channel.peer.State) continue;
+                        if(channelDict.ContainsKey(channel.peer.ID)) channelDict.Remove(channel.peer.ID);
+                    }
+
                     if (host.CheckEvents(out var netEvent) <= 0) if (host.Service(timeout, out netEvent) <= 0) continue;
                     switch (netEvent.Type)
                     {
                         case EventType.Connect:
                             var channel = new NetChannel { id = netEvent.ChannelID, peer = netEvent.Peer };
                             channel.peer.Timeout(32, 30000, 30000);
-                            channelMap.Add(netEvent.Peer.ID, channel);
+                            channelDict.Add(netEvent.Peer.ID, channel);
                             EmitConnectEvent(channel);
                             break;
                         case EventType.Disconnect:
-                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel))
+                            if (channelDict.TryGetValue(netEvent.Peer.ID, out channel))
                             {
                                 EmitDisconnectEvent(channel);
-                                channelMap.Remove(netEvent.Peer.ID);
+                                channelDict.Remove(netEvent.Peer.ID);
                             }
                             break;
                         case EventType.Timeout:
-                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel))
+                            if (channelDict.TryGetValue(netEvent.Peer.ID, out channel))
                             {
                                 EmitTimeoutEvent(channel);
                                 channel.peer.DisconnectNow(0);
                                 EmitDisconnectEvent(channel);
-                                channelMap.Remove(netEvent.Peer.ID);
+                                channelDict.Remove(netEvent.Peer.ID);
                             }
                             break;
                         case EventType.Receive:
                             var data = new byte[netEvent.Packet.Length];
                             netEvent.Packet.CopyTo(data);
                             netEvent.Packet.Dispose();
-                            if (channelMap.TryGetValue(netEvent.Peer.ID, out channel)) EmitReceiveEvent(channel, data);
+                            if (channelDict.TryGetValue(netEvent.Peer.ID, out channel)) EmitReceiveEvent(channel, data);
                             break;
                     }
                 }

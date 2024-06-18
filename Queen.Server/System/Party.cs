@@ -69,7 +69,7 @@ namespace Queen.Server.System
         /// <summary>
         /// 玩家集合
         /// </summary>
-        private Dictionary<string, Role> roleMap = new();
+        private Dictionary<string, Role> roleDict = new();
 
         /// <summary>
         /// 玩家加入
@@ -78,10 +78,10 @@ namespace Queen.Server.System
         /// <returns>玩家</returns>
         public Role Join(RoleJoinInfo info)
         {
-            if (roleMap.TryGetValue(info.pid, out var role)) Quit(role);
+            if (roleDict.TryGetValue(info.pid, out var role)) Quit(role);
 
             role = AddComp<Role>();
-            role.session = AddComp<Session>();
+            role.session = role.AddComp<Session>();
             role.session.channel = info.channel;
             role.session.Create();
             role.pid = info.pid;
@@ -90,7 +90,7 @@ namespace Queen.Server.System
             role.password = info.password;
             role.Create();
 
-            roleMap.Add(role.pid, role);
+            roleDict.Add(role.pid, role);
             role.eventor.Tell(new RoleJoinEvent { role = role });
             engine.sys.eventor.Tell(new RoleJoinEvent { role = role });
 
@@ -106,7 +106,7 @@ namespace Queen.Server.System
             role.eventor.Tell(new RoleQuitEvent { role = role });
             engine.sys.eventor.Tell(new RoleQuitEvent { role = role });
 
-            if (roleMap.ContainsKey(role.pid)) roleMap.Remove(role.pid);
+            if (roleDict.ContainsKey(role.pid)) roleDict.Remove(role.pid);
             role.Destroy();
         }
 
@@ -117,7 +117,7 @@ namespace Queen.Server.System
         /// <returns>玩家</returns>
         public Role GetRole(string pid)
         {
-            roleMap.TryGetValue(pid, out var role);
+            roleDict.TryGetValue(pid, out var role);
 
             return role;
         }
@@ -129,7 +129,7 @@ namespace Queen.Server.System
         /// <returns>玩家</returns>
         public Role GetRole(NetChannel channel)
         {
-            foreach (var kv in roleMap)
+            foreach (var kv in roleDict)
             {
                 if (channel.peer.ID == kv.Value.session.channel.peer.ID) return kv.Value;
             }

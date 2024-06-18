@@ -42,7 +42,7 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 协议映射集合
         /// </summary>
-        private Dictionary<Delegate, Delegate> actionMap = new();
+        private Dictionary<Delegate, Delegate> actionDict = new();
 
         protected override void OnCreate()
         {
@@ -68,10 +68,10 @@ namespace Queen.Server.Roles.Common
         /// <param name="action">协议回调</param>
         public void UnRecv<T>(Action<T> action) where T : INetMessage
         {
-            if (actionMap.TryGetValue(action, out var callback))
+            if (actionDict.TryGetValue(action, out var callback))
             {
                 engine.slave.UnRecv(callback as Action<NetChannel, T>);
-                actionMap.Remove(action);
+                actionDict.Remove(action);
             }
         }
         /// <summary>
@@ -85,7 +85,7 @@ namespace Queen.Server.Roles.Common
             {
                 if (c.id == session.channel.id && c.peer.ID == session.channel.peer.ID) action?.Invoke(m);
             };
-            actionMap.Add(action, callback);
+            actionDict.Add(action, callback);
             engine.slave.Recv(callback);
         }
 
