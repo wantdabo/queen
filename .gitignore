@@ -18,3 +18,8 @@
 /Queen.Gameplay/obj
 /Queen.Protocols.Gen/obj
 /Queen.Protocols.Gen/bin
+/Queen.Gameplay/Properties
+Queen.Gameplay/Queen.Gameplay.csproj.user
+/Queen.Server/Properties
+Queen.Server/Queen.Server.csproj.user
+/Queen/bin

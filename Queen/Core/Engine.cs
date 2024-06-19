@@ -83,7 +83,11 @@ namespace Queen.Core
         /// </summary>
         public void Run()
         {
-            while (true) eventor.Tell<EngineExecuteEvent>();
+            while (true)
+            {
+                Thread.Sleep(1);
+                eventor.Tell<EngineExecuteEvent>();
+            }
         }
 
         /// <summary>
