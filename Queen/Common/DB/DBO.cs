@@ -1,4 +1,4 @@
-﻿using MySqlConnector;
+﻿using MongoDB.Driver;
 using Queen.Core;
 using System;
 using System.Collections.Generic;
@@ -9,21 +9,6 @@ using System.Threading.Tasks;
 namespace Queen.Common.DB
 {
     /// <summary>
-    /// SQL 指令，传参结构
-    /// </summary>
-    public struct SQLParamInfo
-    {
-        /// <summary>
-        /// 键
-        /// </summary>
-        public string key;
-        /// <summary>
-        /// 值
-        /// </summary>
-        public object value;
-    }
-
-    /// <summary>
     /// 数据库操作员
     /// </summary>
     public class DBO : Comp
@@ -31,12 +16,16 @@ namespace Queen.Common.DB
         /// <summary>
         /// MYSQL 连接
         /// </summary>
-        private MySqlConnection connect;
+        private MongoClient connect;
 
         /// <summary>
         /// DB 主机
         /// </summary>
         private string dbhost;
+        /// <summary>
+        /// DB 端口
+        /// </summary>
+        private int dbport;
         /// <summary>
         /// DB 用户名
         /// </summary>
@@ -53,9 +42,9 @@ namespace Queen.Common.DB
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.logger.Log("create mysql connect.");
-            connect = new MySqlConnection($"Server={dbhost};User ID={dbuser};Password={dbpwd};Database={dbname}");
-            engine.logger.Log("create mysql connect success.");
+            engine.logger.Log("create mongodb connect.");
+            connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:27017/{dbname}");
+            engine.logger.Log("create mongodb connect success.");
         }
 
         protected override void OnDestroy()
@@ -68,90 +57,83 @@ namespace Queen.Common.DB
         /// 配置数据库
         /// </summary>
         /// <param name="dbhost">DB 主机</param>
+        /// <param name="dbport">DB 端口</param>
         /// <param name="dbuser">DB 用户名</param>
         /// <param name="dbpwd">DB 密码</param>
         /// <param name="dbname">DB 名字</param>
-        public void Initialize(string dbhost, string dbuser, string dbpwd, string dbname) 
+        public void Initialize(string dbhost, int dbport, string dbuser, string dbpwd, string dbname)
         {
             this.dbhost = dbhost;
+            this.dbport = dbport;
             this.dbuser = dbuser;
             this.dbpwd = dbpwd;
             this.dbname = dbname;
         }
 
         /// <summary>
-        /// MYSQL 查询
+        /// Mongo 新增
         /// </summary>
-        /// <typeparam name="T">数据读取的类型（需要与 MYSQL 表字段对上）</typeparam>
-        /// <param name="sql">SQL 语句</param>
-        /// <param name="infos">读取数据</param>
-        /// <param name="commandParams">SQL 语句传参</param>
+        /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
+        /// <param name="name">集合名字</param>
+        /// <param name="value">数据</param>
         /// <returns>YES/NO</returns>
-        public bool Query<T>(string sql, out List<T>? infos, params SQLParamInfo[] commandParams) where T : DBReader, new()
+        public bool Insert<T>(string name, T value) where T : DBValue
         {
-            var hasRows = false;
-            infos = null;
-            try
-            {
-                connect.Open();
+            var database = connect.GetDatabase(dbname);
+            var collection = database.GetCollection<T>(name);
+            collection.InsertOne(value);
 
-                var command = new MySqlCommand(sql, connect);
-                if (null != commandParams) foreach (var param in commandParams) command.Parameters.AddWithValue(param.key, param.value);
-
-                var reader = command.ExecuteReader();
-
-                hasRows = reader.HasRows;
-                if (hasRows) infos = new(); else infos = null;
-
-                while (reader.Read())
-                {
-                    var info = new T();
-                    for (int i = 0; i < reader.FieldCount; i++)
-                    {
-                        var columnName = reader.GetName(i);
-                        var columnValue = reader.GetFieldValue<object>(i);
-
-                        // 将字段值设置到实体对象中
-                        info.SetPropertyValue(columnName, columnValue);
-                    }
-                    infos.Add(info);
-                }
-
-                reader.Close();
-                command.Dispose();
-            }
-            finally
-            {
-                connect.Close();
-            }
-
-            return hasRows;
+            return true;
         }
 
         /// <summary>
-        /// MYSQL 执行
+        /// Mongo 删除
         /// </summary>
-        /// <param name="sql">SQL 语句</param>
-        /// <param name="commandParams">SQL 语句传参</param>
+        /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
+        /// <param name="name">集合名字</param>
+        /// <param name="filter">过滤器</param>
         /// <returns>YES/NO</returns>
-        public bool Execute(string sql, params SQLParamInfo[] commandParams)
+        public bool Delete<T>(string name, FilterDefinition<T> filter) where T : DBValue
         {
-            try
-            {
-                connect.Open();
+            var database = connect.GetDatabase(dbname);
+            var collection = database.GetCollection<T>(name);
+            var result = collection.DeleteOne(filter);
 
-                var command = new MySqlCommand(sql, connect);
-                if (null != commandParams) foreach (var param in commandParams) command.Parameters.AddWithValue(param.key, param.value);
+            return result.DeletedCount > 0;
+        }
 
-                command.ExecuteNonQuery();
-                command.Dispose();
-            }
-            finally 
-            {
-                connect.Close();
-            }
+        /// <summary>
+        /// Mongo 修改
+        /// </summary>
+        /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
+        /// <param name="name">集合名字</param>
+        /// <param name="filter">过滤器</param>
+        /// <param name="value">数据</param>
+        /// <returns>YES/NO</returns>
+        public bool Replace<T>(string name, FilterDefinition<T> filter, T value) where T : DBValue
+        {
+            Delete(name, filter);
 
-            return true;
+            return Insert(name, value);
+        }
+
+        /// <summary>
+        /// Mongo 查询
+        /// </summary>
+        /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
+        /// <param name="name">集合名字</param>
+        /// <param name="filter">过滤器</param>
+        /// <param name="values">数据集合</param>
+        /// <returns>YES/NO</returns>
+        public bool Find<T>(string name, FilterDefinition<T> filter, out List<T> values) where T : DBValue, new()
+        {
+            var database = connect.GetDatabase(dbname);
+            var collection = database.GetCollection<T>(name);
+            var reseult = collection.FindSync(filter);
+
+            values = reseult.ToList();
+
+            return values.Count > 0;
         }
     }
 }

@@ -12,6 +12,6 @@ namespace Queen.Server.Roles.Bags
     /// </summary>
     public class Bag : RoleBehavior<BagInfo>
     {
-        protected override string suffix => "bag";
+        public override string prefix => $"bags.{role.pid}";
     }
 }

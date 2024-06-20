@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MongoDB.Bson.Serialization.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,27 +8,29 @@ using System.Threading.Tasks;
 namespace Queen.Common.DB
 {
     /// <summary>
-    /// 玩家数据库信息读取器
+    /// Mongo 对应数据, 玩家信息
     /// </summary>
-    public class RoleReader : DBReader
+    public class DBRoleValue : DBValue
     {
-        public override Type type => GetType();
-        
         /// <summary>
         /// 玩家 ID
         /// </summary>
+        [BsonElement("pid")]
         public string pid { get; set; }
         /// <summary>
         /// 玩家昵称
         /// </summary>
+        [BsonElement("nickname")]
         public string nickname { get; set; }
         /// <summary>
         /// 用户名
         /// </summary>
+        [BsonElement("username")]
         public string username { get; set; }
         /// <summary>
         /// 密码
         /// </summary>
+        [BsonElement("password")]
         public string password { get; set; }
     }
 }

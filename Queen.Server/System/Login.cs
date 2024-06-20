@@ -1,4 +1,5 @@
-﻿using Queen.Common.DB;
+﻿using MongoDB.Driver;
+using Queen.Common.DB;
 using Queen.Network.Common;
 using Queen.Protocols;
 using Queen.Protocols.Common;
@@ -45,7 +46,8 @@ namespace Queen.Server.System
         private void OnC2SLogin(NetChannel channel, C2SLoginMsg msg)
         {
             engine.logger.Log($"a user try to login. username -> {msg.username}");
-            if (false == engine.dbo.Query<RoleReader>($"select * from roles where username=@condi;", out var readers, new SQLParamInfo { key = "@condi", value = msg.username }))
+
+            if (false == engine.dbo.Find("roles", Builders<DBRoleValue>.Filter.Eq(p => p.username, msg.username), out var values))
             {
                 channel.Send(new S2CLoginMsg { code = 2 });
                 engine.logger.Log($"the user unregistered. username -> {msg.username}");
@@ -53,7 +55,7 @@ namespace Queen.Server.System
                 return;
             }
 
-            var reader = readers.First();
+            var reader = values.First();
             if (false == reader.password.Equals(msg.password))
             {
                 channel.Send(new S2CLoginMsg { code = 3 });
@@ -104,7 +106,7 @@ namespace Queen.Server.System
         private void OnC2SRegister(NetChannel channel, C2SRegisterMsg msg)
         {
             engine.logger.Log($"a new user try to register username -> {msg.username}");
-            if (engine.dbo.Query<RoleReader>($"select * from roles where username=@username;", out var readers, new SQLParamInfo { key = "@username", value = msg.username }))
+            if (engine.dbo.Find("roles", Builders<DBRoleValue>.Filter.Eq(p => p.username, msg.username), out var values))
             {
                 channel.Send(new S2CRegisterMsg { code = 2 });
                 engine.logger.Log($"this username has already been registered. username -> {msg.username}");
@@ -113,7 +115,7 @@ namespace Queen.Server.System
             }
 
             var pid = Guid.NewGuid().ToString();
-            engine.dbo.Execute($"insert into roles (pid, username, password) values(@pid, @username, @password)", new SQLParamInfo { key = "@pid", value = pid }, new SQLParamInfo { key = "@username", value = msg.username }, new SQLParamInfo { key = "@password", value = msg.password });
+            engine.dbo.Insert<DBRoleValue>("roles", new() { pid = pid, nickname = "", username = msg.username, password = msg.password });
 
             channel.Send(new S2CRegisterMsg { code = 1 });
             engine.logger.Log($"registration success. pid -> {pid}, username -> {msg.username}");

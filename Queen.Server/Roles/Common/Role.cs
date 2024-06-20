@@ -1,4 +1,5 @@
-﻿using Queen.Common;
+﻿using MongoDB.Driver;
+using Queen.Common;
 using Queen.Common.DB;
 using Queen.Network.Common;
 using Queen.Protocols.Common;
@@ -101,12 +102,7 @@ namespace Queen.Server.Roles.Common
 
         private void OnDBSave(DBSaveEvent e)
         {
-            engine.dbo.Execute("update roles set nickname=@nickname, username=@username, password=@password where pid=@pid",
-                new SQLParamInfo { key = "@nickname", value = nickname },
-                new SQLParamInfo { key = "@username", value = username },
-                new SQLParamInfo { key = "@password", value = password },
-                new SQLParamInfo { key = "@pid", value = pid }
-            );
+            engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, pid), new() { pid = pid, nickname = nickname, username = username, password = password });
         }
     }
 }

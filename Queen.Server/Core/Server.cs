@@ -42,7 +42,7 @@ namespace Queen.Server.Core
             settings.Create();
 
             dbo = AddComp<DBO>();
-            dbo.Initialize(settings.dbhost, settings.dbuser, settings.dbpwd, settings.dbname);
+            dbo.Initialize(settings.dbhost, settings.dbport, settings.dbuser, settings.dbpwd, settings.dbname);
             dbo.Create();
 
             rpc = AddComp<RPC>();
@@ -58,7 +58,7 @@ namespace Queen.Server.Core
 
             engine.logger.Log(
                 $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
-                $"\n\tdbhost: {settings.dbhost}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
+                $"\n\tdbhost: {settings.dbhost}\n\tdbport: {settings.dbport}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
             , ConsoleColor.Yellow);
             engine.logger.Log("queen.server is running...", ConsoleColor.Green);
 

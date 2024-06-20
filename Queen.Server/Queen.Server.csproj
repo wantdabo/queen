@@ -10,14 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Res\queen_roles.sql" />
     <None Remove="Res\settings.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Res\queen_roles.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Include="Res\settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

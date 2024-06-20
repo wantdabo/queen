@@ -11,6 +11,5 @@
   - MessagePack 协议通信
   - RPC 服务器之间通信
 - 数据读写
-  - Mysql 数据库
-  - Json  业务数据
+  - MongoDB 数据库
   - Luban 配置

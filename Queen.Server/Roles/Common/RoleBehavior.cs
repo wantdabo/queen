@@ -28,16 +28,6 @@ namespace Queen.Server.Roles.Common
     public abstract class RoleBehavior<TDBState> : Behavior<TDBState> where TDBState : IDBState, new()
     {
         /// <summary>
-        /// 后缀
-        /// </summary>
-        protected abstract string suffix { get; }
-
-        /// <summary>
-        /// 存储地址
-        /// </summary>
-        protected override string path => $"{engine.cfg.datapath}{role.pid}.{suffix}";
-
-        /// <summary>
         /// 玩家
         /// </summary>
         public Role role { get { return actor as Role; } }

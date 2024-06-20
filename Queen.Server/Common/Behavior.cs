@@ -1,5 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using MongoDB.Driver;
+using Newtonsoft.Json;
 using Queen.Common;
+using Queen.Server.Common.DB;
 using Queen.Server.Core;
 using System;
 using System.Collections.Generic;
@@ -27,9 +29,9 @@ namespace Queen.Server.Common
     public abstract class Behavior<TDBState> : Behavior where TDBState : IDBState, new()
     {
         /// <summary>
-        /// 存储地址
+        /// 数据前缀
         /// </summary>
-        protected abstract string path { get; }
+        public abstract string prefix { get; }
 
         /// <summary>
         /// 数据
@@ -55,9 +57,9 @@ namespace Queen.Server.Common
         /// </summary>
         private void LoadData()
         {
-            if (File.Exists(path))
+            if (engine.dbo.Find("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), out var values))
             {
-                data = JsonConvert.DeserializeObject<TDBState>(File.ReadAllText(path));
+                data = JsonConvert.DeserializeObject<TDBState>(values.First().value);
 
                 return;
             }
@@ -72,7 +74,7 @@ namespace Queen.Server.Common
         private void SaveData()
         {
             var json = JsonConvert.SerializeObject(data);
-            File.WriteAllText(path, json);
+            engine.dbo.Replace("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), new() { prefix = prefix, value = json });
         }
 
         private void OnDBSave(DBSaveEvent e) { SaveData(); }

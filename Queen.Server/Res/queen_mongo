@@ -1,0 +1,59 @@
+﻿use queen;
+
+db.createCollection("roles", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["pid", "username", "password"],
+      properties: {
+        pid: {
+          bsonType: "string",
+          description: "must be a string and is required"
+        },
+        username: {
+          bsonType: "string",
+          description: "must be a string and is required"
+        },
+        password: {
+          bsonType: "string",
+          description: "must be a string and is required"
+        },
+        nickname: {
+          bsonType: "string",
+          description: "must be a string and is optional"
+        }
+      }
+    }
+  }
+});
+
+db.roles.createIndex({ pid: 1 }, { unique: true });
+db.roles.createIndex({ username: 1 }, { unique: true });
+
+db.createCollection("datas", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["prefix", "value"],
+      properties: {
+        prefix: {
+          bsonType: "string",
+          description: "must be a string and is required"
+        },
+        value: {
+          bsonType: "string",
+          description: "must be a string and is required"
+        },
+      }
+    }
+  }
+});
+
+db.datas.createIndex({ prefix: 1 }, { unique: true });
+db.datas.createIndex({ value: 1 }, { unique: true });
+
+db.createUser({
+  user: "root",
+  pwd: "root",
+  roles: [{ role: "readWrite", db: "queen" }]
+})

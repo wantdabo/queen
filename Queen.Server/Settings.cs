@@ -36,6 +36,11 @@ namespace Queen.Server
         public string dbhost { get; private set; }
 
         /// <summary>
+        /// 数据库端口
+        /// </summary>
+        public int dbport { get; private set; }
+
+        /// <summary>
         /// 数据库名
         /// </summary>
         public string dbname { get; private set; }
@@ -64,6 +69,7 @@ namespace Queen.Server
             port = jobj.Value<ushort>("port");
             maxconn = jobj.Value<int>("maxconn");
             dbhost = jobj.Value<string>("dbhost");
+            dbport = jobj.Value<int>("dbport");
             dbname = jobj.Value<string>("dbname");
             dbuser = jobj.Value<string>("dbuser");
             dbpwd = jobj.Value<string>("dbpwd");
