@@ -27,6 +27,11 @@ namespace Queen.Server.Roles.Common
     /// <typeparam name="TDBState">存储数据的类型</typeparam>
     public abstract class RoleBehavior<TDBState> : Behavior<TDBState> where TDBState : IDBState, new()
     {
+        public override string prefix => $"{token}.{role.pid}";
+        /// <summary>
+        /// 标识
+        /// </summary>
+        public abstract string token { get; }
         /// <summary>
         /// 玩家
         /// </summary>
