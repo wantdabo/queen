@@ -115,7 +115,7 @@ namespace Queen.Server.System
             }
 
             var pid = Guid.NewGuid().ToString();
-            engine.dbo.Insert<DBRoleValue>("roles", new() { pid = pid, nickname = "", username = msg.username, password = msg.password });
+            engine.dbo.Insert<DBRoleValue>("roles", new() { server = engine.settings.name, pid = pid, nickname = "", username = msg.username, password = msg.password });
 
             channel.Send(new S2CRegisterMsg { code = 1 });
             engine.logger.Log($"registration success. pid -> {pid}, username -> {msg.username}");

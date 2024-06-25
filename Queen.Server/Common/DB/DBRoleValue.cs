@@ -13,6 +13,11 @@ namespace Queen.Common.DB
     public class DBRoleValue : DBValue
     {
         /// <summary>
+        /// 服务器 ID
+        /// </summary>
+        [BsonElement("server")]
+        public string server { get; set; }
+        /// <summary>
         /// 玩家 ID
         /// </summary>
         [BsonElement("pid")]

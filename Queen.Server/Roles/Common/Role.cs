@@ -102,7 +102,7 @@ namespace Queen.Server.Roles.Common
 
         private void OnDBSave(DBSaveEvent e)
         {
-            engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, pid), new() { pid = pid, nickname = nickname, username = username, password = password });
+            engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, pid), new() { server = engine.settings.name, pid = pid, nickname = nickname, username = username, password = password });
         }
     }
 }
