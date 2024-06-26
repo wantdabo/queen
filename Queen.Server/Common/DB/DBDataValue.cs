@@ -11,7 +11,7 @@ namespace Queen.Server.Common.DB
     /// <summary>
     /// Mongo 对应数据, 游戏数据
     /// </summary>
-    public class DBDataValue : DBValue
+    public class DBDataValue : DBValue<DBDataValue>
     {
         /// <summary>
         /// Key
@@ -23,5 +23,11 @@ namespace Queen.Server.Common.DB
         /// </summary>
         [BsonElement("value")]
         public string value { get; set; }
+
+        public override void Set(DBDataValue src)
+        {
+            prefix = src.prefix;
+            value = src.value;
+        }
     }
 }

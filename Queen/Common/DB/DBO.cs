@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using Queen.Core;
 using System;
 using System.Collections.Generic;
@@ -43,7 +44,7 @@ namespace Queen.Common.DB
         {
             base.OnCreate();
             engine.logger.Log("create mongodb connect.");
-            connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:27017/{dbname}");
+            connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}");
             engine.logger.Log("create mongodb connect success.");
         }
 
@@ -77,7 +78,7 @@ namespace Queen.Common.DB
         /// <param name="name">集合名字</param>
         /// <param name="value">数据</param>
         /// <returns>YES/NO</returns>
-        public bool Insert<T>(string name, T value) where T : DBValue
+        public bool Insert<T>(string name, T value) where T : DBValue<T>
         {
             var database = connect.GetDatabase(dbname);
             var collection = database.GetCollection<T>(name);
@@ -93,7 +94,7 @@ namespace Queen.Common.DB
         /// <param name="name">集合名字</param>
         /// <param name="filter">过滤器</param>
         /// <returns>YES/NO</returns>
-        public bool Delete<T>(string name, FilterDefinition<T> filter) where T : DBValue
+        public bool Delete<T>(string name, FilterDefinition<T> filter) where T : DBValue<T>
         {
             var database = connect.GetDatabase(dbname);
             var collection = database.GetCollection<T>(name);
@@ -103,18 +104,39 @@ namespace Queen.Common.DB
         }
 
         /// <summary>
-        /// Mongo 修改
+        /// Mongo 覆盖
         /// </summary>
         /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
         /// <param name="name">集合名字</param>
         /// <param name="filter">过滤器</param>
         /// <param name="value">数据</param>
         /// <returns>YES/NO</returns>
-        public bool Replace<T>(string name, FilterDefinition<T> filter, T value) where T : DBValue
+        public bool Update<T>(string name, FilterDefinition<T> filter, T value) where T : DBValue<T>, new()
         {
-            Delete(name, filter);
+            if (false == Find(name, filter, out var values)) return false;
 
-            return Insert(name, value);
+            var val = values.First();
+            val.Set(value);
+            var database = connect.GetDatabase(dbname);
+            var collection = database.GetCollection<T>(name);
+            var result = collection.ReplaceOne(filter, val);
+
+            return result.ModifiedCount > 0;
+        }
+
+        /// <summary>
+        /// Mongo 覆盖（如有数据，将会更新，否则便新增）
+        /// </summary>
+        /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
+        /// <param name="name">集合名字</param>
+        /// <param name="filter">过滤器</param>
+        /// <param name="value">数据</param>
+        /// <returns>YES/NO</returns>
+        public bool Replace<T>(string name, FilterDefinition<T> filter, T value) where T : DBValue<T>, new()
+        {
+            if (false == Find(name, filter, out var values)) return Insert(name, value);
+
+            return Update(name, filter, value);
         }
 
         /// <summary>
@@ -125,7 +147,7 @@ namespace Queen.Common.DB
         /// <param name="filter">过滤器</param>
         /// <param name="values">数据集合</param>
         /// <returns>YES/NO</returns>
-        public bool Find<T>(string name, FilterDefinition<T> filter, out List<T> values) where T : DBValue, new()
+        public bool Find<T>(string name, FilterDefinition<T> filter, out List<T> values) where T : DBValue<T>, new()
         {
             var database = connect.GetDatabase(dbname);
             var collection = database.GetCollection<T>(name);

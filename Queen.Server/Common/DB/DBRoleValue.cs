@@ -10,7 +10,7 @@ namespace Queen.Common.DB
     /// <summary>
     /// Mongo 对应数据, 玩家信息
     /// </summary>
-    public class DBRoleValue : DBValue
+    public class DBRoleValue : DBValue<DBRoleValue>
     {
         /// <summary>
         /// 服务器 ID
@@ -37,5 +37,14 @@ namespace Queen.Common.DB
         /// </summary>
         [BsonElement("password")]
         public string password { get; set; }
+
+        public override void Set(DBRoleValue src)
+        {
+            server = src.server;
+            pid = src.pid;
+            nickname = src.nickname;
+            username = src.username;
+            password = src.password;
+        }
     }
 }
