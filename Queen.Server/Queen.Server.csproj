@@ -24,4 +24,10 @@
     <ProjectReference Include="..\Queen\Queen.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Res\queen_mongo">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
