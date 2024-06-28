@@ -104,7 +104,7 @@ namespace Queen.Common.DB
         }
 
         /// <summary>
-        /// Mongo 覆盖
+        /// Mongo 更新
         /// </summary>
         /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
         /// <param name="name">集合名字</param>
