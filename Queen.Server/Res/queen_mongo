@@ -4,12 +4,8 @@ db.createCollection("roles", {
   validator: {
     $jsonSchema: {
       bsonType: "object",
-      required: ["server", "pid", "username", "password"],
+      required: ["pid", "username", "password"],
       properties: {
-        server: {
-          bsonType: "string",
-          description: "must be a string and is required"
-        },
         pid: {
           bsonType: "string",
           description: "must be a string and is required"

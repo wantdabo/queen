@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Network.Remote
+namespace Queen.Remote
 {
     /// <summary>
     /// RPC 远程主机信息

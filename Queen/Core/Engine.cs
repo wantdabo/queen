@@ -9,7 +9,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Queen.Network;
-using Queen.Network.Remote;
 
 namespace Queen.Core
 {

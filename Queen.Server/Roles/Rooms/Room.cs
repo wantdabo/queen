@@ -1,5 +1,5 @@
 ﻿using Queen.Network.Common;
-using Queen.Network.Remote;
+using Queen.Remote;
 using Queen.Protocols;
 using Queen.Server.Roles.Common;
 using Queen.Server.System;

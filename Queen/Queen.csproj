@@ -21,10 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Res\rpc_settings.json" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Queen.Protocols\Queen.Protocols.csproj" />
   </ItemGroup>
 

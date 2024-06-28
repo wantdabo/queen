@@ -1,6 +1,6 @@
 ﻿using Queen.Common;
 using Queen.Network.Common;
-using Queen.Network.Remote;
+using Queen.Remote;
 using Queen.Protocols;
 using Queen.Server.Common;
 using Queen.Server.Roles.Common;

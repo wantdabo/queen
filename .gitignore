@@ -23,3 +23,5 @@ Queen.Gameplay/Queen.Gameplay.csproj.user
 /Queen.Server/Properties
 Queen.Server/Queen.Server.csproj.user
 /Queen/bin
+/Queen.Remote/bin
+/Queen.Remote/obj

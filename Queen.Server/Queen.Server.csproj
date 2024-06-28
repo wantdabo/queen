@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Queen.Remote\Queen.Remote.csproj" />
     <ProjectReference Include="..\Queen\Queen.csproj" />
   </ItemGroup>
 

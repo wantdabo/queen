@@ -1,7 +1,7 @@
 ﻿using Queen.Gameplay.Core;
 using Queen.Gameplay.Stages;
 using Queen.Network.Common;
-using Queen.Network.Remote;
+using Queen.Remote;
 using Queen.Protocols;
 using System;
 using System.Collections.Generic;

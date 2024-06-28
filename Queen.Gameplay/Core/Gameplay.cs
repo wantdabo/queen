@@ -1,5 +1,5 @@
 ﻿using Queen.Network;
-using Queen.Network.Remote;
+using Queen.Remote;
 using Queen.Core;
 using System.Numerics;
 using Queen.Gameplay.Game;

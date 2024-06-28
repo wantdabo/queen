@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Queen.Network.Remote
+namespace Queen.Remote
 {
     /// <summary>
     /// RPC 状态

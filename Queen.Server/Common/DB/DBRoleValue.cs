@@ -13,11 +13,6 @@ namespace Queen.Common.DB
     public class DBRoleValue : DBValue<DBRoleValue>
     {
         /// <summary>
-        /// 服务器 ID
-        /// </summary>
-        [BsonElement("server")]
-        public string server { get; set; }
-        /// <summary>
         /// 玩家 ID
         /// </summary>
         [BsonElement("pid")]
@@ -40,7 +35,6 @@ namespace Queen.Common.DB
 
         public override void Set(DBRoleValue src)
         {
-            server = src.server;
             pid = src.pid;
             nickname = src.nickname;
             username = src.username;
