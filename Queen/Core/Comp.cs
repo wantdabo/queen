@@ -49,10 +49,7 @@ namespace Queen.Core
         public virtual void Destroy()
         {
             OnDestroy();
-        }
-
-        protected virtual void OnDestroy()
-        {
+            parent.RmvComp(this);
             if (null == compList) return;
             for (int i = compList.Count - 1; i >= 0; i--)
             {
@@ -62,7 +59,11 @@ namespace Queen.Core
             }
             compList.Clear();
             compDict.Clear();
-            parent.RmvComp(this);
+        }
+
+        protected virtual void OnDestroy()
+        {
+
         }
 
         /// <summary>
@@ -128,7 +129,7 @@ namespace Queen.Core
             {
                 comps = new();
                 compDict.Add(typeof(T), comps);
-            }
+            }    
             comps.Add(comp);
             compList.Add(comp);
 

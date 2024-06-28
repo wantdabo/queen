@@ -15,11 +15,6 @@ namespace Queen.Common.DB
     public class DBO : Comp
     {
         /// <summary>
-        /// MYSQL 连接
-        /// </summary>
-        private MongoClient connect;
-
-        /// <summary>
         /// DB 主机
         /// </summary>
         private string dbhost;
@@ -39,6 +34,10 @@ namespace Queen.Common.DB
         /// DB 名字
         /// </summary>
         private string dbname;
+        /// <summary>
+        /// Mongo 连接
+        /// </summary>
+        private MongoClient connect;
 
         protected override void OnCreate()
         {
