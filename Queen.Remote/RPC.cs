@@ -208,7 +208,7 @@ namespace Queen.Remote
                 if (RPCState.Wait == result.state) result.state = RPCState.Timeout;
             });
 
-            while (RPCState.Wait == result.state) { }
+            while (RPCState.Wait == result.state) { Thread.Sleep(1); }
             clientNode.UnRecv(action);
 
             return result;
