@@ -182,7 +182,7 @@ namespace Queen.Remote
 
             if (this.name.Equals(name))
             {
-                result.state = RPCState.Error;
+                result.state = RPCState.ErrorSelfExecute;
 
                 return result;
             }

@@ -1,6 +1,5 @@
 ﻿using Queen.Common;
 using Queen.Network.Common;
-using Queen.Server.Common;
 using Queen.Server.Core;
 using Queen.Server.Roles.Common;
 using System;
@@ -64,7 +63,7 @@ namespace Queen.Server.System
     /// <summary>
     /// 派对/ 玩家办事处
     /// </summary>
-    public class Party : Behavior
+    public class Party : Comp
     {
         /// <summary>
         /// 玩家集合
@@ -92,7 +91,7 @@ namespace Queen.Server.System
 
             roleDict.Add(role.pid, role);
             role.eventor.Tell(new RoleJoinEvent { role = role });
-            engine.sys.eventor.Tell(new RoleJoinEvent { role = role });
+            engine.eventor.Tell(new RoleJoinEvent { role = role });
 
             return role;
         }
@@ -104,7 +103,7 @@ namespace Queen.Server.System
         public void Quit(Role role)
         {
             role.eventor.Tell(new RoleQuitEvent { role = role });
-            engine.sys.eventor.Tell(new RoleQuitEvent { role = role });
+            engine.eventor.Tell(new RoleQuitEvent { role = role });
 
             if (roleDict.ContainsKey(role.pid)) roleDict.Remove(role.pid);
             role.Destroy();

@@ -3,7 +3,7 @@ using Queen.Common.DB;
 using Queen.Network.Common;
 using Queen.Protocols;
 using Queen.Protocols.Common;
-using Queen.Server.Common;
+using Queen.Server.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,8 +16,10 @@ namespace Queen.Server.System
     /// <summary>
     /// 登录
     /// </summary>
-    public class Login : Behavior
+    public class Authenticator : Comp
     {
+        private Party party;
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -26,6 +28,8 @@ namespace Queen.Server.System
             engine.slave.Recv<C2SRegisterMsg>(OnC2SRegister);
             engine.slave.Recv<NodeConnectMsg>(OnNodeConnect);
             engine.slave.Recv<NodeDisconnectMsg>(OnNodeDisconnect);
+
+            party = engine.GetComp<Party>();
         }
 
         protected override void OnDestroy()
@@ -36,6 +40,8 @@ namespace Queen.Server.System
             engine.slave.UnRecv<C2SRegisterMsg>(OnC2SRegister);
             engine.slave.UnRecv<NodeConnectMsg>(OnNodeConnect);
             engine.slave.UnRecv<NodeDisconnectMsg>(OnNodeDisconnect);
+
+            party = null;
         }
 
         /// <summary>
@@ -64,14 +70,14 @@ namespace Queen.Server.System
                 return;
             }
 
-            var role = engine.sys.party.GetRole(reader.pid);
+            var role = party.GetRole(reader.pid);
             if (null != role)
             {
                 role.session.channel.Send(new S2CLogoutMsg { pid = role.pid, code = 3 });
-                engine.sys.party.Quit(role);
+                party.Quit(role);
             }
 
-            engine.sys.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname, password = reader.password });
+            party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname, password = reader.password });
             engine.logger.Log($"user login success. pid -> {reader.pid}, username -> {msg.username}");
 
             channel.Send(new S2CLoginMsg { pid = reader.pid, code = 1 });
@@ -84,7 +90,7 @@ namespace Queen.Server.System
         /// <param name="msg">消息</param>
         private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
         {
-            var role = engine.sys.party.GetRole(msg.pid);
+            var role = party.GetRole(msg.pid);
             if (null == role)
             {
                 engine.logger.Log($"this user is not logged in is no. pid -> {msg.pid}");
@@ -94,7 +100,7 @@ namespace Queen.Server.System
             }
 
             engine.logger.Log($"user logout success. pid -> {msg.pid}");
-            engine.sys.party.Quit(role);
+            party.Quit(role);
             channel.Send(new S2CLogoutMsg { pid = msg.pid, code = 1 });
         }
 
@@ -127,11 +133,11 @@ namespace Queen.Server.System
 
         private void OnNodeDisconnect(NetChannel channel, NodeDisconnectMsg msg)
         {
-            var role = engine.sys.party.GetRole(channel);
+            var role = party.GetRole(channel);
             if (null == role) return;
 
             engine.logger.Log($"user logout by disconnect. pid -> {role.pid}, username -> {role.username}");
-            engine.sys.party.Quit(role);
+            party.Quit(role);
         }
     }
 }

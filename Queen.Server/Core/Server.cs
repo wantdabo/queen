@@ -4,7 +4,6 @@ using Queen.Core;
 using Queen.Server.System;
 using Queen.Protocols;
 using Queen.Common.DB;
-using Queen.Server.System.Common;
 
 namespace Queen.Server.Core
 {
@@ -29,10 +28,6 @@ namespace Queen.Server.Core
         /// 网络
         /// </summary>
         public Slave slave;
-        /// <summary>
-        /// 系统
-        /// </summary>
-        public Sys sys;
 
         protected override void OnCreate()
         {
@@ -53,8 +48,10 @@ namespace Queen.Server.Core
             slave.Initialize(settings.host, settings.port, settings.maxconn);
             slave.Create();
 
-            sys = AddComp<Sys>();
-            sys.Create();
+            var login = AddComp<Authenticator>();
+            var party = AddComp<Party>();
+            login.Create();
+            party.Create();
 
             engine.logger.Log(
                 $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +

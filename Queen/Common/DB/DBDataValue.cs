@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Common.DB
+namespace Queen.Common.DB
 {
     /// <summary>
     /// Mongo 对应数据, 游戏数据
