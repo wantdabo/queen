@@ -92,7 +92,7 @@ namespace Queen.Remote
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.eventor.Listen<EngineExecuteEvent>(OnEngineExecute);
+            engine.eventor.Listen<ExecuteEvent>(OnExecute);
 
             settings = AddComp<RPCSettings>();
             settings.Create();
@@ -115,7 +115,7 @@ namespace Queen.Remote
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            engine.eventor.UnListen<EngineExecuteEvent>(OnEngineExecute);
+            engine.eventor.UnListen<ExecuteEvent>(OnExecute);
         }
 
         /// <summary>
@@ -214,7 +214,7 @@ namespace Queen.Remote
             return result;
         }
 
-        private void OnEngineExecute(EngineExecuteEvent e)
+        private void OnExecute(ExecuteEvent e)
         {
             if (null == node) return;
             node.Notify();

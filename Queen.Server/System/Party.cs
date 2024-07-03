@@ -90,7 +90,6 @@ namespace Queen.Server.System
             role.Create();
 
             roleDict.Add(role.pid, role);
-            role.eventor.Tell(new RoleJoinEvent { role = role });
             engine.eventor.Tell(new RoleJoinEvent { role = role });
 
             return role;
@@ -102,7 +101,6 @@ namespace Queen.Server.System
         /// <param name="role">玩家</param>
         public void Quit(Role role)
         {
-            role.eventor.Tell(new RoleQuitEvent { role = role });
             engine.eventor.Tell(new RoleQuitEvent { role = role });
 
             if (roleDict.ContainsKey(role.pid)) roleDict.Remove(role.pid);

@@ -15,7 +15,7 @@ namespace Queen.Core
     /// <summary>
     /// Engine.Execute 事件
     /// </summary>
-    public struct EngineExecuteEvent : IEvent { }
+    public struct ExecuteEvent : IEvent { }
 
     /// <summary>
     /// 引擎组件
@@ -85,7 +85,7 @@ namespace Queen.Core
             while (true)
             {
                 Thread.Sleep(1);
-                eventor.Tell<EngineExecuteEvent>();
+                eventor.Tell<ExecuteEvent>();
             }
         }
 

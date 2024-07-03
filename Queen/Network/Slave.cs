@@ -19,13 +19,13 @@ namespace Queen.Network
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.eventor.Listen<EngineExecuteEvent>(OnEngineExecute);
+            engine.eventor.Listen<ExecuteEvent>(OnExecute);
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            engine.eventor.UnListen<EngineExecuteEvent>(OnEngineExecute);
+            engine.eventor.UnListen<ExecuteEvent>(OnExecute);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Queen.Network
             engine.logger.Log("slave create success.");
         }
 
-        private void OnEngineExecute(EngineExecuteEvent e)
+        private void OnExecute(ExecuteEvent e)
         {
             node.Notify();
         }

@@ -72,7 +72,7 @@ namespace Queen.Common
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.eventor.Listen<EngineExecuteEvent>(OnEngineExecute);
+            engine.eventor.Listen<ExecuteEvent>(OnExecute);
             eventor = AddComp<Eventor>();
             eventor.Create();
         }
@@ -80,10 +80,10 @@ namespace Queen.Common
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            engine.eventor.UnListen<EngineExecuteEvent>(OnEngineExecute);
+            engine.eventor.UnListen<ExecuteEvent>(OnExecute);
         }
 
-        public void OnEngineExecute(EngineExecuteEvent e)
+        public void OnExecute(ExecuteEvent e)
         {
             if (0 == lastMilliSeconds)
             {

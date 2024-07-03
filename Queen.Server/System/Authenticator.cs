@@ -90,6 +90,8 @@ namespace Queen.Server.System
         /// <param name="msg">消息</param>
         private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
         {
+            if (null == msg.pid) return;
+
             var role = party.GetRole(msg.pid);
             if (null == role)
             {

@@ -6,7 +6,9 @@ using Queen.Protocols;
 using Queen.Protocols.Common;
 using Queen.Server.Core;
 using Queen.Server.Roles.Bags;
+using Queen.Server.System;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -46,30 +48,46 @@ namespace Queen.Server.Roles.Common
         public string password;
 
         /// <summary>
-        /// 协议映射集合
-        /// </summary>
-        private Dictionary<Delegate, Delegate> actionDict = new();
-
-        /// <summary>
         /// 事件订阅派发者
         /// </summary>
         public Eventor eventor;
+
+        /// <summary>
+        /// 数据自动保存计时器 ID
+        /// </summary>
+        private uint dbsaveTiming;
+
+        /// <summary>
+        /// Jobs 驱动 Task
+        /// </summary>
+        private Task task = null;
+
+        /// <summary>
+        /// 任务列表
+        /// </summary>
+        private Queue<Action> jobs = new();
 
         /// <summary>
         /// behaviors 集合
         /// </summary>
         private Dictionary<Type, Behavior> behaviorDict = new();
 
-        private uint dbsaveTiming;
+        /// <summary>
+        /// 协议映射集合
+        /// </summary>
+        private Dictionary<Delegate, Delegate> actionDict = new();
 
         protected override void OnCreate()
         {
             base.OnCreate();
             eventor = AddComp<Eventor>();
             eventor.Create();
+            engine.eventor.Listen<Queen.Core.ExecuteEvent>(OnExecute);
+            engine.eventor.Listen<RoleJoinEvent>(OnRoleJoin);
+            engine.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
             eventor.Listen<DBSaveEvent>(OnDBSave);
             // 数据写盘
-            dbsaveTiming = engine.ticker.Timing((t) => eventor.Tell<DBSaveEvent>(), engine.settings.dbsave, -1);
+            dbsaveTiming = engine.ticker.Timing((t) => jobs.Enqueue(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
 
             // 背包
             AddBehavior<Bag>().Create();
@@ -78,6 +96,9 @@ namespace Queen.Server.Roles.Common
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            engine.eventor.UnListen<Queen.Core.ExecuteEvent>(OnExecute);
+            engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
+            engine.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
             eventor.UnListen<DBSaveEvent>(OnDBSave);
             engine.ticker.StopTimer(dbsaveTiming);
             behaviorDict.Clear();
@@ -135,7 +156,7 @@ namespace Queen.Server.Roles.Common
         {
             Action<NetChannel, T> callback = (c, m) =>
             {
-                if (c.id == session.channel.id && c.peer.ID == session.channel.peer.ID) action?.Invoke(m);
+                if (c.id == session.channel.id && c.peer.ID == session.channel.peer.ID) jobs.Enqueue(() => { action?.Invoke(m); });
             };
             engine.slave.Recv(callback);
             actionDict.Add(action, callback);
@@ -149,6 +170,30 @@ namespace Queen.Server.Roles.Common
         public void Send<T>(T msg) where T : INetMessage
         {
             session.channel.Send(msg);
+        }
+
+        private void OnExecute(Queen.Core.ExecuteEvent e)
+        {
+            if (null != task && false == task.IsCompleted) return;
+            if (false == jobs.TryDequeue(out var job)) return;
+
+            // 开启任务线程
+            task = Task.Run(() =>
+            {
+                job.Invoke();
+
+                return Task.CompletedTask;
+            });
+        }
+
+        private void OnRoleJoin(RoleJoinEvent e)
+        {
+            jobs.Enqueue(() => eventor.Tell(e));
+        }
+
+        private void OnRoleQuit(RoleQuitEvent e)
+        {
+            jobs.Enqueue(() => eventor.Tell(e));
         }
 
         private void OnDBSave(DBSaveEvent e)
