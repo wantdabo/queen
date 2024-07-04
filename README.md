@@ -12,4 +12,5 @@
   - RPC 服务器之间通信
 - 数据读写
   - MongoDB 数据库
+  - Redis 内存数据库
   - Luban 配置
