@@ -6,7 +6,7 @@ using Queen.Protocols;
 using Queen.Protocols.Common;
 using Queen.Server.Core;
 using Queen.Server.Roles.Bags;
-using Queen.Server.System;
+using Queen.Server.System.Commune;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -96,12 +96,18 @@ namespace Queen.Server.Roles.Common
         protected override void OnDestroy()
         {
             base.OnDestroy();
+            // 阻塞，等待任务完成，存盘
+            while (null != task && false == task.IsCompleted) Thread.Sleep(1);
+            eventor.Tell<DBSaveEvent>();
+
             engine.eventor.UnListen<Queen.Core.ExecuteEvent>(OnExecute);
             engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
             engine.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
             eventor.UnListen<DBSaveEvent>(OnDBSave);
+            jobs.Clear();
             engine.ticker.StopTimer(dbsaveTiming);
             behaviorDict.Clear();
+            actionDict.Clear();
         }
 
         /// <summary>

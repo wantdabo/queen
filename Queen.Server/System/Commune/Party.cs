@@ -9,7 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.System
+namespace Queen.Server.System.Commune
 {
     /// <summary>
     /// 玩家加入事件

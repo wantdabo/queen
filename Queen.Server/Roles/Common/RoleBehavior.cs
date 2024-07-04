@@ -53,7 +53,6 @@ namespace Queen.Server.Roles.Common
         {
             base.OnDestroy();
             role.eventor.UnListen<DBSaveEvent>(OnDBSave);
-            SaveData();
         }
 
         /// <summary>
