@@ -70,7 +70,7 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// behaviors 集合
         /// </summary>
-        private Dictionary<Type, Behavior> behaviorDict = new();
+        private Dictionary<Type, RoleBehavior> behaviorDict = new();
 
         /// <summary>
         /// 协议映射集合
@@ -115,7 +115,7 @@ namespace Queen.Server.Roles.Common
         /// </summary>
         /// <typeparam name="T">Behavior 类型</typeparam>
         /// <returns>Behavior 实例</returns>
-        public T GetBehavior<T>() where T : Behavior
+        public T GetBehavior<T>() where T : RoleBehavior
         {
             if (false == behaviorDict.TryGetValue(typeof(T), out var behavior)) return null;
 
@@ -128,7 +128,7 @@ namespace Queen.Server.Roles.Common
         /// <typeparam name="T">Behavior 类型</typeparam>
         /// <returns>Behavior 实例</returns>
         /// <exception cref="Exception">不能添加重复的 Behavior</exception>
-        public T AddBehavior<T>() where T : Behavior, new()
+        public T AddBehavior<T>() where T : RoleBehavior, new()
         {
             if (behaviorDict.ContainsKey(typeof(T))) throw new Exception("can't add repeat behavior.");
 
@@ -186,7 +186,15 @@ namespace Queen.Server.Roles.Common
             // 开启任务线程
             task = Task.Run(() =>
             {
-                job.Invoke();
+                try
+                {
+                    job.Invoke();
+                }
+                catch (Exception e)
+                {
+                    engine.logger.Error($"pid -> {pid}", e);
+                    return Task.CompletedTask;
+                }
 
                 return Task.CompletedTask;
             });

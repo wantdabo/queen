@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Queen.Common;
 using Queen.Common.DB;
+using Queen.Network;
 using Queen.Server.Core;
 using System;
 using System.Collections.Generic;
@@ -15,18 +16,21 @@ namespace Queen.Server.Roles.Common
     /// <summary>
     /// Behavior/ 行为
     /// </summary>
-    public abstract class Behavior : Comp
+    public abstract class RoleBehavior : Comp
     {
         public Role role;
     }
 
+    /// <summary>
+    /// 数据存储接口
+    /// </summary>
     public interface IDBState { }
 
     /// <summary>
     /// Behavior/ 行为，可存储数据
     /// </summary>
     /// <typeparam name="TDBState">存储数据的类型</typeparam>
-    public abstract class RoleBehavior<TDBState> : Behavior where TDBState : IDBState, new()
+    public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDBState, new()
     {
         /// <summary>
         /// 数据前缀
@@ -81,5 +85,21 @@ namespace Queen.Server.Roles.Common
         }
 
         private void OnDBSave(DBSaveEvent e) { SaveData(); }
+    }
+
+    /// <summary>
+    /// Behavior/ 行为，可存储数据
+    /// </summary>
+    /// <typeparam name="TDBState">存储数据的类型</typeparam>
+    /// <typeparam name="TAdapter">消息适配器的类型></typeparam>
+    public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> where TDBState : IDBState, new() where TAdapter : Adapter, new()
+    {
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+            var adapter = AddComp<TAdapter>();
+            adapter.Initialize(this);
+            adapter.Create();
+        }
     }
 }

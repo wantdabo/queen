@@ -10,13 +10,12 @@ namespace Queen.Network
     /// <summary>
     /// 消息适配器
     /// </summary>
-    /// <typeparam name="T">桥接类型</typeparam>
-    public abstract class Adapter<T> : Comp where T : Comp 
+    public abstract class Adapter : Comp
     {
         /// <summary>
         /// 桥接
         /// </summary>
-        public T bridge;
+        protected Comp bridge;
 
         protected override void OnCreate()
         {
@@ -33,10 +32,10 @@ namespace Queen.Network
         /// <summary>
         /// 初始化
         /// </summary>
-        /// <param name="gridge">桥接</param>
-        public void Initialize(T gridge)
+        /// <param name="bridge">桥接</param>
+        public void Initialize(Comp bridge)
         {
-            this.bridge = gridge;
+            this.bridge = bridge;
         }
 
         /// <summary>
@@ -48,5 +47,17 @@ namespace Queen.Network
         /// 松绑消息回调
         /// </summary>
         protected abstract void OnUnbind();
+    }
+
+    /// <summary>
+    /// 消息适配器
+    /// </summary>
+    /// <typeparam name="T">桥接类型</typeparam>
+    public abstract class Adapter<T> : Adapter where T : Comp
+    {
+        /// <summary>
+        /// 桥接
+        /// </summary>
+        protected new T bridge { get { return base.bridge as T; } }
     }
 }

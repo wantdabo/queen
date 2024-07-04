@@ -5,16 +5,43 @@ using System.Runtime.ExceptionServices;
 
 namespace Queen.Common
 {
+
+
     /// <summary>
     /// 日志系统
     /// </summary>
     public class Logger : Comp
     {
+        private string logdir = $"{Directory.GetCurrentDirectory()}/Res/Logs/";
+
+        /// <summary>
+        /// 日志等级
+        /// </summary>
+        public enum LogLevel
+        {
+            /// <summary>
+            /// 信息
+            /// </summary>
+            Info,
+            /// <summary>
+            /// 警告
+            /// </summary>
+            Warn,
+            /// <summary>
+            /// 错误
+            /// </summary>
+            Error,
+        }
+
         /// <summary>
         /// 日志数据结构
         /// </summary>
         private struct LogInfo
         {
+            /// <summary>
+            /// 日志等级
+            /// </summary>
+            public LogLevel ll;
             /// <summary>
             /// 日志时间
             /// </summary>
@@ -40,7 +67,7 @@ namespace Queen.Common
         {
             base.OnCreate();
 
-            Thread thread = new Thread(() =>
+            Task.Run(() =>
             {
                 while (true)
                 {
@@ -48,24 +75,25 @@ namespace Queen.Common
                     while (logInfos.TryDequeue(out var log)) Log(log);
                 }
             });
-            thread.IsBackground = true;
-            thread.Start();
 
-            var logFilePath = $"{engine.cfg.logpath}{DateTime.Now.ToLongDateString()}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
+            var logFilePath = $"{logdir}Log_{DateTime.Now.ToLongDateString()}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
             var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
             writer = new StreamWriter(fs);
 
-            AppDomain.CurrentDomain.FirstChanceException += (object sender, FirstChanceExceptionEventArgs e) =>
-            {
-                Log(e.Exception.Message);
-            };
-
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
+                Error((e.ExceptionObject as Exception));
                 while (logInfos.TryDequeue(out var log)) Log(log);
 
                 writer.Flush();
                 writer.Close();
+            };
+
+            TaskScheduler.UnobservedTaskException += (sender, e) =>
+            {
+                Error(e.Exception);
+                while (logInfos.TryDequeue(out var log)) Log(log);
+                e.SetObserved();
             };
         }
 
@@ -77,12 +105,49 @@ namespace Queen.Common
         }
 
         /// <summary>
-        /// 打印日志
+        /// 信息日志
         /// </summary>
         /// <param name="message">日志内容</param>
-        public void Log(string message, ConsoleColor color = ConsoleColor.White)
+        public void Info(string message, ConsoleColor color = ConsoleColor.White)
         {
-            logInfos.Enqueue(new LogInfo { time = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            logInfos.Enqueue(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToLongDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+        }
+
+        /// <summary>
+        /// 警告日志
+        /// </summary>
+        /// <param name="message">日志内容</param>
+        public void Warn(string message, ConsoleColor color = ConsoleColor.White)
+        {
+            logInfos.Enqueue(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToLongDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+        }
+
+        /// <summary>
+        /// 错误日志
+        /// </summary>
+        /// <param name="message">日志内容</param>
+        public void Error(string message, ConsoleColor color = ConsoleColor.White)
+        {
+            logInfos.Enqueue(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToLongDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+        }
+
+        /// <summary>
+        /// 错误日志
+        /// </summary>
+        /// <param name="e">异常</param>
+        public void Error(Exception e, ConsoleColor color = ConsoleColor.White)
+        {
+            Error($"{e.Message}\n{e.StackTrace}");
+        }
+
+        /// <summary>
+        /// 错误日志
+        /// </summary>
+        /// <param name="message">日志内容</param>
+        /// <param name="e">异常</param>
+        public void Error(string message, Exception e, ConsoleColor color = ConsoleColor.White)
+        {
+            Error($"{message}\n{e.Message}\n{e.StackTrace}");
         }
 
         /// <summary>
@@ -91,11 +156,32 @@ namespace Queen.Common
         /// <param name="log">日志</param>
         private void Log(LogInfo log)
         {
-            var logStr = $"{log.time} {log.message}";
-            writer.WriteLine(logStr);
+            var llstr = string.Empty;
+            if (LogLevel.Info == log.ll)
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                llstr = "[INFO] ";
+            }
+            else if (LogLevel.Warn == log.ll)
+            {
+                Console.ForegroundColor = ConsoleColor.Gray;
+                llstr = "[WARN] ";
+            }
+            else if (LogLevel.Error == log.ll)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                llstr = "[ERRO] ";
+            }
+
+            writer.WriteLine($"{llstr}{log.time} {log.message}");
             writer.Flush();
+
+            Console.Write(llstr);
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"{log.time} ");
             Console.ForegroundColor = log.color;
-            Console.WriteLine(logStr);
+            Console.Write($"{log.message}");
+            Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.White;
         }
     }

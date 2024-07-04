@@ -42,9 +42,7 @@ namespace Queen.Common.DB
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.logger.Log("create mongodb connect.");
             connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}");
-            engine.logger.Log("create mongodb connect success.");
         }
 
         protected override void OnDestroy()

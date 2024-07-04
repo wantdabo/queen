@@ -17,7 +17,7 @@ namespace Queen.Server.System.Authentication
     /// <summary>
     /// 验证器消息适配器
     /// </summary>
-    public class AuthenticatorAdpater : Adapter<Authenticator>
+    public class Adpater : Adapter<Authenticator>
     {
         protected override void OnBind()
         {
@@ -44,12 +44,12 @@ namespace Queen.Server.System.Authentication
         /// <param name="msg">消息</param>
         private void OnC2SLogin(NetChannel channel, C2SLoginMsg msg)
         {
-            engine.logger.Log($"a user try to login. username -> {msg.username}");
+            engine.logger.Info($"a user try to login. username -> {msg.username}");
 
             if (false == bridge.engine.dbo.Find("roles", Builders<DBRoleValue>.Filter.Eq(p => p.username, msg.username), out var values))
             {
                 channel.Send(new S2CLoginMsg { code = 2 });
-                engine.logger.Log($"the user unregistered. username -> {msg.username}");
+                engine.logger.Info($"the user unregistered. username -> {msg.username}");
 
                 return;
             }
@@ -58,7 +58,7 @@ namespace Queen.Server.System.Authentication
             if (false == reader.password.Equals(msg.password))
             {
                 channel.Send(new S2CLoginMsg { code = 3 });
-                engine.logger.Log($"user's password is wrong. username -> {msg.username}");
+                engine.logger.Info($"user's password is wrong. username -> {msg.username}");
 
                 return;
             }
@@ -71,7 +71,7 @@ namespace Queen.Server.System.Authentication
             }
 
             bridge.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname, password = reader.password });
-            engine.logger.Log($"user login success. pid -> {reader.pid}, username -> {msg.username}");
+            engine.logger.Info($"user login success. pid -> {reader.pid}, username -> {msg.username}");
 
             channel.Send(new S2CLoginMsg { pid = reader.pid, code = 1 });
         }
@@ -88,13 +88,13 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(msg.pid);
             if (null == role)
             {
-                engine.logger.Log($"this user is not logged in is no. pid -> {msg.pid}");
+                engine.logger.Info($"this user is not logged in is no. pid -> {msg.pid}");
                 channel.Send(new S2CLogoutMsg { pid = msg.pid, code = 2 });
 
                 return;
             }
 
-            engine.logger.Log($"user logout success. pid -> {msg.pid}");
+            engine.logger.Info($"user logout success. pid -> {msg.pid}");
             bridge.party.Quit(role);
             channel.Send(new S2CLogoutMsg { pid = msg.pid, code = 1 });
         }
@@ -106,11 +106,11 @@ namespace Queen.Server.System.Authentication
         /// <param name="msg">消息</param>
         private void OnC2SRegister(NetChannel channel, C2SRegisterMsg msg)
         {
-            engine.logger.Log($"a new user try to register username -> {msg.username}");
+            engine.logger.Info($"a new user try to register username -> {msg.username}");
             if (bridge.engine.dbo.Find("roles", Builders<DBRoleValue>.Filter.Eq(p => p.username, msg.username), out var values))
             {
                 channel.Send(new S2CRegisterMsg { code = 2 });
-                engine.logger.Log($"this username has already been registered. username -> {msg.username}");
+                engine.logger.Info($"this username has already been registered. username -> {msg.username}");
 
                 return;
             }
@@ -119,7 +119,7 @@ namespace Queen.Server.System.Authentication
             bridge.engine.dbo.Insert<DBRoleValue>("roles", new() { pid = pid, nickname = "", username = msg.username, password = msg.password });
 
             channel.Send(new S2CRegisterMsg { code = 1 });
-            engine.logger.Log($"registration success. pid -> {pid}, username -> {msg.username}");
+            engine.logger.Info($"registration success. pid -> {pid}, username -> {msg.username}");
         }
 
         private void OnNodeConnect(NetChannel channel, NodeConnectMsg msg)
@@ -131,7 +131,7 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(channel);
             if (null == role) return;
 
-            engine.logger.Log($"user logout by disconnect. pid -> {role.pid}, username -> {role.username}");
+            engine.logger.Info($"user logout by disconnect. pid -> {role.pid}, username -> {role.username}");
             bridge.party.Quit(role);
         }
     }

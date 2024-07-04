@@ -23,13 +23,13 @@ namespace Queen.Core
     public class Engine : Comp
     {
         /// <summary>
-        /// 配置表
-        /// </summary>
-        public Config cfg;
-        /// <summary>
         /// 日志
         /// </summary>
         public Logger logger;
+        /// <summary>
+        /// 配置表
+        /// </summary>
+        public Config cfg;
         /// <summary>
         /// 事件器
         /// </summary>
@@ -50,13 +50,22 @@ namespace Queen.Core
         protected override void OnCreate()
         {
             base.OnCreate();
-            ENet.Library.Initialize();
+            // 绘制 LOGO
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.WriteLine(
+                "\n  ___  _   _ _____ _____ _   _ \n" +
+                " / _ \\| | | | ____| ____| \\ | |\n" +
+                "| | | | | | |  _| |  _| |  \\| |\n" +
+                "| |_| | |_| | |___| |___| |\\  |\n" +
+                " \\__\\_\\\\___/|_____|_____|_| \\_|\n\n");
 
-            cfg = AddComp<Config>();
-            cfg.Create();
+            ENet.Library.Initialize();
 
             logger = AddComp<Logger>();
             logger.Create();
+
+            cfg = AddComp<Config>();
+            cfg.Create();
 
             eventor = AddComp<Eventor>();
             eventor.Create();

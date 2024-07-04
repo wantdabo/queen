@@ -63,7 +63,7 @@ namespace Queen.Server.System.Commune
     /// <summary>
     /// 派对/ 玩家办事处
     /// </summary>
-    public class Party : Comp
+    public class Party : Sys
     {
         /// <summary>
         /// 玩家集合

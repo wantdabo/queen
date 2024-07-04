@@ -33,7 +33,6 @@ namespace Queen.Server.Core
         protected override void OnCreate()
         {
             base.OnCreate();
-            logger.Log("queen.server initial...");
             settings = AddComp<Settings>();
             settings.Create();
 
@@ -44,7 +43,7 @@ namespace Queen.Server.Core
             rpc = AddComp<RPC>();
             rpc.Initialize(RPC.TAR.SERV);
             rpc.Create();
-            
+
             slave = AddComp<Slave>();
             slave.Initialize(settings.host, settings.port, settings.maxconn);
             slave.Create();
@@ -54,11 +53,11 @@ namespace Queen.Server.Core
             login.Create();
             party.Create();
 
-            engine.logger.Log(
+            engine.logger.Info(
                 $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
                 $"\n\tdbhost: {settings.dbhost}\n\tdbport: {settings.dbport}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
             , ConsoleColor.Yellow);
-            engine.logger.Log("queen.server is running...", ConsoleColor.Green);
+            engine.logger.Info("queen.server is running...");
 
             Console.Title = settings.name;
         }

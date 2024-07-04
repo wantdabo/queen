@@ -37,9 +37,7 @@ namespace Queen.Network
         /// <param name="timeout">轮询超时</param>
         public void Initialize(string ip, ushort port, int maxConn = 32, int timeout = 1) 
         {
-            engine.logger.Log("slave create.");
             node = new(ip, port, false, maxConn, timeout);
-            engine.logger.Log("slave create success.");
         }
 
         private void OnExecute(ExecuteEvent e)

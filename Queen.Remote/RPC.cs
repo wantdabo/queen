@@ -97,7 +97,6 @@ namespace Queen.Remote
             settings = AddComp<RPCSettings>();
             settings.Create();
 
-            engine.logger.Log("rpc create.");
             if (settings.servs.TryGetValue(name, out var info))
             {
                 node = new(info.host, info.port, false, 4095);
@@ -109,7 +108,6 @@ namespace Queen.Remote
                 clientNode.Connect(serv.host, serv.port);
                 clientNodes.Add(serv.name, clientNode);
             }
-            engine.logger.Log("rpc create success.");
         }
 
         protected override void OnDestroy()

@@ -52,17 +52,11 @@ namespace Queen.Common
         /// </summary>
         public string datapath { get { return $"{respath}/Datas/"; } }
 
-        /// <summary>
-        /// 日志目录
-        /// </summary>
-        public string logpath { get { return $"{respath}/Logs/"; } }
-
         protected override void OnCreate()
         {
             base.OnCreate();
 
             if (false == Directory.Exists(datapath)) Directory.CreateDirectory(datapath);
-            if (false == Directory.Exists(logpath)) Directory.CreateDirectory(logpath);
 
             location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{respath}Configs/{cfgName}.bytes")); });
         }

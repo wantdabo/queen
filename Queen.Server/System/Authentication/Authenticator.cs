@@ -17,24 +17,19 @@ namespace Queen.Server.System.Authentication
     /// <summary>
     /// 登录
     /// </summary>
-    public class Authenticator : Comp
+    public class Authenticator : Sys<Adpater>
     {
         public Party party;
 
         protected override void OnCreate()
         {
             base.OnCreate();
-            var adapter = AddComp<AuthenticatorAdpater>();
-            adapter.Initialize(this);
-            adapter.Create();
-         
             party = engine.GetComp<Party>();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            party = null;
         }
     }
 }
