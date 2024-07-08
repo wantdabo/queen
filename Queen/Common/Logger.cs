@@ -76,7 +76,7 @@ namespace Queen.Common
                 }
             });
 
-            if(false == Directory.Exists(logdir)) Directory.CreateDirectory(logdir);
+            if (false == Directory.Exists(logdir)) Directory.CreateDirectory(logdir);
 
             var logFilePath = $"{logdir}Log_{DateTime.Now.ToLongDateString()}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
             var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
