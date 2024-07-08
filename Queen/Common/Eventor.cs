@@ -37,6 +37,7 @@ namespace Queen.Common
         /// <param name="func">事件的回调</param>
         public void UnListen<T>(Action<T> func) where T : IEvent
         {
+            engine.EnsureThread();
             if (false == eventDict.TryGetValue(typeof(T), out var funcs)) return;
             funcs.Remove(func);
         }
@@ -48,6 +49,7 @@ namespace Queen.Common
         /// <param name="func">事件的回调</param>
         public void Listen<T>(Action<T> func) where T : IEvent
         {
+            engine.EnsureThread();
             if (null == eventDict) eventDict = new Dictionary<Type, List<Delegate>>();
 
             if (false == eventDict.TryGetValue(typeof(T), out var funcs))

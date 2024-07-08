@@ -66,7 +66,7 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(reader.pid);
             if (null != role)
             {
-                role.session.channel.Send(new S2CLogoutMsg { pid = role.pid, code = 3 });
+                role.session.channel.Send(new S2CLogoutMsg { pid = role.info.pid, code = 3 });
                 bridge.party.Quit(role);
             }
 
@@ -131,7 +131,7 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(channel);
             if (null == role) return;
 
-            engine.logger.Info($"user logout by disconnect. pid -> {role.pid}, username -> {role.username}");
+            engine.logger.Info($"user logout by disconnect. pid -> {role.info.pid}, username -> {role.info.username}");
             bridge.party.Quit(role);
         }
     }

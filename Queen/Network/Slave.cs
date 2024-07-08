@@ -52,6 +52,7 @@ namespace Queen.Network
         /// <param name="action">回调</param>
         public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
+            engine.EnsureThread();
             node.UnRecv(action);
         }
 
@@ -62,6 +63,7 @@ namespace Queen.Network
         /// <param name="action">回调</param>
         public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
+            engine.EnsureThread();
             node.Recv(action);
         }
     }

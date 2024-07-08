@@ -149,7 +149,6 @@ namespace Queen.Common.DB
             var database = connect.GetDatabase(dbname);
             var collection = database.GetCollection<T>(name);
             var reseult = collection.FindSync(filter);
-
             values = reseult.ToList();
 
             return values.Count > 0;

@@ -23,6 +23,7 @@ namespace Queen.Common
         /// <returns>实例化对象</returns>
         public T Get<T>(string key, Action<T> callback = null)
         {
+            engine.EnsureThread();
             if (pool.TryGetValue(typeof(T), out var dict) && dict.TryGetValue(key, out var queue) && queue.Count > 0)
             {
                 var obj = (T)queue.Dequeue();
@@ -43,6 +44,7 @@ namespace Queen.Common
         /// <param name="callback">回调（成功存入才会执行）</param>
         public void Set<T>(string key, T obj, Action<T> callback = null)
         {
+            engine.EnsureThread();
             if (null == obj) return;
 
             if (false == pool.TryGetValue(typeof(T), out var dict))

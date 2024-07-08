@@ -47,6 +47,16 @@ namespace Queen.Core
         /// </summary>
         public ObjectPool pool;
 
+        /// <summary>
+        /// 主线程 ID
+        /// </summary>
+        private int threadId;
+
+        public Engine()
+        {
+            threadId = Thread.CurrentThread.ManagedThreadId;
+        }
+
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -84,6 +94,17 @@ namespace Queen.Core
         {
             base.OnDestroy();
             ENet.Library.Deinitialize();
+        }
+
+        /// <summary>
+        /// 确保创建线程与调度线程为同一个
+        /// </summary>
+        public void EnsureThread() 
+        {
+            if (Thread.CurrentThread.ManagedThreadId != threadId) 
+            {
+                throw new Exception("this method must be called from the main thread.");
+            }
         }
 
         /// <summary>

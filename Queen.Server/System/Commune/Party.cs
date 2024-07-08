@@ -83,13 +83,10 @@ namespace Queen.Server.System.Commune
             role.session = role.AddComp<Session>();
             role.session.channel = info.channel;
             role.session.Create();
-            role.pid = info.pid;
-            role.nickname = info.nickname;
-            role.username = info.username;
-            role.password = info.password;
+            role.info = new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password };
             role.Create();
 
-            roleDict.Add(role.pid, role);
+            roleDict.Add(role.info.pid, role);
             engine.eventor.Tell(new RoleJoinEvent { role = role });
 
             return role;
@@ -103,7 +100,7 @@ namespace Queen.Server.System.Commune
         {
             engine.eventor.Tell(new RoleQuitEvent { role = role });
 
-            if (roleDict.ContainsKey(role.pid)) roleDict.Remove(role.pid);
+            if (roleDict.ContainsKey(role.info.pid)) roleDict.Remove(role.info.pid);
             role.Destroy();
         }
 

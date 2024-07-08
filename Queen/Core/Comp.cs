@@ -36,6 +36,7 @@ namespace Queen.Core
         /// </summary>
         public virtual void Create()
         {
+            engine.EnsureThread();
             OnCreate();
         }
 
@@ -48,6 +49,7 @@ namespace Queen.Core
         /// </summary>
         public virtual void Destroy()
         {
+            engine.EnsureThread();
             OnDestroy();
             parent.RmvComp(this);
             if (null == compList) return;
@@ -118,6 +120,7 @@ namespace Queen.Core
         /// <returns>组件</returns>
         public virtual T AddComp<T>() where T : Comp, new()
         {
+            engine.EnsureThread();
             if (null == compList) compList = new();
             if (null == compDict) compDict = new();
 
@@ -141,6 +144,7 @@ namespace Queen.Core
         /// <param name="comp">组件</param>
         public virtual void RmvComp(Comp comp)
         {
+            engine.EnsureThread();
             if (compDict.TryGetValue(comp.GetType(), out var comps)) comps.Remove(comp);
             compList.Remove(comp);
         }

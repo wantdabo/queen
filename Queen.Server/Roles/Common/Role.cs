@@ -22,14 +22,10 @@ namespace Queen.Server.Roles.Common
     public struct DBSaveEvent : IEvent { }
 
     /// <summary>
-    /// 玩家
+    /// 玩家数据结构
     /// </summary>
-    public class Role : Comp
+    public struct RoleInfo
     {
-        /// <summary>
-        /// 玩家会话
-        /// </summary>
-        public Session session;
         /// <summary>
         /// 玩家 ID
         /// </summary>
@@ -46,16 +42,32 @@ namespace Queen.Server.Roles.Common
         /// 密码
         /// </summary>
         public string password;
+    }
+
+    /// <summary>
+    /// 玩家
+    /// </summary>
+    public class Role : Comp
+    {
+        /// <summary>
+        /// 玩家信息
+        /// </summary>
+        public RoleInfo info { get; set; }
+
+        /// <summary>
+        /// 玩家信息备份
+        /// </summary>
+        private RoleInfo backup { get; set; }
+
+        /// <summary>
+        /// 玩家会话
+        /// </summary>
+        public Session session;
 
         /// <summary>
         /// 事件订阅派发者
         /// </summary>
         public Eventor eventor;
-
-        /// <summary>
-        /// 数据自动保存计时器 ID
-        /// </summary>
-        private uint dbsaveTiming;
 
         /// <summary>
         /// Jobs 驱动 Task
@@ -66,6 +78,16 @@ namespace Queen.Server.Roles.Common
         /// 任务列表
         /// </summary>
         private Queue<Action> jobs = new();
+
+        /// <summary>
+        /// 发送列表
+        /// </summary>
+        private ConcurrentQueue<Action> sends = new();
+
+        /// <summary>
+        /// 数据自动保存计时器 ID
+        /// </summary>
+        private uint dbsaveTiming;
 
         /// <summary>
         /// behaviors 集合
@@ -175,12 +197,34 @@ namespace Queen.Server.Roles.Common
         /// <param name="msg">数据</param>
         public void Send<T>(T msg) where T : INetMessage
         {
-            session.channel.Send(msg);
+            sends.Enqueue(() => { session.channel.Send(msg); });
+        }
+
+        /// <summary>
+        /// 恢复数据
+        /// </summary>
+        private void Restore()
+        {
+            info = new() { pid = backup.pid, username = backup.username, nickname = backup.nickname, password = backup.password };
+            foreach (var behavior in behaviorDict.Values) behavior.Restore();
+        }
+
+        /// <summary>
+        /// 备份数据
+        /// </summary>
+        private void Backup()
+        {
+            backup = new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password };
+            foreach (var behavior in behaviorDict.Values) behavior.Backup();
         }
 
         private void OnExecute(Queen.Core.ExecuteEvent e)
         {
             if (null != task && false == task.IsCompleted) return;
+
+            // 任务中产生的有效数据吗，推送至客户端
+            while (sends.TryDequeue(out var send)) send.Invoke();
+
             if (false == jobs.TryDequeue(out var job)) return;
 
             // 开启任务线程
@@ -188,11 +232,20 @@ namespace Queen.Server.Roles.Common
             {
                 try
                 {
+                    // 备份数据
+                    Backup();
+                    // 执行任务
                     job.Invoke();
                 }
                 catch (Exception e)
                 {
-                    engine.logger.Error($"pid -> {pid}", e);
+                    // 任务失败，恢复数据
+                    Restore();
+                    // 任务失败，清除任务中的推送消息
+                    sends.Clear();
+                    // 任务失败，输出日志
+                    engine.logger.Error($"role erro, pid -> {info.pid}", e);
+
                     return Task.CompletedTask;
                 }
 
@@ -212,7 +265,7 @@ namespace Queen.Server.Roles.Common
 
         private void OnDBSave(DBSaveEvent e)
         {
-            engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, pid), new() { pid = pid, nickname = nickname, username = username, password = password });
+            engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, info.pid), new() { pid = info.pid, nickname = info.nickname, username = info.username, password = info.password });
         }
     }
 }

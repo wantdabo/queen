@@ -19,6 +19,31 @@ namespace Queen.Server.Roles.Common
     public abstract class RoleBehavior : Comp
     {
         public Role role;
+
+        /// <summary>
+        /// 恢复数据
+        /// </summary>
+        public void Restore()
+        {
+            OnRestore();
+        }
+
+        /// <summary>
+        /// 备份数据
+        /// </summary>
+        public void Backup()
+        {
+            OnBackup();
+        }
+
+        /// <summary>
+        /// 恢复数据
+        /// </summary>
+        protected abstract void OnRestore();
+        /// <summary>
+        /// 备份数据
+        /// </summary>
+        protected abstract void OnBackup();
     }
 
     /// <summary>
@@ -35,7 +60,7 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 数据前缀
         /// </summary>
-        public string prefix => $"{token}.{role.pid}";
+        public string prefix => $"{token}.{role.info.pid}";
         /// <summary>
         /// 标识
         /// </summary>
@@ -45,6 +70,11 @@ namespace Queen.Server.Roles.Common
         /// 数据
         /// </summary>
         public TDBState data { get; private set; }
+
+        /// <summary>
+        /// 数据备份
+        /// </summary>
+        private string backup;
 
         protected override void OnCreate()
         {
@@ -57,6 +87,24 @@ namespace Queen.Server.Roles.Common
         {
             base.OnDestroy();
             role.eventor.UnListen<DBSaveEvent>(OnDBSave);
+        }
+
+        /// <summary>
+        /// 恢复数据
+        /// </summary>
+        protected override void OnRestore()
+        {   
+            if (string.IsNullOrEmpty(backup)) throw new Exception("can't restore the data, because backup is null.");
+
+            data = JsonConvert.DeserializeObject<TDBState>(backup);
+        }
+
+        /// <summary>
+        /// 备份数据
+        /// </summary>
+        protected override void OnBackup()
+        {
+            backup = JsonConvert.SerializeObject(data);
         }
 
         /// <summary>
@@ -88,7 +136,7 @@ namespace Queen.Server.Roles.Common
     }
 
     /// <summary>
-    /// Behavior/ 行为，可存储数据
+    /// Behavior/ 行为，可存储数据，消息适配器
     /// </summary>
     /// <typeparam name="TDBState">存储数据的类型</typeparam>
     /// <typeparam name="TAdapter">消息适配器的类型></typeparam>
