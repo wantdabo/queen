@@ -22,10 +22,6 @@ namespace Queen.Server.Core
         /// </summary>
         public DBO dbo;
         /// <summary>
-        /// RPC
-        /// </summary>
-        public RPC rpc;
-        /// <summary>
         /// 网络
         /// </summary>
         public Slave slave;
@@ -39,10 +35,6 @@ namespace Queen.Server.Core
             dbo = AddComp<DBO>();
             dbo.Initialize(settings.dbhost, settings.dbport, settings.dbuser, settings.dbpwd, settings.dbname);
             dbo.Create();
-
-            rpc = AddComp<RPC>();
-            rpc.Initialize(RPC.TAR.SERV);
-            rpc.Create();
 
             slave = AddComp<Slave>();
             slave.Initialize(settings.host, settings.port, settings.maxconn);
