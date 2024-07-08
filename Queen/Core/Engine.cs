@@ -52,14 +52,13 @@ namespace Queen.Core
         /// </summary>
         private int threadId;
 
-        public Engine()
-        {
-            threadId = Thread.CurrentThread.ManagedThreadId;
-        }
-
         protected override void OnCreate()
         {
             base.OnCreate();
+
+            // 记录运行线程
+            threadId = Thread.CurrentThread.ManagedThreadId;
+
             // 绘制 LOGO
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine(
@@ -99,9 +98,9 @@ namespace Queen.Core
         /// <summary>
         /// 确保创建线程与调度线程为同一个
         /// </summary>
-        public void EnsureThread() 
+        public void EnsureThread()
         {
-            if (Thread.CurrentThread.ManagedThreadId != threadId) 
+            if (Thread.CurrentThread.ManagedThreadId != threadId)
             {
                 throw new Exception("this method must be called from the main thread.");
             }
