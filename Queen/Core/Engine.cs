@@ -50,14 +50,17 @@ namespace Queen.Core
         /// <summary>
         /// 主线程 ID
         /// </summary>
-        private int threadId;
+        private readonly int threadId;
+
+        public Engine()
+        {
+            // 记录运行线程
+            threadId = Thread.CurrentThread.ManagedThreadId;
+        }
 
         protected override void OnCreate()
         {
             base.OnCreate();
-
-            // 记录运行线程
-            threadId = Thread.CurrentThread.ManagedThreadId;
 
             // 绘制 LOGO
             Console.ForegroundColor = ConsoleColor.Magenta;
