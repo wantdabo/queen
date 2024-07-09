@@ -111,8 +111,7 @@ namespace Queen.Server.Roles.Common
             // 数据写盘
             dbsaveTiming = engine.ticker.Timing((t) => jobs.Enqueue(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
 
-            // 背包
-            AddBehavior<Bag>().Create();
+            Behaviors();
         }
 
         protected override void OnDestroy()
@@ -130,6 +129,12 @@ namespace Queen.Server.Roles.Common
             engine.ticker.StopTimer(dbsaveTiming);
             behaviorDict.Clear();
             actionDict.Clear();
+        }
+
+        private void Behaviors()
+        {
+            // 背包
+            AddBehavior<Bag>().Create();
         }
 
         /// <summary>

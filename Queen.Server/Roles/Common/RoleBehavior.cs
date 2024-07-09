@@ -142,10 +142,12 @@ namespace Queen.Server.Roles.Common
     /// <typeparam name="TAdapter">消息适配器的类型></typeparam>
     public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> where TDBState : IDBState, new() where TAdapter : Adapter, new()
     {
+        protected TAdapter adapter;
+
         protected override void OnCreate()
         {
             base.OnCreate();
-            var adapter = AddComp<TAdapter>();
+            adapter = AddComp<TAdapter>();
             adapter.Initialize(this);
             adapter.Create();
         }
