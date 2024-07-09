@@ -149,7 +149,7 @@ namespace Queen.Common
         /// <param name="e">异常</param>
         public void Error(string message, Exception e, ConsoleColor color = ConsoleColor.White)
         {
-            Error($"{message}\n{e.Message}\n{e.StackTrace}");
+            Error($"{message}\n{e.Message}\n{e.InnerException.Message}\n{e.StackTrace}");
         }
 
         /// <summary>

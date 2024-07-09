@@ -47,16 +47,9 @@ namespace Queen.Common
         /// </summary>
         public string respath { get { return $"{Directory.GetCurrentDirectory()}/Res/"; } }
 
-        /// <summary>
-        /// 数据目录
-        /// </summary>
-        public string datapath { get { return $"{respath}/Datas/"; } }
-
         protected override void OnCreate()
         {
             base.OnCreate();
-
-            if (false == Directory.Exists(datapath)) Directory.CreateDirectory(datapath);
 
             location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{respath}Configs/{cfgName}.bytes")); });
         }
