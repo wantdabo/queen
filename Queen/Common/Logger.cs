@@ -5,8 +5,6 @@ using System.Runtime.ExceptionServices;
 
 namespace Queen.Common
 {
-
-
     /// <summary>
     /// 日志系统
     /// </summary>
