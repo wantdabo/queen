@@ -76,7 +76,7 @@ namespace Queen.Common
 
             if (false == Directory.Exists(logdir)) Directory.CreateDirectory(logdir);
 
-            var logFilePath = $"{logdir}Log_{DateTime.Now.ToLongDateString()}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
+            var logFilePath = $"{logdir}Log_{DateTime.Now.ToString("yyyy-MM-dd")}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
             var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
             writer = new StreamWriter(fs);
 
@@ -110,7 +110,7 @@ namespace Queen.Common
         /// <param name="message">日志内容</param>
         public void Info(string message, ConsoleColor color = ConsoleColor.White)
         {
-            logInfos.Enqueue(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToLongDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            logInfos.Enqueue(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
@@ -119,7 +119,7 @@ namespace Queen.Common
         /// <param name="message">日志内容</param>
         public void Warn(string message, ConsoleColor color = ConsoleColor.White)
         {
-            logInfos.Enqueue(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToLongDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            logInfos.Enqueue(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace Queen.Common
         /// <param name="message">日志内容</param>
         public void Error(string message, ConsoleColor color = ConsoleColor.White)
         {
-            logInfos.Enqueue(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToLongDateString()} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            logInfos.Enqueue(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
