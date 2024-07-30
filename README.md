@@ -13,12 +13,12 @@
 - MongoDB 数据库
 - Luban 配置
 
-### 快速部署
+### *快速部署
 
-开发环境中，需要安装 **.NET8+**
-安装，MongoDB，根据文件 **'./Queen.Server/Res/queen_mongo'** 进行数据库创建。
-服务器的配置文件，位于 **'./Queen.Server/Res/settings.json'** 可以根据需要进行修改。
-此时，如果上述步骤，顺利完成。**支持 .NET8+ 的 IDE** 打开 **'./Queen.sln'** 运行 **'Queen.Server'** 项目即可。
+- **step 1** 开发环境中，需要安装 **.NET8+**
+- **step 2** 安装，MongoDB，根据文件 **'./Queen.Server/Res/queen_mongo'** 进行数据库创建。
+- **step 3** 服务器的配置文件，位于 **'./Queen.Server/Res/settings.json'** 可以根据需要进行修改。
+- **step 4** 此时，如果上述步骤，顺利完成。**支持 .NET8+ 的 IDE** 打开 **'./Queen.sln'** 运行 **'Queen.Server'** 项目即可。
 
 ### TODOLIST
 
