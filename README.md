@@ -20,7 +20,14 @@
 - **step 3** 服务器的配置文件，位于 **'./Queen.Server/Res/settings.json'** 可以根据需要进行修改。
 - **step 4** 此时，如果上述步骤，顺利完成。**支持 .NET8+ 的 IDE** 打开 **'./Queen.sln'**解决方案，运行 **'Queen.Server'** 项目即可。
 
-### [DOCUMENT](#)
+### [DOCUMENT](#catalog)
+
+### <span id="catalog">目录</span>
+
+- 1.占坑测试
+- 2.占坑测试
+- 3.占坑测试
+- 4.占坑测试
 
 ### TODOLIST
 
@@ -41,10 +48,3 @@
 - H5 小游戏 WebSocket 支持
 
 - TCP 支持
-
-### <span id="catalog">目录</span>
-
-- 1.占坑测试
-- 2.占坑测试
-- 3.占坑测试
-- 4.占坑测试
