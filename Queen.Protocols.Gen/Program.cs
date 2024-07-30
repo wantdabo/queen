@@ -16,6 +16,8 @@ foreach (var type in types)
 }
 sb.AppendLine("        };\r\n    }\r\n}\r\n");
 var code = sb.ToString();
-File.WriteAllText($"../../../../Queen.Protocols/Common/__PROTO__DEFINE__.cs", code);
+var index = AppDomain.CurrentDomain.BaseDirectory.IndexOf("Queen.Protocols.Gen");
+var path = AppDomain.CurrentDomain.BaseDirectory.Substring(0, index);
+File.WriteAllText($"{path}/Queen.Protocols/Common/__PROTO__DEFINE__.cs", code);
 
 Console.WriteLine("Queen.Protocols.Gen Finised.");
