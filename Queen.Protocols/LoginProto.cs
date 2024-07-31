@@ -62,7 +62,6 @@ namespace Queen.Protocols
         /// 操作码/ 1 登出成功，2 该用户未登录，3 被顶号了
         /// </summary>
         public int code { get; set; }
-
         /// <summary>
         /// 玩家 ID
         /// </summary>
@@ -79,7 +78,6 @@ namespace Queen.Protocols
         /// 操作码/ 1 登录成功，2 用户不存在，3 密码错误
         /// </summary>
         public int code { get; set; }
-
         /// <summary>
         /// 玩家 ID
         /// </summary>
