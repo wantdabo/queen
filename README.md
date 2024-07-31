@@ -54,7 +54,7 @@
 
 - 1.开发环境中，需要安装 [**.NET8+**](#installenv.1)
 - 2.安装，[MongoDB](#installenv.2.1)，根据文件 `./Queen.Server/Res/queen_mongo` [创建数据库](#installenv.2.2)
-- 3.此时，如果上述步骤，顺利完成。**支持 .NET8+ 的 IDE** 打开 **`./Queen.sln`** 解决方案，运行 **`Queen.Server`** 项目即可
+- 3.此时，如果上述步骤，顺利完成。**支持 .NET8+ 的 IDE** 打开 **`./Queen.sln`** 解决方案，运行 **`Queen.Server.csproj`** 项目即可
 
 #### <span id="installenv">2.环境配置</span>
 
@@ -186,7 +186,7 @@
     }
   ```
   
-  ---
+---
 
 #### <span id="projectdire">项目结构</span>
 
@@ -211,10 +211,10 @@
     └─System
 ```
 
-- **Commands** BAT/SHELL，包含但不限，导表、协议生成/导出指令
-- **Configs** 配置表，使用方式，请参考 [Luban](https://github.com/focus-creative-games/luban)
-- **Queen** 核心库
-- **Queen.Protocols** 协议定义
-- **Queen.Protocols.Gen** 协议生成
-- **Queen.Remote** RPC 库
-- **Queen.Server** 业务
+- **Commands/** BAT/SHELL，包含但不限，导表、协议生成/导出指令
+- **Configs/** 配置表，使用方式，请参考 [Luban](https://github.com/focus-creative-games/luban)
+- **Queen/** 核心库
+- **Queen.Protocols/** 协议定义
+- **Queen.Protocols.Gen/** 协议生成
+- **Queen.Remote/** RPC 库
+- **Queen.Server/** 业务
