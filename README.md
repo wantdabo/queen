@@ -143,7 +143,7 @@
     - 5.创建 root 用户的权限，用于身份验证
       
       ```mongodb
-            db.createUser({
+      db.createUser({
           user: "root",
           pwd: "root",
           roles: [
