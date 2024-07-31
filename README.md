@@ -24,7 +24,7 @@
     - [1.下载安装 MongoDB](#installenv.2.1)
     - [2.数据库配置](#installenv.2.2)
 
-##### [项目结构](#projectdire)
+### [项目结构](#projectdire)
 
 ---
 
