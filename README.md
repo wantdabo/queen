@@ -14,10 +14,10 @@
 
 - [1.快速开始](#qstart)
 - [2.环境配置](#installenv)
- - [1.安装 .NET](#installenv.1)
- - [2.安装/配置 MongoDB](#installenv.2)
-   - [1.下载安装 MongoDB](#installenv.2.1)
-   - [2.数据库配置](#installenv.2.2)
+  - [1.安装 .NET](#installenv.1)
+  - [2.安装/配置 MongoDB](#installenv.2)
+     - [1.下载安装 MongoDB](#installenv.2.1)
+     - [2.数据库配置](#installenv.2.2)
 - [3.网络协议]()
 - [4.配置表]()
 
