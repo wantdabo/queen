@@ -69,13 +69,13 @@
     
     - 1.使用 queen 数据库
       
-      ```mongodb
+      ```json
       use queen;
       ```
     
     - 2.创建 roles 表/文档
       
-      ```mongodb
+      ```json
       db.createCollection("roles", {
         validator: {
           $jsonSchema: {
@@ -106,14 +106,14 @@
     
     - 3.约束 roles 表/文档的部分字段为唯一
       
-      ```mongodb
+      ```json
       db.roles.createIndex({ pid: 1 }, { unique: true });
       db.roles.createIndex({ username: 1 }, { unique: true });
       ```
     
     - 4.创建 datas 表/文档
       
-      ```mongodb
+      ```json
       db.createCollection("datas", {
         validator: {
           $jsonSchema: {
@@ -136,13 +136,13 @@
     
     - 4.约束 datas 表/文档的部分字段为唯一
       
-      ```mongodb
+      ```json
       db.datas.createIndex({ prefix: 1 }, { unique: true });
       ```
     
     - 5.创建 root 用户的权限，用于身份验证
       
-      ```mongodb
+      ```json
       db.createUser({
           user: "root",
           pwd: "root",
@@ -158,26 +158,26 @@
 - ##### <span id="servsettings">3.服务器信息配置</span>
   
   ```json
-      {
-        // 服务器名字
-        "name": "queen.server",
-        // 主机
-        "host": "0.0.0.0",
-        // 端口
-        "port": 12801,
-        // 最大连接数 (最大 4095)
-        "maxconn": 4095,
-        // 数据库主机
-        "dbhost": "127.0.0.1",
-        // 数据库端口
-        "dbport": 27017,
-        // 数据库名
-        "dbname": "queen",
-        // 数据库用户名
-        "dbuser": "root",
-        // 数据库密码
-        "dbpwd": "root",
-        // 数据落地时间间隔（秒）
-        "dbsave": 5
-      }
+     {
+      // 服务器名字
+      "name": "queen.server",
+      // 主机
+      "host": "0.0.0.0",
+      // 端口
+      "port": 12801,
+      // 最大连接数 (最大 4095)
+      "maxconn": 4095,
+      // 数据库主机
+      "dbhost": "127.0.0.1",
+      // 数据库端口
+      "dbport": 27017,
+      // 数据库名
+      "dbname": "queen",
+      // 数据库用户名
+      "dbuser": "root",
+      // 数据库密码
+      "dbpwd": "root",
+      // 数据落地时间间隔（秒）
+      "dbsave": 5
+    }
   ```
