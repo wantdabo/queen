@@ -157,6 +157,8 @@
 
 - ##### <span id="servsettings">3.服务器信息配置</span>
   
+  打开 `./Queen.Server/Res/queen_mongo` 文件，可进行服务器信息配置
+  
   ```mongodb
      {
       // 服务器名字
