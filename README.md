@@ -69,13 +69,13 @@
     
     - 1.使用 queen 数据库
       
-      ```json
+      ```mongodb
       use queen;
       ```
     
     - 2.创建 roles 表/文档
       
-      ```json
+      ```mongodb
       db.createCollection("roles", {
         validator: {
           $jsonSchema: {
@@ -106,14 +106,14 @@
     
     - 3.约束 roles 表/文档的部分字段为唯一
       
-      ```json
+      ```mongodb
       db.roles.createIndex({ pid: 1 }, { unique: true });
       db.roles.createIndex({ username: 1 }, { unique: true });
       ```
     
     - 4.创建 datas 表/文档
       
-      ```json
+      ```mongodb
       db.createCollection("datas", {
         validator: {
           $jsonSchema: {
@@ -136,13 +136,13 @@
     
     - 4.约束 datas 表/文档的部分字段为唯一
       
-      ```json
+      ```mongodb
       db.datas.createIndex({ prefix: 1 }, { unique: true });
       ```
     
     - 5.创建 root 用户的权限，用于身份验证
       
-      ```json
+      ```mongodb
       db.createUser({
           user: "root",
           pwd: "root",
@@ -157,7 +157,7 @@
 
 - ##### <span id="servsettings">3.服务器信息配置</span>
   
-  ```json
+  ```mongodb
      {
       // 服务器名字
       "name": "queen.server",
