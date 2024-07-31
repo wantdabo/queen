@@ -212,7 +212,7 @@
 ```
 
 - **Commands** BAT/SHELL，包含但不限，导表、协议生成/导出指令
-- **Configs** 配置表，使用方式，请参考 Luban
+- **Configs** 配置表，使用方式，请参考 [Luban](https://github.com/focus-creative-games/luban)
 - **Queen** 核心库
 - **Queen.Protocols** 协议定义
 - **Queen.Protocols.Gen** 协议生成
