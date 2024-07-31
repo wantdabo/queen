@@ -26,7 +26,6 @@ db.createCollection("roles", {
     }
   }
 });
-
 db.roles.createIndex({ pid: 1 }, { unique: true });
 db.roles.createIndex({ username: 1 }, { unique: true });
 
@@ -48,11 +47,13 @@ db.createCollection("datas", {
     }
   }
 });
-
 db.datas.createIndex({ prefix: 1 }, { unique: true });
 
 db.createUser({
-  user: "root",
-  pwd: "root",
-  roles: [{ role: "readWrite", db: "queen" }]
-})
+    user: "root",
+    pwd: "root",
+    roles: [
+      { role: "readWrite", db: "queen" },
+      { role: "dbAdmin", db: "queen" }
+    ]}
+);
