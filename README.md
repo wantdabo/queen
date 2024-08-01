@@ -1,6 +1,6 @@
 # Queen
 
-这是基于 .NET 的多进程单线程执行的跨平台服务端。在这个高并发，高性能，分布式的时代，有时候，不需要那么高的性能，只需要一个简单，易用的服务器罢了
+基于 .NET 的多进程单线程的跨平台服务端。
 
 ### 大致全貌
 - ENet 套字节
@@ -20,22 +20,36 @@
     - [1.定义协议](#netproto.1)
     - [2.生成协议](#netproto.2)
     - [3.使用协议](#netproto.3)
-- [4.配置表]()
+- [4.配置表](#config)
+    - [1.定义配置](#config.1)
+    - [2.导出配置](#config.2)
 - [5.服务器配置](#servsettings)
+- [6.业务架构](#bizframework)
+    - [1.大致架构](#bizframework.1)
+    - [2.Role](#bizframework.2)
+        - [1.初识 Role](#bizframework.2.1)
+        - [2.Role 工作方式](#bizframework.2.2)
+        - [2.RoleBehavior](#bizframework.2.3)
+    - [3.定位系统](#bizframework.3)
+    - [4.事务系统](#bizframework.4)
 
 ### [项目结构](#projectdire)
+
 ---
+
 ### TODO
 - Ticker 计时器 BUG
 - 时间轮，用于定时执行某些任务
-- RPC 改为短链接（如果同时出现多个一致目标，不创建新连接。直到所有任务完成关闭短链接）
-- RPC 发送，返回对应（因为之前是单线程，一来一回。现在 Role 独立为多线程，存在两个 Role 同时 RPC，需要确定返回的点对点）
+- RPC
+- 事务系统（基于 Redis）
+- 定位系统（基于 Redis）
 - 远程日志存盘系统，因为 Server 这些后面是要分布式的。所以，Logger 系统需要集中远程日志
-- Server 与 Server 之间的交互事务机制
 - ENet 修改最大连接数，4095 -> 65535
 - H5 小游戏 WebSocket 支持
 - TCP 支持
+
 ---
+
 #### <span id="qstart">1.快速开始</span>
 - 1.开发环境中，需要安装 [**.NET8+**](#installenv.1)
 - 2.安装，[MongoDB](#installenv.2.1)，根据文件 `./Queen.Server/Res/queen_mongo` [创建数据库](#installenv.2.2)
@@ -45,82 +59,83 @@
     - 该项目，是基于 .NET8 来开发。因此，需要在开发环境中，安装好 [**.NET8+**](https://dotnet.microsoft.com/zh-cn/download)
     - 同时，MessagePack、Luban 配置工具也是基于 .NET 来开发的。因此，.NET 的环境在接下来的环节中，非常重要，请确保 .NET 开发环境成功配置
 - ##### <span id="installenv.2">2.安装/配置 MongoDB</span>
-    - <span id="installenv.2.1">1</span>.下载安装 [MongoDB](https://www.mongodb.com/products/self-managed/community-edition)
-    - <span id="installenv.2.2">2</span>.数据库配置文件在 `./Queen.Server/Res/queen_mongo` 使用 MongoDB 命令行，顺序执行以下 MongoDB 命令
+    - <span id="installenv.2.1">1.下载安装 [MongoDB](https://www.mongodb.com/products/self-managed/community-edition)</span>
+    - <span id="installenv.2.2">2.数据库配置</span>
+        - `MongoDB 命令行，顺序执行以下命令`
         - 1.使用 queen 数据库
-      ```mongodb
-      use queen;
-      ```
+        ```text
+        use queen;
+        ```
         - 2.创建 roles 表/文档
-      ```mongodb
-      db.createCollection("roles", {
-        validator: {
-          $jsonSchema: {
-            bsonType: "object",
-            required: ["pid", "username", "password"],
-            properties: {
-              pid: {
-                bsonType: "string",
-                description: "must be a string and is required"
-              },
-              username: {
-                bsonType: "string",
-                description: "must be a string and is required"
-              },
-              password: {
-                bsonType: "string",
-                description: "must be a string and is required"
-              },
-              nickname: {
-                bsonType: "string",
-                description: "must be a string and is optional"
+        ```text
+        db.createCollection("roles", {
+          validator: {
+            $jsonSchema: {
+              bsonType: "object",
+              required: ["pid", "username", "password"],
+              properties: {
+                pid: {
+                  bsonType: "string",
+                  description: "must be a string and is required"
+                },
+                username: {
+                  bsonType: "string",
+                  description: "must be a string and is required"
+                },
+                password: {
+                  bsonType: "string",
+                  description: "must be a string and is required"
+                },
+                nickname: {
+                  bsonType: "string",
+                  description: "must be a string and is optional"
+                }
               }
             }
           }
-        }
-      });
-      ```
+        });
+        ```
         - 3.约束 roles 表/文档的部分字段为唯一
-      ```mongodb
-      db.roles.createIndex({ pid: 1 }, { unique: true });
-      db.roles.createIndex({ username: 1 }, { unique: true });
-      ```
+        ```text
+        db.roles.createIndex({ pid: 1 }, { unique: true });
+        db.roles.createIndex({ username: 1 }, { unique: true });
+        ```
         - 4.创建 datas 表/文档
-      ```mongodb
-      db.createCollection("datas", {
-        validator: {
-          $jsonSchema: {
-            bsonType: "object",
-            required: ["prefix", "value"],
-            properties: {
-              prefix: {
-                bsonType: "string",
-                description: "must be a string and is required"
-              },
-              value: {
-                bsonType: "string",
-                description: "must be a string and is required"
-              },
+        ```text
+        db.createCollection("datas", {
+          validator: {
+            $jsonSchema: {
+              bsonType: "object",
+              required: ["prefix", "value"],
+              properties: {
+                prefix: {
+                  bsonType: "string",
+                  description: "must be a string and is required"
+                },
+                value: {
+                  bsonType: "string",
+                  description: "must be a string and is required"
+                },
+              }
             }
           }
-        }
-      });
-      ```
+        });
+        ```
         - 4.约束 datas 表/文档的部分字段为唯一
-      ```mongodb
-      db.datas.createIndex({ prefix: 1 }, { unique: true });
-      ```
+        ```text
+        db.datas.createIndex({ prefix: 1 }, { unique: true });
+        ```
         - 5.创建 root 用户的权限，用于身份验证
-      ```mongodb
-      db.createUser({
-          user: "root",
-          pwd: "root",
-          roles: [
-            { role: "readWrite", db: "queen" },
-            { role: "dbAdmin", db: "queen" }
-          ]}
-      );
-      ```
+        ```text
+        db.createUser({
+            user: "root",
+            pwd: "root",
+            roles: [
+              { role: "readWrite", db: "queen" },
+              { role: "dbAdmin", db: "queen" }
+            ]}
+        );
+        ```
       完成上述操作，如果顺利的话。数据库已经就绪。
 - #### <span id="netproto">3.网络协议</span>
     - ##### <span id="netproto.1">1.定义协议</span>
@@ -152,7 +167,6 @@
             /// 操作码/ 1 登录成功，2 用户不存在，3 密码错误
             /// </summary>
             public int code { get; set; }
-
             /// <summary>
             /// 玩家 ID
             /// </summary>
@@ -162,6 +176,7 @@
         - 定义了 `C2SLoginMsg`、`S2CLoginMsg`，继承 `INetMessage` 接口，这样就定义好了两条协议了。C2S 表示，**ClientToServer**，S2C 表示 **ServerToClient**，使用这个前缀只是为了更好区分协议的流向
         - Class/类型中的结构，全部都是 `get`、`set` 属性。例如，`public string username { get; set; }` 同时，标记 MessagePackObject 特性,`[MessagePackObject(true)]`
         - 有时候，期望复用一些数据结构，又不是协议。那么，不继承 `INetMessage` 接口即可。下方给出示例代码
+        - **\*注意**，结构中的`属性`不允许定义 Dictionary、List 。需要定义集合，请使用 Array，例如 `public uint[] items { get; set; }`
         ```csharp
         /// <summary>
         /// 数据结构
@@ -180,8 +195,15 @@
         }
         ```
     - ##### <span id="netproto.2">2.生成协议</span>
-        - 因为协议在序列化后，传输，反序列化才能方便读取。协议的包头，需要定义协议号，根据不同的协议号来反序列化。框架底层使用了工具来自动分配协议号 `./Queen.Protocols/Queen.Protocols.Gen`，运行该项目
-        - 同时，还需要执行 `./Commands/gen_resolver.bat` 生成静态解析协议的查询表
+        - 因为协议在序列化后，传输，反序列化才能方便读取。协议的包头，需要定义协议号，根据不同的协议号来反序列化。框架底层自动分配协议号，运行 `./Commands/proto.bat` 同时，也会生成解析协议的静态查询表。`因为兼顾到前端的协议使用（不能通过反射去解析，IOS 不允许）`
+        - **\*注意**，生成协议解析表，使用了 `MessagePack-CSharp` 的 `mpc` 指令，如果开发环境未支持，请参照下方指令进行装配
+        ```text
+        dotnet tool install --global MessagePack.Generator
+        dotnet new tool-manifest
+        dotnet tool install MessagePack.Generator
+        dotnet mpc --help
+        ```
+        在控制台，执行上述指令，即可
     - ##### <span id="netproto.3">2.使用协议</span>
         - 消息监听
         ```csharp
@@ -192,34 +214,74 @@
         // channel 是端对端的 Socket 连接
         channel.Send(new S2CLoginMsg { pid = pid, code = 1 });
         ```
-        - 以上的例子，原生的消息监听及发送。在业务的开发过程中。例如，在未登录的阶段，无法确定玩家身份，只能通过这种方式来包容接收所有的消息及发送。针对确定玩家的消息监听/发送，也是业务最常用的消息监听及发送，详情请看 **[Role]()** 的概念
+        - 以上的例子，原生的消息监听及发送。在业务的开发过程中。例如，在未登录的阶段，无法确定玩家身份，只能通过这种方式来接收所有的消息及发送。针对确定玩家的消息监听/发送，也是业务最常用的消息监听及发送，详情请看 **[Role](#bizframework.2)** 的概念
+- #### <span id="config">4.配置表</span>
+    - ##### <span id="config.1">1.定义配置</span>
+        - `./Config/Datas/` 存放所有 Excel 表
+        - 配置，使用第三方 Luban 工具，使用方式，请查阅 [Luban](https://github.com/focus-creative-games/luban) 源项目
+    - ##### <span id="config.2">2.导出配置</span>
+        - `./Config/Commands/` 包含了配置表相关的 `BAT`
+        - `./Config/Commands/gen.bat` 导出配置信息到 `./Config/Cfg/Bytes` 二进制数据，`./Config/Cfg/CS` 用于解析二进制数据的 CSharp 文件
+        - `./Config/Commands/server_copy.bat` 导出在 `./Config/Cfg/` 中的配置信息，复制到业务项目中
+        - `./Config/Commands/server_auto.bat` **\*推荐使用**，自动依次调用 `gen.bat`、`server_copy.bat`
 - #### <span id="servsettings">5.服务器信息配置</span>
 打开 `./Queen.Server/Res/settings.json` 文件，进行服务器信息配置
-```mongodb
-   {
-    // 服务器名字
-    "name": "queen.server",
-    // 主机
-    "host": "0.0.0.0",
-    // 端口
-    "port": 12801,
-    // 最大连接数 (最大 4095)
-    "maxconn": 4095,
-    // 数据库主机
-    "dbhost": "127.0.0.1",
-    // 数据库端口
-    "dbport": 27017,
-    // 数据库名
-    "dbname": "queen",
-    // 数据库用户名
-    "dbuser": "root",
-    // 数据库密码
-    "dbpwd": "root",
-    // 数据落地时间间隔（秒）
-    "dbsave": 5
-  }
+```text
+ {
+  // 服务器名字
+  "name": "queen.server",
+  // 主机
+  "host": "0.0.0.0",
+  // 端口
+  "port": 12801,
+  // 最大连接数 (最大 4095)
+  "maxconn": 4095,
+  // 数据库主机
+  "dbhost": "127.0.0.1",
+  // 数据库端口
+  "dbport": 27017,
+  // 数据库名
+  "dbname": "queen",
+  // 数据库用户名
+  "dbuser": "root",
+  // 数据库密码
+  "dbpwd": "root",
+  // 数据落地时间间隔（秒）
+  "dbsave": 5
+}
 ```
+- #### <span id="bizframework">6.业务架构</span>
+    - ##### <span id="bizframework.1">1.大致架构</span>
+        - **[项目结构](#projectdire)** 最外层的 `./Queen/` 与 `./Queen.Server/`
+        - `Queen` 是一个公共库项目，包含了，核心库、数据库、网络通信、配置表、RPC 等相关的基础支持
+        - `Queen.Server` 基于 `Queen` 设计了一套以 **[Role](#bizframework.2)** 为核心的业务框架，也是主要的业务逻辑。他是一个多进程，多线程（Role 业务逻是单线程处理）
+        - 因此，在整体的设计中。可以选择直接使用 `Queen.Server` 来完成业务。也可以基于 `Queen` 设计一套符合自己预期的业务框架。不论多线程还是单线程
+        - 包括，可能需要设计，事务系统、Gameplay、聊天系统，都可以基于 `Queen` 来设计一个进程
+    - ##### <span id="bizframework.2">2.Role</span>
+        - <span id="bizframework.2.1">1.初识 Role</span>
+            - Role 就是玩家，在 `Queen.Server` 中实现的。在 `Queen.Server` Role 是最小业务单位。玩家通过了验证，就会产生一个 Role，与前端保持长连接通信，业务处理
+            - `Queen.Server` 是多线程的设计。但是，Role 自身的业务逻辑处理是单线程的。Role 与 Role 之间是无法直接访问的，尽管他们在同一个 `Queen.Server`
+            - 简单举个例子,`Queen.Server` 中，Role 作为最小单位多线程并发。 **Role [ Bag、Equip、Mail ...]** 自身的业务，均为单线程处理。
+            - 因此，`Queen.Server` 是可以做到一直扩展（开进程），承载无数的 Role 进行服务
+            - 如果遇见需要 Role 与 Role 之间的交互，例如，Role-A 给 Role-B 转账。这种情况，需要依赖 `定位系统`、`事务系统`，因为 Role 在 `Queen.Server-A` 进行业务，也可以在 `Queen.Server-B` 进行业务（同时段，无法共存）。所以，需要定位到 Role 处于哪个 `Queen.Server` 才可以进行 RPC 通信。同时，因为跨了进程/线程进行通信处理业务。Role 在 `Queen.Server` 是以多线程的方式进行驱动，所以，Role-A 付款，Role-B 收款，需要借助 `事务系统`，双方业务完成，才是真正完成。任意一方表示失败或者超时，均为失败。此时，双方的数据回滚到业务开始之前。
+            - 请查阅，[定位系统]()、[事务系统]()
+        - <span id="bizframework.2.2">2.Role 工作方式</span>
+            - Role 由 N 个 RoleBehavior 构成的。每一个 RoleBehavior 就是 Role 的功能。RoleBehavior 之间可以放心的相互访问，Role 内部是单线程（绝对安全）。例如，`Bag : RoleBehavior、 Mail : RoleBehavior` Mail 接收物品道具，就可以直接调用 Bag 进行物品的新增
+            - Role 每一条任务。例如，接收到玩家的请求消息，会在单线程中队列分发到每一个 RoleBehavior
+            - 因此，Role 只是组合 RoleBehavior，分发任务的一个载体，具体的业务逻辑在 RoleBehavior
+        - <span id="bizframework.2.3">2.RoleBehavior</span>
+            - RoleBehavior 就是单个业务本身。
+            - 以 `Bag/背包` 举例。背包中的道具物品，需要持久化，写入到数据库中。逻辑的运行过程中，还需要频繁读写。因此，RoleBehavior 中有 Data 缓存在内存中的
+            - 所以，功能的数据读写，就在 RoleBehavior 中，Bag 有 BagData、Mail 有 MailData。数据的颗粒度在 RoleBehavior 层
+            - 得益于 Role 的单线程调度，RoleBehavior 的逻辑，可以不考虑多线程带来的安全问题。只要是 Role 的 RoleBehavior 业务处理，可以放心的随意调度
+            - RoleBehavior 绑定一个 Data 缓存，逻辑与数据是分离的。开始任务前，数据会备份。如果出现了 `错误、事务超时...` 数据可以安全的回滚到任务前，任务过程中产生对前端的推送也会被取消
+    - ##### <span id="bizframework.3">3.定位系统</span>
+        - 暂未实现
+    - ##### <span id="bizframework.4">4.事务系统</span>
+        - 暂未实现
+
 ---
+
 #### <span id="projectdire">项目结构</span>
 ```text
 ├─Commands
