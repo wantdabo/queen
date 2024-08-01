@@ -252,8 +252,8 @@
 - #### <span id="bizframework">6.业务架构</span>
     - ##### <span id="bizframework.1">1.大致架构</span>
         - [项目结构](#projectdire) 最外层的 `./Queen/` 与 `./Queen.Server/`
-        - `Queen` 是一个公共库项目，包含了，核心库、数据库、网络通信、配置表、RPC 等相关的基础支持
-        - `Queen.Server` 基于 `Queen` 设计了一套以 **[Role](#bizframework.2)** 为核心的业务框架，也是主要的业务逻辑。他是一个多进程，多线程的框架（Role 业务逻是单线程处理）
+        - `Queen` 是一个公共库，包含了，核心库、数据库、网络通信、配置表、RPC 等相关的基础支持
+        - `Queen.Server` 基于 `Queen` 设计了一套以 **[Role](#bizframework.2)** 为核心的业务框架，也是主要的业务逻辑。他是一个多进程，多线程的框架（Role 业务逻辑是单线程处理）
         - 因此，在整体的设计中。可以选择直接使用 `Queen.Server` 来完成业务。也可以基于 `Queen` 设计一套符合自己预期的业务框架。不论多线程还是单线程
         - 包括，可能需要设计，事务系统、Gameplay、聊天系统，都可以基于 `Queen` 来设计一个进程
     - ##### <span id="bizframework.2">2.Role</span>
