@@ -8,6 +8,7 @@
 - MongoDB 数据库
 - Luban 配置
 
+#### [项目结构](#projectdire)
 ### <span id="catalog">目录</span>
 
 - [1.快速开始](#qstart)
@@ -32,12 +33,10 @@
         - [2.RoleBehavior](#bizframework.2.3)
     - [3.定位系统](#bizframework.3)
     - [4.事务系统](#bizframework.4)
-
-### [项目结构](#projectdire)
-
 ---
 
 ### TODO
+- RoleBehavior 新增 dirty 标记，逻辑过程中，数据进行了写入才会标记为脏，同时备份（用于失败后回滚）避免不必要的开销。同时在定时存盘的过程中，也可以避免不必要的写盘开销
 - Ticker 计时器 BUG
 - 时间轮，用于定时执行某些任务
 - RPC
