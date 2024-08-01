@@ -254,7 +254,7 @@
     - ##### <span id="bizframework.1">1.大致架构</span>
         - [项目结构](#projectdire) 最外层的 `./Queen/` 与 `./Queen.Server/`
         - `Queen` 是一个公共库项目，包含了，核心库、数据库、网络通信、配置表、RPC 等相关的基础支持
-        - `Queen.Server` 基于 `Queen` 设计了一套以 **[Role](#bizframework.2)** 为核心的业务框架，也是主要的业务逻辑。他是一个多进程，多线程（Role 业务逻是单线程处理）
+        - `Queen.Server` 基于 `Queen` 设计了一套以 **[Role](#bizframework.2)** 为核心的业务框架，也是主要的业务逻辑。他是一个多进程，多线程的框架（Role 业务逻是单线程处理）
         - 因此，在整体的设计中。可以选择直接使用 `Queen.Server` 来完成业务。也可以基于 `Queen` 设计一套符合自己预期的业务框架。不论多线程还是单线程
         - 包括，可能需要设计，事务系统、Gameplay、聊天系统，都可以基于 `Queen` 来设计一个进程
     - ##### <span id="bizframework.2">2.Role</span>
@@ -263,14 +263,14 @@
             - `Queen.Server` 是多线程的设计。但是，Role 自身的业务逻辑处理是单线程的。Role 与 Role 之间是无法直接访问的，尽管他们在同一个 `Queen.Server`
             - 简单举个例子,`Queen.Server` 中，Role 作为最小单位多线程并发。 **Role [ Bag、Equip、Mail ...]** 自身的业务，均为单线程处理。
             - 因此，`Queen.Server` 是可以做到一直扩展（开进程），承载无数的 Role 进行服务
-            - 如果遇见需要 Role 与 Role 之间的交互，例如，Role-A 给 Role-B 转账。这种情况，需要依赖 `定位系统`、`事务系统`，因为 Role 在 `Queen.Server-A` 进行业务，也可以在 `Queen.Server-B` 进行业务（同时段，无法共存）。所以，需要定位到 Role 处于哪个 `Queen.Server` 才可以进行 RPC 通信。同时，因为跨了进程/线程进行通信处理业务。Role 在 `Queen.Server` 是以多线程的方式进行驱动，所以，Role-A 付款，Role-B 收款，需要借助 `事务系统`，双方业务完成，才是真正完成。任意一方表示失败或者超时，均为失败。此时，双方的数据回滚到业务开始之前。
+            - 如果需要 Role 与 Role 之间的交互，例如，Role-A 给 Role-B 转账。这种情况，需要依赖 `定位系统`、`事务系统`，因为 Role 在 `Queen.Server-A` 进行业务，也可以在 `Queen.Server-B` 进行业务（同时段，无法共存）。所以，需要定位到 Role 处于哪个 `Queen.Server` 才可以进行 RPC 通信。同时，因为跨了进程/线程进行通信处理业务，所以，Role-A 付款，Role-B 收款，需要借助 `事务系统`，双方业务完成，才是真正完成。任意一方失败/超时，均为失败。此时，双方的数据回滚到业务开始之前。
             - 请查阅，[定位系统]()、[事务系统]()
         - <span id="bizframework.2.2">2.Role 工作方式</span>
             - Role 由 N 个 RoleBehavior 构成的。每一个 RoleBehavior 就是 Role 的功能。RoleBehavior 之间可以放心的相互访问，Role 内部是单线程（绝对安全）。例如，`Bag : RoleBehavior、 Mail : RoleBehavior` Mail 接收物品道具，就可以直接调用 Bag 进行物品的新增
             - Role 每一条任务。例如，接收到玩家的请求消息，会在单线程中队列分发到每一个 RoleBehavior
             - 因此，Role 只是组合 RoleBehavior，分发任务的一个载体，具体的业务逻辑在 RoleBehavior
         - <span id="bizframework.2.3">2.RoleBehavior</span>
-            - RoleBehavior 就是单个业务本身。
+            - RoleBehavior 就是单个业务本身
             - 以 `Bag/背包` 举例。背包中的道具物品，需要持久化，写入到数据库中。逻辑的运行过程中，还需要频繁读写。因此，RoleBehavior 中有 Data 缓存在内存中的
             - 所以，功能的数据读写，就在 RoleBehavior 中，Bag 有 BagData、Mail 有 MailData。数据的颗粒度在 RoleBehavior 层
             - 得益于 Role 的单线程调度，RoleBehavior 的逻辑，可以不考虑多线程带来的安全问题。只要是 Role 的 RoleBehavior 业务处理，可以放心的随意调度
