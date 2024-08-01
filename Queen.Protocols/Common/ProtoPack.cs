@@ -13,7 +13,9 @@ namespace Queen.Protocols.Common
     /// <summary>
     /// 消息结构接口
     /// </summary>
-    public interface INetMessage { }
+    public interface INetMessage
+    {
+    }
 
     /// <summary>
     /// 协议序列化
@@ -36,16 +38,22 @@ namespace Queen.Protocols.Common
         {
             msg = null;
             msgType = null;
-            byte[] header = new byte[INT32_LEN];
-            byte[] data = new byte[bytes.Length - INT32_LEN];
-            Array.Copy(bytes, header, INT32_LEN);
-            Array.Copy(bytes, INT32_LEN, data, 0, bytes.Length - INT32_LEN);
-
-            var msgId = BitConverter.ToUInt32(header);
-            if (false == messageDict.TryGetValue(msgId, out msgType)) return false;
-
-            msgType = messageDict[msgId];
-            msg = MessagePackSerializer.Deserialize(msgType, data) as INetMessage;
+            try
+            {
+                byte[] header = new byte[INT32_LEN];
+                byte[] data = new byte[bytes.Length - INT32_LEN];
+                Array.Copy(bytes, header, INT32_LEN);
+                Array.Copy(bytes, INT32_LEN, data, 0, bytes.Length - INT32_LEN);
+                var msgId = BitConverter.ToUInt32(header);
+                if (false == messageDict.TryGetValue(msgId, out msgType)) return false;
+                
+                msgType = messageDict[msgId];
+                msg = MessagePackSerializer.Deserialize(msgType, data) as INetMessage;
+            }
+            catch (Exception e)
+            {
+                return false;
+            }
 
             return true;
         }
@@ -77,8 +85,8 @@ namespace Queen.Protocols.Common
         static ProtoPack()
         {
             StaticCompositeResolver.Instance.Register(
-                 GeneratedResolver.Instance,
-                 StandardResolver.Instance
+                GeneratedResolver.Instance,
+                StandardResolver.Instance
             );
 
             var option = MessagePackSerializerOptions.Standard.WithResolver(StaticCompositeResolver.Instance);
