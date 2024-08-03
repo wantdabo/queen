@@ -38,13 +38,17 @@ namespace Queen.Network.Common
 
             var thread = new Thread(() =>
             {
+                // 断开连接的 Peer 缓存
+                List<uint> rmvlist = new();
                 while (true)
                 {
-                    foreach (var channel in channelDict.Values.ToArray()) 
+                    rmvlist.Clear();
+                    foreach (var channel in channelDict.Values) 
                     {
                         if (PeerState.Disconnected != channel.peer.State) continue;
-                        if(channelDict.ContainsKey(channel.peer.ID)) channelDict.Remove(channel.peer.ID);
+                        rmvlist.Add(channel.peer.ID);
                     }
+                    foreach (uint peerid in rmvlist) if(channelDict.ContainsKey(peerid)) channelDict.Remove(peerid);
 
                     if (host.CheckEvents(out var netEvent) <= 0) if (host.Service(timeout, out netEvent) <= 0) continue;
                     switch (netEvent.Type)
