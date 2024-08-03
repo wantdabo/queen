@@ -182,7 +182,10 @@ namespace Queen.Server.Roles.Common
             if (false == dirty) return;
             
             var bytes = MessagePackSerializer.Serialize(data);
-            engine.dbo.Replace("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), new() { prefix = prefix, value = bytes });
+            if (engine.dbo.Replace("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), new() { prefix = prefix, value = bytes }))
+            {
+                dirty = false;
+            }
         }
 
         private void OnDBSave(DBSaveEvent e) { SaveData(); }
