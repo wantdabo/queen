@@ -49,7 +49,8 @@
 
 #### <span id="qstart">1.快速开始</span>
 - 1.开发环境中，需要安装 [**.NET8+**](#installenv.1)
-- 2.此时，如果上述步骤，顺利完成。**支持 .NET8+ 的 IDE** 打开 **`./Queen.sln`** 解决方案，运行 **`Queen.Server.csproj`** 项目即可
+- 2.安装，[MongoDB](#installenv.2.1)
+- 3.此时，如果上述步骤，顺利完成。**支持 .NET8+ 的 IDE** 打开 **`./Queen.sln`** 解决方案，运行 **`Queen.Server.csproj`** 项目即可
 #### <span id="installenv">2.环境配置</span>
 - ##### <span id="installenv.1">1.安装 .NET</span>
     - 该项目，是基于 .NET8 来开发。因此，需要在开发环境中，安装好 [**.NET8+**](https://dotnet.microsoft.com/zh-cn/download)
