@@ -15,7 +15,9 @@ namespace Queen.Core
     /// <summary>
     /// Engine.Execute 事件
     /// </summary>
-    public struct ExecuteEvent : IEvent { }
+    public struct ExecuteEvent : IEvent
+    {
+    }
 
     /// <summary>
     /// 引擎组件
@@ -25,27 +27,27 @@ namespace Queen.Core
         /// <summary>
         /// 日志
         /// </summary>
-        public Logger logger;
+        public Logger logger { get; private set; }
         /// <summary>
         /// 配置表
         /// </summary>
-        public Config cfg;
+        public Config cfg { get; private set; }
         /// <summary>
         /// 事件器
         /// </summary>
-        public Eventor eventor;
+        public Eventor eventor { get; private set; }
         /// <summary>
         /// 随机器
         /// </summary>
-        public Common.Random random;
+        public Common.Random random { get; private set; }
         /// <summary>
         /// 事件器
         /// </summary>
-        public Ticker ticker;
+        public Ticker ticker { get; private set; }
         /// <summary>
         /// 对象池
         /// </summary>
-        public ObjectPool pool;
+        public ObjectPool pool { get; private set; }
 
         /// <summary>
         /// 主线程 ID

@@ -16,15 +16,15 @@ namespace Queen.Server.Core
         /// <summary>
         /// 服务器配置
         /// </summary>
-        public Settings settings;
+        public Settings settings { get; private set; }
         /// <summary>
         /// 数据库
         /// </summary>
-        public DBO dbo;
+        public DBO dbo { get; private set; }
         /// <summary>
         /// 网络
         /// </summary>
-        public Slave slave;
+        public Slave slave { get; private set; }
 
         protected override void OnCreate()
         {
@@ -40,15 +40,15 @@ namespace Queen.Server.Core
             slave.Initialize(settings.host, settings.port, settings.maxconn);
             slave.Create();
 
-            var login = AddComp<Authenticator>();
+            var authenticator = AddComp<Authenticator>();
             var party = AddComp<Party>();
-            login.Create();
+            authenticator.Create();
             party.Create();
 
             engine.logger.Info(
                 $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
                 $"\n\tdbhost: {settings.dbhost}\n\tdbport: {settings.dbport}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
-            , ConsoleColor.Yellow);
+                , ConsoleColor.Yellow);
             engine.logger.Info("queen.server is running...");
 
             Console.Title = settings.name;
