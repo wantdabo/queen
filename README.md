@@ -29,7 +29,8 @@
     - [2.Role](#bizframework.2)
         - [1.初识 Role](#bizframework.2.1)
         - [2.Role 工作方式](#bizframework.2.2)
-        - [2.RoleBehavior](#bizframework.2.3)
+        - [3.RoleBehavior](#bizframework.2.3)
+        - [4.IDBState](#bizframework.2.4)
     - [3.定位系统](#bizframework.3)
     - [4.事务系统](#bizframework.4)
 ---
@@ -190,12 +191,40 @@
             - Role 由 N 个 RoleBehavior 构成的。每一个 RoleBehavior 就是 Role 的功能。RoleBehavior 之间可以放心的相互访问，Role 内部是单线程（绝对安全）。例如，`Bag : RoleBehavior、 Mail : RoleBehavior` Mail 接收物品道具，就可以直接调用 Bag 进行物品的新增
             - Role 每一条任务。例如，接收到玩家的请求消息，会在单线程中队列分发到每一个 RoleBehavior
             - 因此，Role 只是组合 RoleBehavior，分发任务的一个载体，具体的业务逻辑在 RoleBehavior
-        - <span id="bizframework.2.3">2.RoleBehavior</span>
+        - <span id="bizframework.2.3">3.RoleBehavior</span>
             - RoleBehavior 就是单个业务本身
             - 以 `Bag/背包` 举例。背包中的道具物品，需要持久化，写入到数据库中。逻辑的运行过程中，还需要频繁读写。因此，RoleBehavior 中有 Data 缓存在内存中的
-            - 所以，功能的数据读写，就在 RoleBehavior 中，Bag 有 BagData、Mail 有 MailData。数据的颗粒度在 RoleBehavior 层
+            - 所以，功能的数据读写，就在 RoleBehavior 的 IDBState 中，Bag 有 BagData : IDBState、 Mail 有 MailData : IDBState。数据的颗粒度在 RoleBehavior 层
             - 得益于 Role 的单线程调度，RoleBehavior 的逻辑，可以不考虑多线程带来的安全问题。只要是 Role 的 RoleBehavior 业务处理，可以放心的随意调度
             - RoleBehavior 绑定一个 Data 缓存，逻辑与数据是分离的。开始任务前，数据会备份。如果出现了 `错误、事务超时...` 数据可以安全的回滚到任务前，任务过程中产生对前端的推送也会被取消
+        - <span id="bizframework.2.4">4.IDBState</span>
+            - RoleBehavior 有提到可以绑定一个 Data 来进行业务存储。就是当前所说的 IDBState
+            - IDBState 的数据会根据 RoleBehavior 中的身份特征来写库，也是数据持久化的重要一环
+            - 下方给出定义的例子
+            ```csharp
+            /// <summary>
+            /// 背包数据
+            /// </summary>
+            [MessagePackObject(true)]
+            public class BagData : IDBState
+            {
+                /// <summary>
+                /// 自增 ID
+                /// </summary>
+                public int incrementId { get; set; } = 1000;
+                /// <summary>
+                /// 背包物品集合
+                /// </summary>
+                public List<BagItem> items { get; set; } = new();
+            }
+
+            /// <summary>
+            /// 背包
+            /// </summary>
+            public class Bag : RoleBehavior<BagData, Adapter> {}
+            ```
+            用背包来举例，BagData 继承 IDBState 接口，同时标记特性 `[MessagePackObject(true)]`，结构使用属性来进行定义，例如 `public int incrementId { get; set; } = 1000;` 如此以来就实现一个专属 Bag 的专属 BagData。
+            - IDBState 跟定义协议大同小异。不过是继承 IDBState 而不是 INetMessage
     - ##### <span id="bizframework.3">3.定位系统</span>
         - 暂未实现
     - ##### <span id="bizframework.4">4.事务系统</span>
