@@ -22,7 +22,7 @@ namespace Queen.Common.DB
         /// Value
         /// </summary>
         [BsonElement("value")]
-        public string value { get; set; }
+        public byte[] value { get; set; }
 
         public override void Set(DBDataValue src)
         {

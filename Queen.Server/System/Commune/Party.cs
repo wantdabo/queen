@@ -83,7 +83,7 @@ namespace Queen.Server.System.Commune
             role.session = role.AddComp<Session>();
             role.session.channel = info.channel;
             role.session.Create();
-            role.info = new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password };
+            role.Initialize(new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password });
             role.Create();
 
             roleDict.Add(role.info.pid, role);

@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MessagePack;
+using MongoDB.Driver;
 using Newtonsoft.Json;
 using Queen.Common;
 using Queen.Common.DB;
@@ -18,7 +19,18 @@ namespace Queen.Server.Roles.Common
     /// </summary>
     public abstract class RoleBehavior : Comp
     {
+        /// <summary>
+        /// 玩家
+        /// </summary>
         public Role role;
+        
+        /// <summary>
+        /// 重置备份
+        /// </summary>
+        public void Reset()
+        {
+            OnReset();
+        }
 
         /// <summary>
         /// 恢复数据
@@ -35,6 +47,11 @@ namespace Queen.Server.Roles.Common
         {
             OnBackup();
         }
+        
+        /// <summary>
+        /// 重置备份
+        /// </summary>
+        protected abstract void OnReset();
 
         /// <summary>
         /// 恢复数据
@@ -49,7 +66,9 @@ namespace Queen.Server.Roles.Common
     /// <summary>
     /// 数据存储接口
     /// </summary>
-    public interface IDBState { }
+    public interface IDBState
+    {
+    }
 
     /// <summary>
     /// Behavior/ 行为，可存储数据
@@ -67,14 +86,36 @@ namespace Queen.Server.Roles.Common
         public abstract string token { get; }
 
         /// <summary>
-        /// 数据
+        /// 脏标记
         /// </summary>
-        public TDBState data { get; private set; }
+        private bool dirty { get; set; }
 
         /// <summary>
-        /// 数据备份
+        /// 备份标记
         /// </summary>
-        private string backup;
+        private bool backedup { get; set; }
+
+        private TDBState mdata { get; set; }
+
+        /// <summary>
+        /// 数据
+        /// </summary>
+        public TDBState data
+        {
+            get
+            {
+                dirty = true;
+                Backup();
+                
+                return mdata;
+            }
+            private set { mdata = value; }
+        }
+
+        /// <summary>
+        /// 备份数据
+        /// </summary>
+        private byte[] backup { get; set; }
 
         protected override void OnCreate()
         {
@@ -89,14 +130,21 @@ namespace Queen.Server.Roles.Common
             role.eventor.UnListen<DBSaveEvent>(OnDBSave);
         }
 
+        protected override void OnReset()
+        {
+            backedup = false;
+            backup = null;
+        }
+
         /// <summary>
         /// 恢复数据
         /// </summary>
         protected override void OnRestore()
-        {   
-            if (string.IsNullOrEmpty(backup)) throw new Exception("can't restore the data, because backup is null.");
-
-            data = JsonConvert.DeserializeObject<TDBState>(backup);
+        {
+            if (false == backedup) return;
+            if (null == backup) throw new Exception("can't restore the data, because backup is null.");
+            
+            data = MessagePackSerializer.Deserialize<TDBState>(backup);
         }
 
         /// <summary>
@@ -104,7 +152,10 @@ namespace Queen.Server.Roles.Common
         /// </summary>
         protected override void OnBackup()
         {
-            backup = JsonConvert.SerializeObject(data);
+            if (backedup) return;
+            backedup = true;
+            
+            backup = MessagePackSerializer.Serialize(data);
         }
 
         /// <summary>
@@ -114,7 +165,7 @@ namespace Queen.Server.Roles.Common
         {
             if (engine.dbo.Find("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), out var values))
             {
-                data = JsonConvert.DeserializeObject<TDBState>(values.First().value);
+                data = MessagePackSerializer.Deserialize<TDBState>(values.First().value);
 
                 return;
             }
@@ -128,8 +179,10 @@ namespace Queen.Server.Roles.Common
         /// </summary>
         private void SaveData()
         {
-            var json = JsonConvert.SerializeObject(data);
-            engine.dbo.Replace("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), new() { prefix = prefix, value = json });
+            if (false == dirty) return;
+            
+            var bytes = MessagePackSerializer.Serialize(data);
+            engine.dbo.Replace("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), new() { prefix = prefix, value = bytes });
         }
 
         private void OnDBSave(DBSaveEvent e) { SaveData(); }

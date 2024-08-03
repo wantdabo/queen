@@ -19,8 +19,11 @@ namespace Queen.Server.Roles.Common
     /// <summary>
     /// 数据保存事件
     /// </summary>
-    public struct DBSaveEvent : IEvent { }
+    public struct DBSaveEvent : IEvent
+    {
+    }
 
+    #region 玩家数据结构
     /// <summary>
     /// 玩家数据结构
     /// </summary>
@@ -29,20 +32,46 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        public string pid;
+        public string pid { get; set; }
         /// <summary>
         /// 用户名
         /// </summary>
-        public string username;
+        public string username { get; set; }
         /// <summary>
         /// 昵称
         /// </summary>
-        public string nickname;
+        public string nickname { get; set; }
         /// <summary>
         /// 密码
         /// </summary>
-        public string password;
+        public string password { get; set; }
+
+        /// <summary>
+        /// 比较
+        /// </summary>
+        /// <param name="other">另一个 RoleInfo</param>
+        /// <returns>YES/NO</returns>
+        public bool Equals(RoleInfo other)
+        {
+            if (false == pid.Equals(other.pid)) return false;
+            if (false == username.Equals(other.username)) return false;
+            if (false == nickname.Equals(other.nickname)) return false;
+            if (false == password.Equals(other.password)) return false;
+
+            return true;
+        }
+
+        public static bool operator !=(RoleInfo r0, RoleInfo r1)
+        {
+            return false == r0.Equals(r1);
+        }
+
+        public static bool operator ==(RoleInfo r0, RoleInfo r1)
+        {
+            return r0.Equals(r1);
+        }
     }
+    #endregion
 
     /// <summary>
     /// 玩家
@@ -52,7 +81,11 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 玩家信息
         /// </summary>
-        public RoleInfo info { get; set; }
+        public RoleInfo info { get; private set; }
+        /// <summary>
+        /// 玩家信息 (数据库)
+        /// </summary>
+        private RoleInfo dbcache { get; set; }
 
         /// <summary>
         /// 玩家信息备份
@@ -62,17 +95,17 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 玩家会话
         /// </summary>
-        public Session session;
+        public Session session { get; set; }
 
         /// <summary>
         /// 事件订阅派发者
         /// </summary>
-        public Eventor eventor;
+        public Eventor eventor { get; set; }
 
         /// <summary>
         /// Jobs 驱动 Task
         /// </summary>
-        private Task task = null;
+        private Task task { get; set; }
 
         /// <summary>
         /// 任务列表
@@ -118,9 +151,8 @@ namespace Queen.Server.Roles.Common
         {
             base.OnDestroy();
             // 阻塞，等待任务完成，存盘
-            while (null != task && false == task.IsCompleted) Thread.Sleep(1);
+            while (null != task && false == task.IsCompleted) Thread.Sleep(10);
             eventor.Tell<DBSaveEvent>();
-
             engine.eventor.UnListen<Queen.Core.ExecuteEvent>(OnExecute);
             engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
             engine.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
@@ -129,6 +161,16 @@ namespace Queen.Server.Roles.Common
             engine.ticker.StopTimer(dbsaveTiming);
             behaviorDict.Clear();
             actionDict.Clear();
+        }
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        /// <param name="info">RoleInfo (玩家信息)</param>
+        public void Initialize(RoleInfo info)
+        {
+            this.info = info;
+            this.dbcache = info;
         }
 
         private void Behaviors()
@@ -206,11 +248,19 @@ namespace Queen.Server.Roles.Common
         }
 
         /// <summary>
+        /// 重置备份
+        /// </summary>
+        private void Reset()
+        {
+            foreach (var behavior in behaviorDict.Values) behavior.Reset();
+        }
+
+        /// <summary>
         /// 恢复数据
         /// </summary>
         private void Restore()
         {
-            info = new() { pid = backup.pid, username = backup.username, nickname = backup.nickname, password = backup.password };
+            if (false == info.Equals(backup)) info = new() { pid = backup.pid, username = backup.username, nickname = backup.nickname, password = backup.password };
             foreach (var behavior in behaviorDict.Values) behavior.Restore();
         }
 
@@ -219,15 +269,14 @@ namespace Queen.Server.Roles.Common
         /// </summary>
         private void Backup()
         {
-            backup = new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password };
-            foreach (var behavior in behaviorDict.Values) behavior.Backup();
+            if (false == info.Equals(backup)) backup = new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password };
         }
 
         private void OnExecute(Queen.Core.ExecuteEvent e)
         {
             if (null != task && false == task.IsCompleted) return;
 
-            // 任务中产生的有效数据吗，推送至客户端
+            // 任务中产生的有效数据，推送至客户端
             while (sends.TryDequeue(out var send)) send.Invoke();
 
             if (false == jobs.TryDequeue(out var job)) return;
@@ -241,6 +290,8 @@ namespace Queen.Server.Roles.Common
                     Backup();
                     // 执行任务
                     job.Invoke();
+                    // 重置备份
+                    Reset();
                 }
                 catch (Exception e)
                 {
@@ -270,7 +321,12 @@ namespace Queen.Server.Roles.Common
 
         private void OnDBSave(DBSaveEvent e)
         {
-            engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, info.pid), new() { pid = info.pid, nickname = info.nickname, username = info.username, password = info.password });
+            if (dbcache.Equals(info)) return;
+
+            if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, info.pid), new() { pid = info.pid, nickname = info.nickname, username = info.username, password = info.password }))
+            {
+                dbcache = info;
+            }
         }
     }
 }

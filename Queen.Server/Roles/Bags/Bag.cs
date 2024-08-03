@@ -10,7 +10,7 @@ namespace Queen.Server.Roles.Bags
     /// <summary>
     /// 背包
     /// </summary>
-    public class Bag : RoleBehavior<BagInfo, Adapter>
+    public class Bag : RoleBehavior<BagData, Adapter>
     {
         public override string token => "bag";
 
