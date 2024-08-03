@@ -159,8 +159,6 @@ namespace Queen.Server.Roles.Common
             eventor.UnListen<DBSaveEvent>(OnDBSave);
             jobs.Clear();
             engine.ticker.StopTimer(dbsaveTiming);
-            behaviorDict.Clear();
-            actionDict.Clear();
         }
 
         /// <summary>

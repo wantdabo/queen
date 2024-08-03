@@ -66,8 +66,8 @@ namespace Queen.Network.Common
                             if (channelDict.TryGetValue(netEvent.Peer.ID, out channel))
                             {
                                 EmitTimeoutEvent(channel);
-                                channel.peer.DisconnectNow(0);
                                 EmitDisconnectEvent(channel);
+                                channel.peer.DisconnectNow(0);
                                 channelDict.Remove(netEvent.Peer.ID);
                             }
                             break;

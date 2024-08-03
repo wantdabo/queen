@@ -50,17 +50,19 @@ namespace Queen.Core
         public virtual void Destroy()
         {
             engine.EnsureThread();
-            OnDestroy();
             parent.RmvComp(this);
-            if (null == compList) return;
-            for (int i = compList.Count - 1; i >= 0; i--)
+            if (null != compList)
             {
-                var comp = compList[i];
-                RmvComp(comp);
-                comp.Destroy();
+                for (int i = compList.Count - 1; i >= 0; i--)
+                {
+                    var comp = compList[i];
+                    RmvComp(comp);
+                    comp.Destroy();
+                }
+                compList.Clear();
+                compDict.Clear();
             }
-            compList.Clear();
-            compDict.Clear();
+            OnDestroy();
         }
 
         protected virtual void OnDestroy()
@@ -131,7 +133,7 @@ namespace Queen.Core
             {
                 comps = new();
                 compDict.Add(typeof(T), comps);
-            }    
+            }
             comps.Add(comp);
             compList.Add(comp);
 
@@ -159,6 +161,6 @@ namespace Queen.Core
         /// <summary>
         /// 引擎
         /// </summary>
-        public new T engine { get { return base.engine as T; }}
+        public new T engine { get { return base.engine as T; } }
     }
 }
