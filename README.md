@@ -223,7 +223,7 @@
             /// </summary>
             public class Bag : RoleBehavior<BagData, Adapter> {}
             ```
-            用背包来举例，BagData 继承 IDBState 接口，同时标记特性 `[MessagePackObject(true)]`，结构使用属性来进行定义，例如 `public int incrementId { get; set; } = 1000;` 如此以来就实现一个专属 Bag 的专属 BagData。
+            用背包来举例，BagData 继承 IDBState 接口，同时标记特性 `[MessagePackObject(true)]`，结构使用属性来进行定义，例如 `public int incrementId { get; set; } = 1000;` 如此以来就实现一个专属 Bag 的专属 BagData
             - IDBState 跟定义协议大同小异。不过是继承 IDBState 而不是 INetMessage
     - ##### <span id="bizframework.3">3.定位系统</span>
         - 暂未实现
