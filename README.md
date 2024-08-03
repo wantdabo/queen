@@ -57,8 +57,9 @@
     - 同时，MessagePack、Luban 配置工具也是基于 .NET 来开发的。因此，.NET 的环境在接下来的环节中，非常重要，请确保 .NET 开发环境成功配置
 - ##### <span id="installenv.2">2.安装/配置 MongoDB</span>
     - <span id="installenv.2.1">1.下载安装 [MongoDB](https://www.mongodb.com/products/self-managed/community-edition)</span>
+
 #### <span id="netproto">3.网络协议</span>
-    - ##### <span id="netproto.1">1.定义协议</span>
+- ##### <span id="netproto.1">1.定义协议</span>
         - 协议的定义，需要去到 `./Queen.Protocols/` 定义，因为使用的是 **[MessagePack-CSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp)**，只需要定义 `Class/类型` 即可。解读，登录协议，协议文件 `./Queen.Protocols/LoginProto.cs`
         ```csharp
         /// <summary>
