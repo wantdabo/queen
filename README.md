@@ -61,61 +61,63 @@
 
 #### <span id="netproto">3.网络协议</span>
 - ##### <span id="netproto.1">1.定义协议</span>
-        - 协议的定义，需要去到 `./Queen.Protocols/` 定义，因为使用的是 **[MessagePack-CSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp)**，只需要定义 `Class/类型` 即可。解读，登录协议，协议文件 `./Queen.Protocols/LoginProto.cs`
-        ```csharp
+    - 协议的定义，需要去到 `./Queen.Protocols/` 定义，因为使用的是 **[MessagePack-CSharp](https://github.com/MessagePack-CSharp/MessagePack-CSharp)**，只需要定义 `Class/类型` 即可。解读，登录协议，协议文件 `./Queen.Protocols/LoginProto.cs`
+    ```csharp
+    /// <summary>
+    /// 请求登录消息
+    /// </summary>
+    [MessagePackObject(true)]
+    public class C2SLoginMsg : INetMessage
+    {
         /// <summary>
-        /// 请求登录消息
+        /// 账号
         /// </summary>
-        [MessagePackObject(true)]
-        public class C2SLoginMsg : INetMessage
-        {
-            /// <summary>
-            /// 账号
-            /// </summary>
-            public string username { get; set; }
-            /// <summary>
-            /// 密码
-            /// </summary>
-            public string password { get; set; }
-        }
+        public string username { get; set; }
+        /// <summary>
+        /// 密码
+        /// </summary>
+        public string password { get; set; }
+    }
 
+    /// <summary>
+    /// 响应登录消息
+    /// </summay>
+    [MessagePackObject(true)]
+    public class S2CLoginMsg : INetMessage
+    {
         /// <summary>
-        /// 响应登录消息
-        /// </summay>
-        [MessagePackObject(true)]
-        public class S2CLoginMsg : INetMessage
-        {
-            /// <summary>
-            /// 操作码/ 1 登录成功，2 用户不存在，3 密码错误
-            /// </summary>
-            public int code { get; set; }
-            /// <summary>
-            /// 玩家 ID
-            /// </summary>
-            public string pid { get; set; }
-        }
-        ```
-        - 定义了 `C2SLoginMsg`、`S2CLoginMsg`，继承 `INetMessage` 接口，这样就定义好了两条协议了。C2S 表示，**ClientToServer**，S2C 表示 **ServerToClient**，使用这个前缀只是为了更好区分协议的流向
-        - Class/类型中的结构，全部都是 `get`、`set` 属性。例如，`public string username { get; set; }` 同时，标记 MessagePackObject 特性,`[MessagePackObject(true)]`
-        - 有时候，期望复用一些数据结构，又不是协议。那么，不继承 `INetMessage` 接口即可。下方给出示例代码
-        - **\*注意**，结构中的`属性`不允许定义 Dictionary、List 。需要定义集合，请使用 Array，例如 `public uint[] items { get; set; }`
-        ```csharp
-        /// <summary>
-        /// 数据结构
+        /// 操作码/ 1 登录成功，2 用户不存在，3 密码错误
         /// </summary>
-        [MessagePackObject(true)]
-        public class Person
-        {
-            /// <summary>
-            /// 姓名
-            /// </summary>
-            public string name{ get; set; }
-            /// <summary>
-            /// 年龄
-            /// </summary>
-            public uint age{ get; set; }
-        }
-        ```
+        public int code { get; set; }
+        /// <summary>
+        /// 玩家 ID
+        /// </summary>
+        public string pid { get; set; }
+    }
+    ```
+    
+    - 定义了 `C2SLoginMsg`、`S2CLoginMsg`，继承 `INetMessage` 接口，这样就定义好了两条协议了。C2S 表示，**ClientToServer**，S2C 表示 **ServerToClient**，使用这个前缀只是为了更好区分协议的流向
+    - Class/类型中的结构，全部都是 `get`、`set` 属性。例如，`public string username { get; set; }` 同时，标记 MessagePackObject 特性,`[MessagePackObject(true)]`
+    - 有时候，期望复用一些数据结构，又不是协议。那么，不继承 `INetMessage` 接口即可。下方给出示例代码
+    - **\*注意**，结构中的`属性`不允许定义 Dictionary、List 。需要定义集合，请使用 Array，例如 `public uint[] items { get; set; }`
+
+    ```csharp
+    /// <summary>
+    /// 数据结构
+    /// </summary>
+    [MessagePackObject(true)]
+    public class Person
+    {
+        /// <summary>
+        /// 姓名
+        /// </summary>
+        public string name{ get; set; }
+        /// <summary>
+        /// 年龄
+        /// </summary>
+        public uint age{ get; set; }
+    }
+    ```
     - ##### <span id="netproto.2">2.生成协议</span>
         - 因为协议在序列化后，传输，反序列化才能方便读取。协议的包头，需要定义协议号，根据不同的协议号来反序列化。框架底层自动分配协议号，运行 `./Commands/proto.bat` 同时，也会生成解析协议的静态查询表。`因为兼顾到前端的协议使用（不能通过反射去解析，IOS 不允许）`
         - **\*注意**，生成协议解析表，使用了 `MessagePack-CSharp` 的 `mpc` 指令，如果开发环境未支持，请参照下方指令进行装配
