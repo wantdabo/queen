@@ -149,9 +149,9 @@ namespace Queen.Server.Roles.Common
 
         protected override void OnDestroy()
         {
-            base.OnDestroy();
             // 阻塞，等待任务完成，存盘
             while (null != task && false == task.IsCompleted) Thread.Sleep(10);
+            base.OnDestroy();
             eventor.Tell<DBSaveEvent>();
             engine.eventor.UnListen<Queen.Core.ExecuteEvent>(OnExecute);
             engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
