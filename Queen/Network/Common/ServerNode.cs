@@ -35,7 +35,6 @@ namespace Queen.Network.Common
             address.Port = port;
             var host = new Host();
             host.Create(address, maxConn);
-
             var thread = new Thread(() =>
             {
                 // 断开连接的 Peer 缓存
@@ -51,6 +50,7 @@ namespace Queen.Network.Common
                     foreach (NetChannel channel in rmvlist)
                     {
                         EmitDisconnectEvent(channel);
+                        channel.Disconnect();
                         if (channelDict.ContainsKey(channel.peer.ID)) channelDict.Remove(channel.peer.ID);
                     }
 
@@ -77,7 +77,7 @@ namespace Queen.Network.Common
                             {
                                 EmitTimeoutEvent(channel);
                                 EmitDisconnectEvent(channel);
-                                channel.peer.DisconnectNow(0);
+                                channel.Disconnect();
                                 channelDict.Remove(netEvent.Peer.ID);
                             }
                             break;
