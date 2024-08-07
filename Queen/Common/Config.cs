@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using Luban;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Bright.Serialization;
 using Newtonsoft.Json.Linq;
 using Queen.Core;
 
