@@ -23,6 +23,10 @@ namespace Queen.Common.DB
         /// </summary>
         private int dbport;
         /// <summary>
+        /// DB 身份校验
+        /// </summary>
+        public bool dbauth;
+        /// <summary>
         /// DB 用户名
         /// </summary>
         private string dbuser;
@@ -42,7 +46,10 @@ namespace Queen.Common.DB
         protected override void OnCreate()
         {
             base.OnCreate();
-            connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}");
+            if (dbauth)
+                connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}");
+            else
+                connect = new MongoClient($"mongodb://{dbhost}:{dbport}/{dbname}");
         }
 
         protected override void OnDestroy()
@@ -56,13 +63,15 @@ namespace Queen.Common.DB
         /// </summary>
         /// <param name="dbhost">DB 主机</param>
         /// <param name="dbport">DB 端口</param>
+        /// <param name="dbauth">DB 身份校验</param>
         /// <param name="dbuser">DB 用户名</param>
         /// <param name="dbpwd">DB 密码</param>
         /// <param name="dbname">DB 名字</param>
-        public void Initialize(string dbhost, int dbport, string dbuser, string dbpwd, string dbname)
+        public void Initialize(string dbhost, int dbport, bool dbauth, string dbuser, string dbpwd, string dbname)
         {
             this.dbhost = dbhost;
             this.dbport = dbport;
+            this.dbauth = dbauth;
             this.dbuser = dbuser;
             this.dbpwd = dbpwd;
             this.dbname = dbname;

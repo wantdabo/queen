@@ -33,7 +33,7 @@ namespace Queen.Server.Core
             settings.Create();
 
             dbo = AddComp<DBO>();
-            dbo.Initialize(settings.dbhost, settings.dbport, settings.dbuser, settings.dbpwd, settings.dbname);
+            dbo.Initialize(settings.dbhost, settings.dbport, settings.dbauth, settings.dbuser, settings.dbpwd, settings.dbname);
             dbo.Create();
 
             slave = AddComp<Slave>();

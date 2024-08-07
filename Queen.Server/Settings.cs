@@ -46,6 +46,11 @@ namespace Queen.Server
         public string dbname { get; private set; }
 
         /// <summary>
+        /// 数据库身份校验
+        /// </summary>
+        public bool dbauth { get; private set; }
+
+        /// <summary>
         /// 数据库用户名
         /// </summary>
         public string dbuser { get; private set; }
@@ -71,6 +76,7 @@ namespace Queen.Server
             dbhost = jobj.Value<string>("dbhost");
             dbport = jobj.Value<int>("dbport");
             dbname = jobj.Value<string>("dbname");
+            dbauth = jobj.Value<bool>("dbauth");
             dbuser = jobj.Value<string>("dbuser");
             dbpwd = jobj.Value<string>("dbpwd");
             dbsave = jobj.Value<int>("dbsave");
