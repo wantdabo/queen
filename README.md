@@ -151,7 +151,7 @@
 - #### <span id="servsettings">5.服务器信息配置</span>
 打开 `./Queen.Server/Res/settings.json` 文件，进行服务器信息配置
 ```text
- {
+{
   // 服务器名字
   "name": "queen.server",
   // 主机
@@ -166,6 +166,8 @@
   "dbport": 27017,
   // 数据库名
   "dbname": "queen",
+  // 数据库身份校验
+  "dbauth": false,
   // 数据库用户名
   "dbuser": "root",
   // 数据库密码
