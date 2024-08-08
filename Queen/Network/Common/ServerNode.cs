@@ -55,7 +55,7 @@ namespace Queen.Network.Common
             
             service.Setup(new TouchSocketConfig()
                 .SetMaxCount(maxConn)
-                .SetListenIPHosts(ip, port)
+                .SetListenIPHosts(port)
                 .SetTcpDataHandlingAdapter(() => new FixedHeaderPackageAdapter())
             );
             service.Start();
