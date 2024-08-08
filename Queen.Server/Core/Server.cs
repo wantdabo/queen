@@ -1,5 +1,4 @@
 ﻿using Queen.Network;
-using Queen.Remote;
 using Queen.Core;
 using Queen.Protocols;
 using Queen.Common.DB;

@@ -17,16 +17,5 @@ namespace Queen.Server.Roles.Common
         /// 通信渠道
         /// </summary>
         public NetChannel channel;
-
-        protected override void OnCreate()
-        {
-            base.OnCreate();
-        }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-            channel.Disconnect();
-        }
     }
 }

@@ -34,10 +34,9 @@ namespace Queen.Network
         /// <param name="ip">地址</param>
         /// <param name="port">端口</param>
         /// <param name="maxConn">最大连接数</param>
-        /// <param name="timeout">轮询超时</param>
-        public void Initialize(string ip, ushort port, int maxConn = 32, int timeout = 1) 
+        public void Initialize(string ip, ushort port, int maxConn = 32) 
         {
-            node = new(ip, port, false, maxConn, timeout);
+            node = new(ip, port, false, maxConn);
         }
 
         private void OnExecute(ExecuteEvent e)

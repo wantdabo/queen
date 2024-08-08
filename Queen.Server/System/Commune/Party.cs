@@ -125,7 +125,7 @@ namespace Queen.Server.System.Commune
         {
             foreach (var kv in roleDict)
             {
-                if (channel.peer.ID == kv.Value.session.channel.peer.ID) return kv.Value;
+                if (channel.client.Id == kv.Value.session.channel.client.Id) return kv.Value;
             }
 
             return null;

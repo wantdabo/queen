@@ -229,7 +229,7 @@ namespace Queen.Server.Roles.Common
         {
             Action<NetChannel, T> callback = (c, m) =>
             {
-                if (c.id == session.channel.id && c.peer.ID == session.channel.peer.ID) jobs.Enqueue(() => { action?.Invoke(m); });
+                if (c.client.Id == session.channel.client.Id) jobs.Enqueue(() => { action?.Invoke(m); });
             };
             engine.slave.Recv(callback);
             actionDict.Add(action, callback);

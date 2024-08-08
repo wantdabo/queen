@@ -3,7 +3,7 @@
 基于 .NET 的多进程单线程的跨平台服务端。
 
 ### 大致全貌
-- ENet 套字节
+- TCP 通信
 - MessagePack 协议
 - MongoDB 数据库
 - Luban 配置
@@ -43,9 +43,7 @@
 - 事务系统（基于 Redis）
 - 定位系统（基于 Redis）
 - 远程日志存盘系统，因为 Server 这些后面是要分布式的。所以，Logger 系统需要集中远程日志
-- ENet 修改最大连接数，4095 -> 65535
 - H5 小游戏 WebSocket 支持
-- TCP 支持
 
 ---
 

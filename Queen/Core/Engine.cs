@@ -73,8 +73,6 @@ namespace Queen.Core
                 "| |_| | |_| | |___| |___| |\\  |\n" +
                 " \\__\\_\\\\___/|_____|_____|_| \\_|\n\n");
 
-            ENet.Library.Initialize();
-
             logger = AddComp<Logger>();
             logger.Create();
 
@@ -97,7 +95,6 @@ namespace Queen.Core
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            ENet.Library.Deinitialize();
         }
 
         /// <summary>

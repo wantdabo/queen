@@ -133,6 +133,7 @@ namespace Queen.Network.Common
             if (false == ProtoPack.UnPack(data, out var msgType, out var msg)) return;
             if (typeof(NodePingMsg) == msgType)
             {
+                Thread.Sleep(1);
                 channel.Send(data);
 
                 return;

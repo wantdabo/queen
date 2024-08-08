@@ -9,10 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ENet-CSharp" Version="2.4.8" />
     <PackageReference Include="MongoDB.Driver" Version="2.26.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.0" />
+    <PackageReference Include="TouchSocket" Version="2.1.0-rc.7" />
   </ItemGroup>
 
   <ItemGroup>
