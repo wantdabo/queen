@@ -23,7 +23,7 @@ namespace Queen.Network.Common
         /// </summary>
         public void Disconnect()
         {
-            client.Close();
+            client.SafeCloseAsync();
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Queen.Network.Common
         /// <param name="data">二进制数据</param>
         public void Send(byte[] data)
         {
-            client.Send(data);
+            client.SendAsync(data);
         }
     }
 }

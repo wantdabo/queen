@@ -27,6 +27,9 @@ namespace Queen.Network.Common
         /// <param name="maxConn">最大连接数</param>
         public ServerNode(string ip, ushort port, bool notify = true, int maxConn = 32)
         {
+            this.ip = ip;
+            this.port = port;
+            this.notify = notify;
             var service = new TcpService();
             service.Connected = (c, e) =>
             {

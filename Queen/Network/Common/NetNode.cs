@@ -36,11 +36,11 @@ namespace Queen.Network.Common
         /// <summary>
         /// 地址
         /// </summary>
-        public string? ip;
+        public string ip { get; protected set; }
         /// <summary>
         /// 端口
         /// </summary>
-        public ushort port;
+        public ushort port { get; protected set; }
         /// <summary>z
         /// 是否自动通知消息
         /// </summary>
@@ -94,6 +94,7 @@ namespace Queen.Network.Common
         private void EnqueuePackage(NetChannel channel, Type msgType, INetMessage msg)
         {
             netPackages.Enqueue(new NetPackage { channel = channel, msgType = msgType, msg = msg });
+            if (notify) Notify();
         }
 
         /// <summary>
@@ -115,15 +116,6 @@ namespace Queen.Network.Common
         }
 
         /// <summary>
-        /// 超时消息
-        /// </summary>
-        /// <param name="channel">通信渠道</param>
-        protected void EmitTimeoutEvent(NetChannel channel)
-        {
-            EnqueuePackage(channel, typeof(NodeTimeoutMsg), new NodeTimeoutMsg { });
-        }
-
-        /// <summary>
         /// 接收消息
         /// </summary>
         /// <param name="channel">通信渠道</param>
@@ -133,14 +125,12 @@ namespace Queen.Network.Common
             if (false == ProtoPack.UnPack(data, out var msgType, out var msg)) return;
             if (typeof(NodePingMsg) == msgType)
             {
-                Thread.Sleep(1);
                 channel.Send(data);
 
                 return;
             }
 
             EnqueuePackage(channel, msgType, msg);
-            if (notify) Notify();
         }
 
         /// <summary>
@@ -150,6 +140,7 @@ namespace Queen.Network.Common
         {
             while (netPackages.TryDequeue(out var package))
             {
+                if (false == package.channel.client.Online) continue;
                 if (false == messageActionDict.TryGetValue(package.msgType, out var actions)) continue;
                 if (null == actions) continue;
                 for (int i = actions.Count - 1; i >= 0; i--) actions[i]?.DynamicInvoke(package.channel, package.msg);
