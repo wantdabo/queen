@@ -26,3 +26,5 @@ Queen.Server/Queen.Server.csproj.user
 /Queen.Remote/bin
 /Queen.Remote/obj
 /.idea
+/Queen.Bot/obj
+/Queen.Bot/bin
