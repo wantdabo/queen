@@ -33,7 +33,7 @@ namespace Queen.Network.Common
             var service = new TcpService();
             service.Connected = (c, e) =>
             {
-                var channel = new NetChannel { client = c };
+                var channel = new NetChannel(c);
                 channelDict.Add(c.Id, channel);
                 EmitConnectEvent(channel);
 
@@ -44,7 +44,7 @@ namespace Queen.Network.Common
                 if (channelDict.TryGetValue(c.Id, out var channel))
                 {
                     EmitDisconnectEvent(channel);
-                    channelDict.Remove(channel.client.Id);
+                    channelDict.Remove(channel.id);
                 }
 
                 return EasyTask.CompletedTask;
