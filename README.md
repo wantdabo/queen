@@ -92,7 +92,7 @@
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        public string pid { get; set; }
+        public string uuid { get; set; }
     }
     ```
     
@@ -136,7 +136,7 @@
         - 消息发送
         ```csharp
         // channel 是端对端的 Socket 连接
-        channel.Send(new S2CLoginMsg { pid = pid, code = 1 });
+        channel.Send(new S2CLoginMsg { uuid = uuid, code = 1 });
         ```
         - 以上的例子，原生的消息监听及发送。在业务的开发过程中。例如，在未登录的阶段，无法确定玩家身份，只能通过这种方式来接收所有的消息及发送。针对确定玩家的消息监听/发送，也是业务最常用的消息监听及发送，详情请看 **[Role](#bizframework.2)** 的概念
 - #### <span id="config">4.配置表</span>
