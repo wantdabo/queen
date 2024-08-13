@@ -37,8 +37,9 @@
 
 ### TODO
 - Role Quit 异步落盘，不阻塞主线程（提高性能）
-- Ticker 计时器 BUG
 - 时间轮，用于定时执行某些任务
+- Queen.Bot 设计
+- Ticker 计时器 BUG
 - RPC
 - 事务系统（基于 Redis）
 - 定位系统（基于 Redis）

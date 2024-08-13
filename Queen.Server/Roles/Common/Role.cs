@@ -110,7 +110,7 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 任务列表
         /// </summary>
-        private Queue<Action> jobs = new();
+        private ConcurrentQueue<Action> jobs = new();
 
         /// <summary>
         /// 发送列表
@@ -150,15 +150,15 @@ namespace Queen.Server.Roles.Common
         protected override void OnDestroy()
         {
             // 阻塞，等待任务完成，存盘
-            while (null != task && false == task.IsCompleted) Thread.Sleep(10);
+            while (0 > jobs.Count || (null != task && false == task.IsCompleted)) Thread.Sleep(10);
             base.OnDestroy();
             eventor.Tell<DBSaveEvent>();
+            eventor.UnListen<DBSaveEvent>(OnDBSave);
             engine.eventor.UnListen<Queen.Core.ExecuteEvent>(OnExecute);
             engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
             engine.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
-            eventor.UnListen<DBSaveEvent>(OnDBSave);
-            jobs.Clear();
             engine.ticker.StopTimer(dbsaveTiming);
+            jobs.Clear();
         }
 
         /// <summary>
@@ -230,7 +230,7 @@ namespace Queen.Server.Roles.Common
             Action<NetChannel, T> callback = (c, m) =>
             {
                 if (false == c.alive || false == session.channel.alive) return;
-                
+
                 if (c.id == session.channel.id) jobs.Enqueue(() => { action?.Invoke(m); });
             };
             engine.slave.Recv(callback);
@@ -311,11 +311,13 @@ namespace Queen.Server.Roles.Common
 
         private void OnRoleJoin(RoleJoinEvent e)
         {
+            jobs.Clear();
             jobs.Enqueue(() => eventor.Tell(e));
         }
 
         private void OnRoleQuit(RoleQuitEvent e)
         {
+            jobs.Clear();
             jobs.Enqueue(() => eventor.Tell(e));
         }
 
