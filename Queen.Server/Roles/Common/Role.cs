@@ -26,7 +26,7 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        public string pid { get; set; }
+        public string uuid { get; set; }
         /// <summary>
         /// 用户名
         /// </summary>
@@ -47,7 +47,7 @@ namespace Queen.Server.Roles.Common
         /// <returns>YES/NO</returns>
         public bool Equals(RoleInfo other)
         {
-            if (false == pid.Equals(other.pid)) return false;
+            if (false == uuid.Equals(other.uuid)) return false;
             if (false == username.Equals(other.username)) return false;
             if (false == nickname.Equals(other.nickname)) return false;
             if (false == password.Equals(other.password)) return false;
@@ -254,7 +254,7 @@ namespace Queen.Server.Roles.Common
         /// </summary>
         private void Restore()
         {
-            if (false == info.Equals(backup)) info = new() { pid = backup.pid, username = backup.username, nickname = backup.nickname, password = backup.password };
+            if (false == info.Equals(backup)) info = new() { uuid = backup.uuid, username = backup.username, nickname = backup.nickname, password = backup.password };
             foreach (var behavior in behaviorDict.Values) behavior.Restore();
         }
 
@@ -263,7 +263,7 @@ namespace Queen.Server.Roles.Common
         /// </summary>
         private void Backup()
         {
-            if (false == info.Equals(backup)) backup = new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password };
+            if (false == info.Equals(backup)) backup = new() { uuid = info.uuid, username = info.username, nickname = info.nickname, password = info.password };
         }
 
         private void OnExecute(Queen.Core.ExecuteEvent e)
@@ -294,7 +294,7 @@ namespace Queen.Server.Roles.Common
                     // 任务失败，清除任务中的推送消息
                     sends.Clear();
                     // 任务失败，输出日志
-                    engine.logger.Error($"role erro, pid -> {info.pid}", e);
+                    engine.logger.Error($"role erro, uuid -> {info.uuid}", e);
 
                     return Task.CompletedTask;
                 }
@@ -319,7 +319,7 @@ namespace Queen.Server.Roles.Common
         {
             if (dbcache.Equals(info)) return;
 
-            if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.pid, info.pid), new() { pid = info.pid, nickname = info.nickname, username = info.username, password = info.password }))
+            if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.uuid, info.uuid), new() { uuid = info.uuid, nickname = info.nickname, username = info.username, password = info.password }))
             {
                 dbcache = info;
             }

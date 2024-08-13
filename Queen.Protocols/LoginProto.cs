@@ -17,7 +17,7 @@ namespace Queen.Protocols
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        public string pid { get; set; }
+        public string uuid { get; set; }
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ namespace Queen.Protocols
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        public string pid { get; set; }
+        public string uuid { get; set; }
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ namespace Queen.Protocols
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        public string pid { get; set; }
+        public string uuid { get; set; }
     }
 
     /// <summary>

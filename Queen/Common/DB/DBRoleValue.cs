@@ -15,8 +15,8 @@ namespace Queen.Common.DB
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        [BsonElement("pid")]
-        public string pid { get; set; }
+        [BsonElement("uuid")]
+        public string uuid { get; set; }
         /// <summary>
         /// 玩家昵称
         /// </summary>
@@ -35,7 +35,7 @@ namespace Queen.Common.DB
 
         public override void Set(DBRoleValue src)
         {
-            pid = src.pid;
+            uuid = src.uuid;
             nickname = src.nickname;
             username = src.username;
             password = src.password;

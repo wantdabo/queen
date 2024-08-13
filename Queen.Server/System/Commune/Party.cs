@@ -45,7 +45,7 @@ namespace Queen.Server.System.Commune
         /// <summary>
         /// 玩家 ID
         /// </summary>
-        public string pid;
+        public string uuid;
         /// <summary>
         /// 昵称
         /// </summary>
@@ -77,16 +77,16 @@ namespace Queen.Server.System.Commune
         /// <returns>玩家</returns>
         public Role Join(RoleJoinInfo info)
         {
-            if (roleDict.TryGetValue(info.pid, out var role)) Quit(role);
+            if (roleDict.TryGetValue(info.uuid, out var role)) Quit(role);
 
             role = AddComp<Role>();
             role.session = role.AddComp<Session>();
             role.session.channel = info.channel;
             role.session.Create();
-            role.Initialize(new() { pid = info.pid, username = info.username, nickname = info.nickname, password = info.password });
+            role.Initialize(new() { uuid = info.uuid, username = info.username, nickname = info.nickname, password = info.password });
             role.Create();
 
-            roleDict.Add(role.info.pid, role);
+            roleDict.Add(role.info.uuid, role);
             engine.eventor.Tell(new RoleJoinEvent { role = role });
 
             return role;
@@ -100,18 +100,18 @@ namespace Queen.Server.System.Commune
         {
             engine.eventor.Tell(new RoleQuitEvent { role = role });
 
-            if (roleDict.ContainsKey(role.info.pid)) roleDict.Remove(role.info.pid);
+            if (roleDict.ContainsKey(role.info.uuid)) roleDict.Remove(role.info.uuid);
             role.Destroy();
         }
 
         /// <summary>
         /// 获取玩家
         /// </summary>
-        /// <param name="pid">玩家 ID</param>
+        /// <param name="uuid">玩家 ID</param>
         /// <returns>玩家</returns>
-        public Role GetRole(string pid)
+        public Role GetRole(string uuid)
         {
-            roleDict.TryGetValue(pid, out var role);
+            roleDict.TryGetValue(uuid, out var role);
 
             return role;
         }

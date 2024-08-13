@@ -63,17 +63,17 @@ namespace Queen.Server.System.Authentication
                 return;
             }
 
-            var role = bridge.party.GetRole(reader.pid);
+            var role = bridge.party.GetRole(reader.uuid);
             if (null != role)
             {
-                role.session.channel.Send(new S2CLogoutMsg { pid = role.info.pid, code = 3 });
+                role.session.channel.Send(new S2CLogoutMsg { uuid = role.info.uuid, code = 3 });
                 bridge.party.Quit(role);
             }
 
-            bridge.party.Join(new RoleJoinInfo { channel = channel, pid = reader.pid, username = reader.username, nickname = reader.nickname, password = reader.password });
-            engine.logger.Info($"user login success. pid -> {reader.pid}, username -> {msg.username}");
+            bridge.party.Join(new RoleJoinInfo { channel = channel, uuid = reader.uuid, username = reader.username, nickname = reader.nickname, password = reader.password });
+            engine.logger.Info($"user login success. uuid -> {reader.uuid}, username -> {msg.username}");
 
-            channel.Send(new S2CLoginMsg { pid = reader.pid, code = 1 });
+            channel.Send(new S2CLoginMsg { uuid = reader.uuid, code = 1 });
         }
 
         /// <summary>
@@ -83,20 +83,20 @@ namespace Queen.Server.System.Authentication
         /// <param name="msg">消息</param>
         private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
         {
-            if (null == msg.pid) return;
+            if (null == msg.uuid) return;
 
-            var role = bridge.party.GetRole(msg.pid);
+            var role = bridge.party.GetRole(msg.uuid);
             if (null == role)
             {
-                engine.logger.Info($"this user is not logged in is no. pid -> {msg.pid}");
-                channel.Send(new S2CLogoutMsg { pid = msg.pid, code = 2 });
+                engine.logger.Info($"this user is not logged in is no. uuid -> {msg.uuid}");
+                channel.Send(new S2CLogoutMsg { uuid = msg.uuid, code = 2 });
 
                 return;
             }
 
-            engine.logger.Info($"user logout success. pid -> {msg.pid}");
+            engine.logger.Info($"user logout success. uuid -> {msg.uuid}");
             bridge.party.Quit(role);
-            channel.Send(new S2CLogoutMsg { pid = msg.pid, code = 1 });
+            channel.Send(new S2CLogoutMsg { uuid = msg.uuid, code = 1 });
         }
 
         /// <summary>
@@ -115,11 +115,11 @@ namespace Queen.Server.System.Authentication
                 return;
             }
 
-            var pid = Guid.NewGuid().ToString();
-            bridge.engine.dbo.Insert<DBRoleValue>("roles", new() { pid = pid, nickname = "", username = msg.username, password = msg.password });
+            var uuid = Guid.NewGuid().ToString();
+            bridge.engine.dbo.Insert<DBRoleValue>("roles", new() { uuid = uuid, nickname = "", username = msg.username, password = msg.password });
 
             channel.Send(new S2CRegisterMsg { code = 1 });
-            engine.logger.Info($"registration success. pid -> {pid}, username -> {msg.username}");
+            engine.logger.Info($"registration success. uuid -> {uuid}, username -> {msg.username}");
         }
 
         private void OnNodeConnect(NetChannel channel, NodeConnectMsg msg)
@@ -131,7 +131,7 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(channel);
             if (null == role) return;
 
-            engine.logger.Info($"user logout by disconnect. pid -> {role.info.pid}, username -> {role.info.username}");
+            engine.logger.Info($"user logout by disconnect. uuid -> {role.info.uuid}, username -> {role.info.username}");
             bridge.party.Quit(role);
         }
     }

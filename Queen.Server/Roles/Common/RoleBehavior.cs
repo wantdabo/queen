@@ -79,7 +79,7 @@ namespace Queen.Server.Roles.Common
         /// <summary>
         /// 数据前缀
         /// </summary>
-        public string prefix => $"{token}.{role.info.pid}";
+        public string prefix => $"{token}.{role.info.uuid}";
         /// <summary>
         /// 标识
         /// </summary>
