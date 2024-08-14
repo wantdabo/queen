@@ -17,7 +17,7 @@ namespace Queen.Server.System.Authentication
     /// <summary>
     /// 登录
     /// </summary>
-    public class Authenticator : Sys<Adpater>
+    public class Authenticator : Sys<Adapter>
     {
         public Party party;
 

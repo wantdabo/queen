@@ -17,7 +17,7 @@ namespace Queen.Server.System.Authentication
     /// <summary>
     /// 验证器消息适配器
     /// </summary>
-    public class Adpater : Adapter<Authenticator>
+    public class Adapter : Adapter<Authenticator>
     {
         protected override void OnBind()
         {
@@ -64,16 +64,15 @@ namespace Queen.Server.System.Authentication
             }
 
             var role = bridge.party.GetRole(reader.uuid);
-            if (null != role)
+            if (null != role && role.online)
             {
                 role.session.channel.Send(new S2CLogoutMsg { uuid = role.info.uuid, code = 3 });
                 bridge.party.Quit(role);
             }
 
             bridge.party.Join(new RoleJoinInfo { channel = channel, uuid = reader.uuid, username = reader.username, nickname = reader.nickname, password = reader.password });
-            engine.logger.Info($"user login success. uuid -> {reader.uuid}, username -> {msg.username}");
-
             channel.Send(new S2CLoginMsg { uuid = reader.uuid, code = 1 });
+            engine.logger.Info($"user login success. uuid -> {reader.uuid}, username -> {msg.username}");
         }
 
         /// <summary>
@@ -88,15 +87,15 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(msg.uuid);
             if (null == role)
             {
-                engine.logger.Info($"this user is not logged in is no. uuid -> {msg.uuid}");
                 channel.Send(new S2CLogoutMsg { uuid = msg.uuid, code = 2 });
+                engine.logger.Info($"this user is not logged in is no. uuid -> {msg.uuid}");
 
                 return;
             }
 
-            engine.logger.Info($"user logout success. uuid -> {msg.uuid}");
             bridge.party.Quit(role);
             channel.Send(new S2CLogoutMsg { uuid = msg.uuid, code = 1 });
+            engine.logger.Info($"user logout success. uuid -> {msg.uuid}");
         }
 
         /// <summary>
@@ -131,8 +130,8 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(channel);
             if (null == role) return;
 
-            engine.logger.Info($"user logout by disconnect. uuid -> {role.info.uuid}, username -> {role.info.username}");
             bridge.party.Quit(role);
+            engine.logger.Info($"user logout by disconnect. uuid -> {role.info.uuid}, username -> {role.info.username}");
         }
     }
 }

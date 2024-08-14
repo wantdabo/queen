@@ -1,4 +1,5 @@
 ﻿using Queen.Common;
+using Queen.Core;
 using Queen.Network.Common;
 using Queen.Server.Core;
 using Queen.Server.Roles.Common;
@@ -70,26 +71,41 @@ namespace Queen.Server.System.Commune
         /// </summary>
         private Dictionary<string, Role> roleDict = new();
 
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+            engine.eventor.Listen<ExecuteEvent>(OnExecute);
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            engine.eventor.UnListen<ExecuteEvent>(OnExecute);
+        }
+
         /// <summary>
         /// 玩家加入
         /// </summary>
         /// <param name="info">玩家加入数据</param>
         /// <returns>玩家</returns>
-        public Role Join(RoleJoinInfo info)
+        public void Join(RoleJoinInfo info)
         {
-            if (roleDict.TryGetValue(info.uuid, out var role)) Quit(role);
-
-            role = AddComp<Role>();
-            role.session = role.AddComp<Session>();
+            var role = GetRole(info.uuid);
+            if (null != role) Quit(role);
+            
+            if (null == role)
+            {
+                role = AddComp<Role>();
+                role.session = role.AddComp<Session>();
+                role.session.Create();
+                role.Initialize(new() { uuid = info.uuid, username = info.username, nickname = info.nickname, password = info.password });
+                role.Create();
+                roleDict.Add(role.info.uuid, role);
+            }
             role.session.channel = info.channel;
-            role.session.Create();
-            role.Initialize(new() { uuid = info.uuid, username = info.username, nickname = info.nickname, password = info.password });
-            role.Create();
-
-            roleDict.Add(role.info.uuid, role);
+            
+            if (role.online) return;
             engine.eventor.Tell(new RoleJoinEvent { role = role });
-
-            return role;
         }
 
         /// <summary>
@@ -98,10 +114,8 @@ namespace Queen.Server.System.Commune
         /// <param name="role">玩家</param>
         public void Quit(Role role)
         {
+            if (false == role.online) return;
             engine.eventor.Tell(new RoleQuitEvent { role = role });
-
-            if (roleDict.ContainsKey(role.info.uuid)) roleDict.Remove(role.info.uuid);
-            role.Destroy();
         }
 
         /// <summary>
@@ -129,6 +143,11 @@ namespace Queen.Server.System.Commune
             }
 
             return null;
+        }
+
+        private void OnExecute(ExecuteEvent e)
+        {
+
         }
     }
 }

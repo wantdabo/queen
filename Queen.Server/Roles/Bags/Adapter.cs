@@ -1,4 +1,5 @@
 ﻿using Queen.Network;
+using Queen.Protocols;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,17 @@ namespace Queen.Server.Roles.Bags
     {
         protected override void OnBind()
         {
+            bridge.role.Recv<C2STestMsg>(OnC2STest);
         }
 
         protected override void OnUnbind()
         {
+            bridge.role.UnRecv<C2STestMsg>(OnC2STest);
+        }
+
+        private void OnC2STest(C2STestMsg msg)
+        {
+            engine.logger.Info($"OnC2STest -> {msg.content}");
         }
     }
 }
