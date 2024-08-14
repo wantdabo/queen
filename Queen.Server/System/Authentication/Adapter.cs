@@ -19,29 +19,12 @@ namespace Queen.Server.System.Authentication
     /// </summary>
     public class Adapter : Adapter<Authenticator>
     {
-        protected override void OnBind()
-        {
-            bridge.engine.slave.Recv<C2SLoginMsg>(OnC2SLogin);
-            bridge.engine.slave.Recv<C2SLogoutMsg>(OnC2SLogout);
-            bridge.engine.slave.Recv<C2SRegisterMsg>(OnC2SRegister);
-            bridge.engine.slave.Recv<NodeConnectMsg>(OnNodeConnect);
-            bridge.engine.slave.Recv<NodeDisconnectMsg>(OnNodeDisconnect);
-        }
-
-        protected override void OnUnbind()
-        {
-            bridge.engine.slave.UnRecv<C2SLoginMsg>(OnC2SLogin);
-            bridge.engine.slave.UnRecv<C2SLogoutMsg>(OnC2SLogout);
-            bridge.engine.slave.UnRecv<C2SRegisterMsg>(OnC2SRegister);
-            bridge.engine.slave.UnRecv<NodeConnectMsg>(OnNodeConnect);
-            bridge.engine.slave.UnRecv<NodeDisconnectMsg>(OnNodeDisconnect);
-        }
-
         /// <summary>
         /// 玩家登录
         /// </summary>
         /// <param name="channel">通信渠道</param>
         /// <param name="msg">消息</param>
+        [NetBinding]
         private void OnC2SLogin(NetChannel channel, C2SLoginMsg msg)
         {
             engine.logger.Info($"a user try to login. username -> {msg.username}");
@@ -80,6 +63,7 @@ namespace Queen.Server.System.Authentication
         /// </summary>
         /// <param name="channel">通信渠道</param>
         /// <param name="msg">消息</param>
+        [NetBinding]
         private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
         {
             if (null == msg.uuid) return;
@@ -103,6 +87,7 @@ namespace Queen.Server.System.Authentication
         /// </summary>
         /// <param name="channel">通信渠道</param>
         /// <param name="msg">消息</param>
+        [NetBinding]
         private void OnC2SRegister(NetChannel channel, C2SRegisterMsg msg)
         {
             engine.logger.Info($"a new user try to register username -> {msg.username}");
@@ -121,10 +106,12 @@ namespace Queen.Server.System.Authentication
             engine.logger.Info($"registration success. uuid -> {uuid}, username -> {msg.username}");
         }
 
+        [NetBinding]
         private void OnNodeConnect(NetChannel channel, NodeConnectMsg msg)
         {
         }
 
+        [NetBinding]
         private void OnNodeDisconnect(NetChannel channel, NodeDisconnectMsg msg)
         {
             var role = bridge.party.GetRole(channel);

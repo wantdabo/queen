@@ -4,11 +4,14 @@ using Newtonsoft.Json;
 using Queen.Common;
 using Queen.Common.DB;
 using Queen.Network;
+using Queen.Network.Common;
+using Queen.Protocols.Common;
 using Queen.Server.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -23,7 +26,7 @@ namespace Queen.Server.Roles.Common
         /// 玩家
         /// </summary>
         public Role role;
-        
+
         /// <summary>
         /// 重置备份
         /// </summary>
@@ -47,7 +50,7 @@ namespace Queen.Server.Roles.Common
         {
             OnBackup();
         }
-        
+
         /// <summary>
         /// 重置备份
         /// </summary>
@@ -106,7 +109,7 @@ namespace Queen.Server.Roles.Common
             {
                 dirty = true;
                 Backup();
-                
+
                 return mdata;
             }
             private set { mdata = value; }
@@ -143,7 +146,7 @@ namespace Queen.Server.Roles.Common
         {
             if (false == backedup) return;
             if (null == backup) throw new Exception("can't restore the data, because backup is null.");
-            
+
             data = MessagePackSerializer.Deserialize<TDBState>(backup);
         }
 
@@ -154,7 +157,7 @@ namespace Queen.Server.Roles.Common
         {
             if (backedup) return;
             backedup = true;
-            
+
             backup = MessagePackSerializer.Serialize(data);
         }
 
@@ -180,7 +183,7 @@ namespace Queen.Server.Roles.Common
         private void SaveData()
         {
             if (false == dirty) return;
-            
+
             var bytes = MessagePackSerializer.Serialize(data);
             if (engine.dbo.Replace("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), new() { prefix = prefix, value = bytes }))
             {
@@ -206,6 +209,47 @@ namespace Queen.Server.Roles.Common
             adapter = AddComp<TAdapter>();
             adapter.Initialize(this);
             adapter.Create();
+            NetRecv();
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            NetUnRecv();
+        }
+
+        private void NetRecv()
+        {
+            var methods = adapter.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var method in methods)
+            {
+                if(null == method.GetCustomAttribute<NetBinding>()) continue;
+                var ps = method.GetParameters();
+                if (1 != ps.Length) continue;
+                var msgType = ps[0].ParameterType;
+                if (false == typeof(INetMessage).IsAssignableFrom(msgType)) continue;
+                var actionType = typeof(Action<>).MakeGenericType(msgType);
+                var action = Delegate.CreateDelegate(actionType, adapter, method);
+                var actionInfo = new ActionInfo
+                {
+                    msgType = msgType,
+                    action = action
+                };
+                adapter.actionInfos.Add(actionInfo);
+
+                var recvMethod = role.GetType().GetMethod("Recv").MakeGenericMethod(msgType);
+                recvMethod.Invoke(role, [action]);
+            }
+        }
+
+        private void NetUnRecv()
+        {
+            foreach (var actionInfo in adapter.actionInfos)
+            {
+                var recvMethod = role.GetType().GetMethod("UnRecv").MakeGenericMethod(actionInfo.msgType);
+                recvMethod.Invoke(role, [actionInfo.action]);
+            }
+            adapter.actionInfos.Clear();
         }
     }
 }

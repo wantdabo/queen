@@ -8,6 +8,23 @@ using System.Threading.Tasks;
 namespace Queen.Network
 {
     /// <summary>
+    /// 网络消息绑定特征
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
+    public class NetBinding : Attribute
+    {
+    }
+    
+    /// <summary>
+    /// 消息方法结构体
+    /// </summary>
+    public struct ActionInfo
+    {
+        public Type msgType;
+        public Delegate action;
+    }
+    
+    /// <summary>
     /// 消息适配器
     /// </summary>
     public abstract class Adapter : Comp
@@ -16,18 +33,11 @@ namespace Queen.Network
         /// 桥接
         /// </summary>
         protected Comp bridge;
-
-        protected override void OnCreate()
-        {
-            base.OnCreate();
-            OnBind();
-        }
-
-        protected override void OnDestroy()
-        {
-            base.OnDestroy();
-            OnUnbind();
-        }
+        
+        /// <summary>
+        /// 消息方法回调
+        /// </summary>
+        public List<ActionInfo> actionInfos = new();
 
         /// <summary>
         /// 初始化
@@ -41,12 +51,12 @@ namespace Queen.Network
         /// <summary>
         /// 绑定消息回调
         /// </summary>
-        protected abstract void OnBind();
+        protected virtual void OnBind() { }
 
         /// <summary>
         /// 松绑消息回调
         /// </summary>
-        protected abstract void OnUnbind();
+        protected virtual void OnUnbind() { }
     }
 
     /// <summary>
