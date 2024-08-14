@@ -102,31 +102,9 @@ namespace Queen.Server.Roles.Common
         public Eventor eventor { get; set; }
 
         /// <summary>
-        /// 繁忙中
-        /// </summary>
-        public bool busying
-        {
-            get
-            {
-                return 0 < jobs.Count || working;
-            }
-        }
-
-        /// <summary>
         /// 工作中
         /// </summary>
-        public bool working
-        {
-            get
-            {
-                return null != task && false == task.IsCompleted;
-            }
-        }
-
-        /// <summary>
-        /// Jobs 驱动 Task
-        /// </summary>
-        private Task task { get; set; }
+        public bool working { get; private set; }
 
         /// <summary>
         /// 任务列表
@@ -163,7 +141,7 @@ namespace Queen.Server.Roles.Common
             engine.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
             eventor.Listen<DBSaveEvent>(OnDBSave);
             // 数据写盘
-            dbsaveTiming = engine.ticker.Timing((t) => Work(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
+            dbsaveTiming = engine.ticker.Timing((t) => TODO(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
 
             Behaviors();
         }
@@ -171,11 +149,10 @@ namespace Queen.Server.Roles.Common
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            eventor.Tell<DBSaveEvent>();
-            eventor.UnListen<DBSaveEvent>(OnDBSave);
             engine.eventor.UnListen<Queen.Core.ExecuteEvent>(OnExecute);
             engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
             engine.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
+            eventor.UnListen<DBSaveEvent>(OnDBSave);
             engine.ticker.StopTimer(dbsaveTiming);
             jobs.Clear();
         }
@@ -250,7 +227,7 @@ namespace Queen.Server.Roles.Common
             {
                 if (false == c.alive || false == session.channel.alive) return;
 
-                if (c.id == session.channel.id) Work(() => { action?.Invoke(m); });
+                if (c.id == session.channel.id) TODO(() => { action?.Invoke(m); });
             };
             engine.slave.Recv(callback);
             actionDict.Add(action, callback);
@@ -292,10 +269,10 @@ namespace Queen.Server.Roles.Common
         }
 
         /// <summary>
-        /// 任务队列
+        /// 插入任务队列
         /// </summary>
         /// <param name="job">任务</param>
-        private void Work(Action job)
+        private void TODO(Action job)
         {
             if (false == online) return;
             if (null == job) return;
@@ -303,26 +280,35 @@ namespace Queen.Server.Roles.Common
             jobs.Enqueue(job);
         }
 
-        private void OnExecute(Queen.Core.ExecuteEvent e)
+        /// <summary>
+        /// 进行工作
+        /// </summary>
+        private void Work()
         {
             if (working) return;
 
-            // 任务中产生的有效数据，推送至客户端
-            while (sends.TryDequeue(out var send)) send.Invoke();
-
-            if (false == jobs.TryDequeue(out var job)) return;
-
+            if (0 == jobs.Count) return;
+            
             // 开启任务线程
-            task = Task.Run(() =>
+            Task.Run(() =>
             {
                 try
                 {
-                    // 备份数据
-                    Backup();
-                    // 执行任务
-                    job.Invoke();
-                    // 重置备份
-                    Reset();
+                    working = true;
+                    while (true)
+                    {
+                        if (false == jobs.TryDequeue(out var job)) break;
+                        
+                        // 备份数据
+                        Backup();
+                        // 执行任务
+                        job.Invoke();
+                        // 重置备份
+                        Reset();
+                        
+                        // 任务中产生的有效数据，推送至客户端
+                        while (sends.TryDequeue(out var send)) send.Invoke();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -332,19 +318,25 @@ namespace Queen.Server.Roles.Common
                     sends.Clear();
                     // 任务失败，输出日志
                     engine.logger.Error($"role erro, uuid -> {info.uuid}", e);
-
-                    return Task.CompletedTask;
                 }
-
-                return Task.CompletedTask;
+                finally
+                {
+                    working = false;
+                }
             });
+        }
+
+        private void OnExecute(Queen.Core.ExecuteEvent e)
+        {
+            TODO(() => eventor.Tell(e));
+            Work();
         }
 
         private void OnRoleJoin(RoleJoinEvent e)
         {
             online = true;
             jobs.Clear();
-            Work(() =>
+            TODO(() =>
             {
                 eventor.Tell(e);
             });
@@ -353,9 +345,10 @@ namespace Queen.Server.Roles.Common
         private void OnRoleQuit(RoleQuitEvent e)
         {
             jobs.Clear();
-            Work(() =>
+            TODO(() =>
             {
                 eventor.Tell(e);
+                eventor.Tell<DBSaveEvent>();
             });
             online = false;
         }
