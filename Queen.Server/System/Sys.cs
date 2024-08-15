@@ -43,10 +43,12 @@ namespace Queen.Server.System
             NetUnRecv();
         }
 
+        /// <summary>
+        /// 自动注册消息接收
+        /// </summary>
         private void NetRecv()
         {
-            var methods = adapter.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
-            foreach (var method in methods)
+            foreach (var method in adapter.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 if(null == method.GetCustomAttribute<NetBinding>()) continue;
                 var ps = method.GetParameters();
@@ -68,6 +70,9 @@ namespace Queen.Server.System
             }
         }
 
+        /// <summary>
+        /// 自动注销消息接收
+        /// </summary>
         private void NetUnRecv()
         {
             foreach (var actionInfo in adapter.actionInfos)
