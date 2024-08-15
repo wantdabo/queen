@@ -20,7 +20,13 @@ namespace Queen.Network
     /// </summary>
     public struct ActionInfo
     {
+        /// <summary>
+        /// 消息类型
+        /// </summary>
         public Type msgType;
+        /// <summary>
+        /// 消息回调
+        /// </summary>
         public Delegate action;
     }
     
