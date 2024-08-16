@@ -49,7 +49,7 @@ namespace Queen.Server.System.Authentication
             var role = bridge.party.GetRole(reader.uuid);
             if (null != role && role.online)
             {
-                role.session.channel.Send(new S2CLogoutMsg { uuid = role.info.uuid, code = 3 });
+                role.session.channel.Send(new S2CLogoutMsg {code = 3 });
                 bridge.party.Quit(role);
             }
 
@@ -66,20 +66,18 @@ namespace Queen.Server.System.Authentication
         [NetBinding]
         private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
         {
-            if (null == msg.uuid) return;
-
-            var role = bridge.party.GetRole(msg.uuid);
+            var role = bridge.party.GetRole(channel);
             if (null == role)
             {
-                channel.Send(new S2CLogoutMsg { uuid = msg.uuid, code = 2 });
-                engine.logger.Info($"this user is not logged in is no. uuid -> {msg.uuid}");
+                channel.Send(new S2CLogoutMsg {code = 2 });
+                engine.logger.Info($"this user is not logged in is no.");
 
                 return;
             }
 
             bridge.party.Quit(role);
-            channel.Send(new S2CLogoutMsg { uuid = msg.uuid, code = 1 });
-            engine.logger.Info($"user logout success. uuid -> {msg.uuid}");
+            channel.Send(new S2CLogoutMsg {code = 1 });
+            engine.logger.Info($"user logout success. uuid -> {role.info.uuid}");
         }
 
         /// <summary>
