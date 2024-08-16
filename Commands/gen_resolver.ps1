@@ -1,10 +1,19 @@
 # 生成代码
 mpc -i "..\Queen.Protocols\Queen.Protocols.csproj" -o "..\Queen.Protocols\Common\MessagePackGenerated.cs" -m
 
-# 添加命名空间
-# $filePath = "..\Queen.Protocols\Common\MessagePackGenerated.cs"
-# $firstLine = "`nusing System.Collections.Generic;"
-# (Get-Content -Path $filePath) | ForEach-Object {
-#     $_
-#     if ($_.ReadCount -eq 3) { $firstLine }
-# } | Set-Content -Path $filePath
+$filePath = "..\Queen.Protocols\Common\MessagePackGenerated.cs"
+$firstLine = "#if GOBLIN"
+$endLine = "#endif"
+
+# 读取文件内容
+$content = Get-Content -Path $filePath
+
+# 在第一行添加 $firstLine
+$newContent = @($firstLine) + $content
+
+# 将修改后的内容写回文件
+$newContent | Set-Content -Path $filePath
+
+# 添加 $endLine 到文件的末尾
+Add-Content -Path $filePath -Value $endLine
+
