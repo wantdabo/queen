@@ -36,7 +36,7 @@ namespace Queen.Server.Core
             dbo.Create();
 
             slave = AddComp<Slave>();
-            slave.Initialize(settings.host, settings.port, settings.maxconn);
+            slave.Initialize(settings.host, settings.port, settings.maxconn, settings.sthread, settings.maxpps);
             slave.Create();
 
             var authenticator = AddComp<Authenticator>();

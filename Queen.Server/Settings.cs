@@ -31,6 +31,16 @@ namespace Queen.Server
         public int maxconn { get; private set; }
 
         /// <summary>
+        /// Slave（主网）最大工作线程
+        /// </summary>
+        public int sthread { get; private set;}
+
+        /// <summary>
+        /// 最大网络收发包每秒
+        /// </summary>
+        public int maxpps { get; private set; }
+
+        /// <summary>
         /// 数据库主机
         /// </summary>
         public string dbhost { get; private set; }
@@ -73,6 +83,8 @@ namespace Queen.Server
             host = jobj.Value<string>("host");
             port = jobj.Value<ushort>("port");
             maxconn = jobj.Value<int>("maxconn");
+            sthread = jobj.Value<int>("sthread");
+            maxpps = jobj.Value<int>("maxpps");
             dbhost = jobj.Value<string>("dbhost");
             dbport = jobj.Value<int>("dbport");
             dbname = jobj.Value<string>("dbname");

@@ -1,4 +1,5 @@
-﻿using Queen.Protocols.Common;
+﻿using Queen.Core;
+using Queen.Protocols.Common;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace Queen.Network.Common
     /// <summary>
     /// 网络节点
     /// </summary>
-    public class NetNode
+    public abstract class NetNode : Comp
     {
         /// <summary>
         /// 消息包结构
@@ -45,6 +46,20 @@ namespace Queen.Network.Common
         /// 是否自动通知消息
         /// </summary>
         protected bool notify { get; set; }
+        /// <summary>
+        /// 最大连接数
+        /// </summary>
+        protected int maxconn { get; set; }
+        
+        /// <summary>
+        /// Slave（主网）最大工作线程
+        /// </summary>
+        protected int sthread { get; set; }
+
+        /// <summary>
+        /// 最大网络收发包每秒
+        /// </summary>
+        protected int maxpps { get; set; }
 
         /// <summary>
         /// 注册消息回调集合
@@ -54,6 +69,114 @@ namespace Queen.Network.Common
         /// 网络消息包缓存
         /// </summary>
         private ConcurrentQueue<NetPackage> netPackages = new();
+
+        /// <summary>
+        /// 通信渠道集合
+        /// </summary>
+        private Dictionary<string, NetChannel> channelDict = new();
+
+        /// <summary>
+        /// PPS 记录
+        /// </summary>
+        private Dictionary<string, uint> ppscntDcit = new();
+
+        /// <summary>
+        /// PPS 计时器
+        /// </summary>
+        private uint ppsTimingId = 0;
+
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+            ppsTimingId = engine.ticker.Timing((t) =>
+            {
+                ppscntDcit.Clear();
+            }, 1, -1);
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            engine.ticker.StopTimer(ppsTimingId);
+        }
+
+        /// <summary>
+        /// 创建服务端网络节点
+        /// </summary>
+        /// <param name="ip">地址</param>
+        /// <param name="port">端口</param>
+        /// <param name="notify">是否自动通知消息（子线程）</param>
+        /// <param name="maxconn">最大连接数</param>
+        /// <param name="sthread">Slave（主网）最大工作线程</param>
+        /// <param name="maxpps">最大网络收发包每秒</param>
+        public void Initialize(string ip, ushort port, bool notify, int maxconn, int sthread, int maxpps)
+        {
+            this.ip = ip;
+            this.port = port;
+            this.notify = notify;
+            this.maxconn = maxconn;
+            this.sthread = sthread;
+            this.maxpps = maxpps;
+        }
+
+        /// <summary>
+        /// 获取通信渠道
+        /// </summary>
+        /// <param name="id">ID</param>
+        /// <param name="channel">通信渠道</param>
+        /// <returns>YES/NO</returns>
+        public bool GetChannel(string id, out NetChannel channel)
+        {
+            return channelDict.TryGetValue(id, out channel);
+        }
+
+        /// <summary>
+        /// 移除通信渠道
+        /// </summary>
+        /// <param name="id">ID</param>
+        /// <returns>YES/NO</returns>
+        public bool RmvChannel(string id)
+        {
+            return channelDict.Remove(id);
+        }
+
+        /// <summary>
+        /// 添加通信渠道
+        /// </summary>
+        /// <param name="channel">通信渠道</param>
+        /// <returns>YES/NO</returns>
+        public bool AddChannel(NetChannel channel)
+        {
+            if (channelDict.ContainsKey(channel.id)) return false;
+
+            channelDict.Add(channel.id, channel);
+
+            return true;
+        }
+
+        /// <summary>
+        /// 获取 PPS
+        /// </summary>
+        /// <param name="channel">通信渠道</param>
+        /// <returns>该通信渠道 PPS</returns>
+        private uint GetPPS(NetChannel channel)
+        {
+            if (false == ppscntDcit.TryGetValue(channel.id, out var cnt)) return 0;
+
+            return cnt;
+        }
+
+        /// <summary>
+        /// PPS 计数
+        /// </summary>
+        /// <param name="channel">通信渠道</param>
+        private void PPSCounter(NetChannel channel)
+        {
+            uint cnt = 0;
+            if (ppscntDcit.TryGetValue(channel.id, out cnt)) ppscntDcit.Remove(channel.id);
+            cnt++;
+            ppscntDcit.Add(channel.id, cnt);
+        }
 
         /// <summary>
         /// 注销消息接收
@@ -122,15 +245,22 @@ namespace Queen.Network.Common
         /// <param name="data">数据二进制</param>
         protected void EmitReceiveEvent(NetChannel channel, byte[] data)
         {
-            if (false == ProtoPack.UnPack(data, out var msgType, out var msg)) return;
-            if (typeof(NodePingMsg) == msgType)
+            // 判断 PPS 是否超过服务器设定
+            // settings.json : maxpps 中定义
+            var pps = GetPPS(channel);
+            if (pps >= maxpps)
             {
-                channel.Send(data);
+                channel.Send(new NodeErrorMsg { code = NEC.PPS_LIMIT });
 
                 return;
             }
-
+        
+            // 解包
+            if (false == ProtoPack.UnPack(data, out var msgType, out var msg)) return;
             EnqueuePackage(channel, msgType, msg);
+
+            // PPS 计数
+            PPSCounter(channel);
         }
 
         /// <summary>

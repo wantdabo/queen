@@ -14,7 +14,7 @@ namespace Queen.Network
     /// </summary>
     public class Slave : Comp
     {
-        private ServerNode node;
+        private TCPServer tcp;
 
         protected override void OnCreate()
         {
@@ -33,15 +33,19 @@ namespace Queen.Network
         /// </summary>
         /// <param name="ip">地址</param>
         /// <param name="port">端口</param>
-        /// <param name="maxConn">最大连接数</param>
-        public void Initialize(string ip, ushort port, int maxConn = 32) 
+        /// <param name="maxconn">最大连接数</param>
+        /// <param name="sthread">Slave（主网）最大工作线程</param>
+        /// <param name="maxpps">最大网络收发包每秒</param>
+        public void Initialize(string ip, ushort port, int maxconn, int sthread, int maxpps)
         {
-            node = new(ip, port, false, maxConn);
+            tcp = AddComp<TCPServer>();
+            tcp.Initialize(ip, port, false, maxconn, sthread, maxpps);
+            tcp.Create();
         }
 
         private void OnExecute(ExecuteEvent e)
         {
-            node.Notify();
+            tcp.Notify();
         }
 
         /// <summary>
@@ -52,7 +56,7 @@ namespace Queen.Network
         public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             engine.EnsureThread();
-            node.UnRecv(action);
+            tcp.UnRecv(action);
         }
 
         /// <summary>
@@ -63,7 +67,7 @@ namespace Queen.Network
         public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
         {
             engine.EnsureThread();
-            node.Recv(action);
+            tcp.Recv(action);
         }
     }
 }

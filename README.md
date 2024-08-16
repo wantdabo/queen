@@ -36,7 +36,6 @@
 ---
 
 ### TODO
-- 增加 NetChanel 收包限制频率
 - Role 冷销毁/热内存常驻
 - Eventor Tell 执行过程移除导致 BUG
 - 时间轮，用于定时执行某些任务
