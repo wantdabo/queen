@@ -223,7 +223,7 @@ namespace Queen.Server.Roles.Common
         /// </summary>
         private void NetRecv()
         {
-            foreach (var method in adapter.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance))
+            foreach (var method in adapter.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
             {
                 if(null == method.GetCustomAttribute<NetBinding>()) continue;
                 var ps = method.GetParameters();
