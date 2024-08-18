@@ -57,7 +57,7 @@ namespace Queen.Common
         /// <summary>
         /// 日志队列
         /// </summary>
-        private ConcurrentQueue<LogInfo> logInfos = new();
+        private ConcurrentQueue<string> logInfos = new();
 
         private StreamWriter writer;
 
@@ -69,8 +69,8 @@ namespace Queen.Common
             {
                 while (true)
                 {
-                    Thread.Sleep(1);
-                    while (logInfos.TryDequeue(out var log)) Log(log);
+                    Thread.Sleep(100);
+                    SaveDick();
                 }
             });
 
@@ -83,16 +83,13 @@ namespace Queen.Common
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
                 Error((e.ExceptionObject as Exception));
-                while (logInfos.TryDequeue(out var log)) Log(log);
-
-                writer.Flush();
-                writer.Close();
+                SaveDick();
             };
 
             TaskScheduler.UnobservedTaskException += (sender, e) =>
             {
                 Error(e.Exception);
-                while (logInfos.TryDequeue(out var log)) Log(log);
+                SaveDick();
                 e.SetObserved();
             };
         }
@@ -110,7 +107,7 @@ namespace Queen.Common
         /// <param name="message">日志内容</param>
         public void Info(string message, ConsoleColor color = ConsoleColor.White)
         {
-            logInfos.Enqueue(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            Log(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
@@ -119,7 +116,7 @@ namespace Queen.Common
         /// <param name="message">日志内容</param>
         public void Warn(string message, ConsoleColor color = ConsoleColor.White)
         {
-            logInfos.Enqueue(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            Log(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
@@ -128,7 +125,7 @@ namespace Queen.Common
         /// <param name="message">日志内容</param>
         public void Error(string message, ConsoleColor color = ConsoleColor.White)
         {
-            logInfos.Enqueue(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+            Log(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
         /// <summary>
@@ -173,8 +170,7 @@ namespace Queen.Common
                 llstr = "[ERRO] ";
             }
 
-            writer.WriteLine($"{llstr}{log.time} {log.message}");
-            writer.Flush();
+            logInfos.Enqueue($"{llstr}{log.time} {log.message}");
 
             Console.Write(llstr);
             Console.ForegroundColor = ConsoleColor.White;
@@ -183,6 +179,16 @@ namespace Queen.Common
             Console.Write($"{log.message}");
             Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        /// <summary>
+        /// 存盘
+        /// </summary>
+        private void SaveDick()
+        {
+            while (logInfos.TryDequeue(out var log))
+                writer.WriteLine(log);
+            writer.Flush();
         }
     }
 }
