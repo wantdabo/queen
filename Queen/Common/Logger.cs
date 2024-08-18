@@ -70,7 +70,7 @@ namespace Queen.Common
                 while (true)
                 {
                     Thread.Sleep(100);
-                    SaveDick();
+                    SaveDisk();
                 }
             });
 
@@ -83,13 +83,13 @@ namespace Queen.Common
             AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
             {
                 Error((e.ExceptionObject as Exception));
-                SaveDick();
+                SaveDisk();
             };
 
             TaskScheduler.UnobservedTaskException += (sender, e) =>
             {
                 Error(e.Exception);
-                SaveDick();
+                SaveDisk();
                 e.SetObserved();
             };
         }
@@ -184,7 +184,7 @@ namespace Queen.Common
         /// <summary>
         /// 存盘
         /// </summary>
-        private void SaveDick()
+        private void SaveDisk()
         {
             while (logInfos.TryDequeue(out var log))
                 writer.WriteLine(log);
