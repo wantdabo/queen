@@ -69,7 +69,7 @@ namespace Queen.Common
             {
                 while (true)
                 {
-                    Thread.Sleep(100);
+                    Thread.Sleep(1);
                     while (logInfos.TryDequeue(out var log)) Log(log);
                 }
             });

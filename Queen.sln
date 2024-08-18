@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Queen.Protocols.Gen", "Quee
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Queen.Bot", "Queen.Bot\Queen.Bot.csproj", "{80FE2BB3-1CA5-46C1-913E-E88F994A9384}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Queen.DBObserve", "Queen.DBObserve\Queen.DBObserve.csproj", "{98CDBA6D-BF9D-4B94-96A9-F5A5ECAE6047}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{80FE2BB3-1CA5-46C1-913E-E88F994A9384}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80FE2BB3-1CA5-46C1-913E-E88F994A9384}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80FE2BB3-1CA5-46C1-913E-E88F994A9384}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98CDBA6D-BF9D-4B94-96A9-F5A5ECAE6047}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98CDBA6D-BF9D-4B94-96A9-F5A5ECAE6047}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98CDBA6D-BF9D-4B94-96A9-F5A5ECAE6047}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98CDBA6D-BF9D-4B94-96A9-F5A5ECAE6047}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

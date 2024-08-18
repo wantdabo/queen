@@ -28,3 +28,5 @@ Queen.Server/Queen.Server.csproj.user
 /.idea
 /Queen.Bot/obj
 /Queen.Bot/bin
+/Queen.DBObserve/bin
+/Queen.DBObserve/obj

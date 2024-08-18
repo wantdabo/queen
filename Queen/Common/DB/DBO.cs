@@ -17,27 +17,27 @@ namespace Queen.Common.DB
         /// <summary>
         /// DB 主机
         /// </summary>
-        private string dbhost;
+        public string dbhost { get; private set; }
         /// <summary>
         /// DB 端口
         /// </summary>
-        private int dbport;
+        public int dbport{ get; private set; }
         /// <summary>
         /// DB 身份校验
         /// </summary>
-        public bool dbauth;
+        public bool dbauth{ get; private set; }
         /// <summary>
         /// DB 用户名
         /// </summary>
-        private string dbuser;
+        public string dbuser{ get; private set; }
         /// <summary>
         /// DB 密码
         /// </summary>
-        private string dbpwd;
+        public string dbpwd{ get; private set; }
         /// <summary>
         /// DB 名字
         /// </summary>
-        private string dbname;
+        public string dbname{ get; private set; }
         /// <summary>
         /// Mongo 连接
         /// </summary>
