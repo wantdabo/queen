@@ -14,7 +14,7 @@ namespace Queen.Network
     /// </summary>
     public class Slave : Comp
     {
-        private TCPServer tcp;
+        private TCPServer tcp { get; set; }
 
         protected override void OnCreate()
         {
