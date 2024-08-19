@@ -107,6 +107,8 @@ namespace Queen.Server.System.Authentication
         [NetBinding]
         private void OnNodeConnect(NetChannel channel, NodeConnectMsg msg)
         {
+            var role = bridge.party.GetRole(channel);
+            if(null != role) bridge.party.Quit(role);
         }
 
         [NetBinding]
