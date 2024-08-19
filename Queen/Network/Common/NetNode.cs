@@ -270,7 +270,6 @@ namespace Queen.Network.Common
         {
             while (netPackages.TryDequeue(out var package))
             {
-                if (false == package.channel.alive) continue;
                 if (false == messageActionDict.TryGetValue(package.msgType, out var actions)) continue;
                 if (null == actions) continue;
                 for (int i = actions.Count - 1; i >= 0; i--) actions[i]?.DynamicInvoke(package.channel, package.msg);
