@@ -37,7 +37,7 @@ namespace Queen.DBObserve.Core
             resolver = AddComp<InstructionResolver>();
             resolver.Create();
             
-            Console.Title = "queen.odobserve";
+            Console.Title = "queen.dbobserve";
         }
 
         protected override void OnDestroy()

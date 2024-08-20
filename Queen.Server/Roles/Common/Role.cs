@@ -2,6 +2,7 @@
 using Queen.Common;
 using Queen.Common.DB;
 using Queen.Network.Common;
+using Queen.Protocols;
 using Queen.Protocols.Common;
 using Queen.Server.Core;
 using Queen.Server.Roles.Bags;
@@ -117,11 +118,6 @@ namespace Queen.Server.Roles.Common
         private ConcurrentQueue<Action> sends = new();
 
         /// <summary>
-        /// 数据自动保存计时器 ID
-        /// </summary>
-        private uint dbsaveTiming;
-
-        /// <summary>
         /// behaviors 集合
         /// </summary>
         private Dictionary<Type, RoleBehavior> behaviorDict = new();
@@ -130,6 +126,16 @@ namespace Queen.Server.Roles.Common
         /// 协议映射集合
         /// </summary>
         private Dictionary<Delegate, Delegate> actionDict = new();
+        
+        /// <summary>
+        /// 心跳计时器 ID
+        /// </summary>
+        private uint heartbeatTiming;
+
+        /// <summary>
+        /// 数据自动保存计时器 ID
+        /// </summary>
+        private uint dbsaveTiming;
 
         protected override void OnCreate()
         {
@@ -241,6 +247,14 @@ namespace Queen.Server.Roles.Common
         public void Send<T>(T msg) where T : INetMessage
         {
             sends.Enqueue(() => { session.channel.Send(msg); });
+        }
+        
+        /// <summary>
+        /// 心跳
+        /// </summary>
+        private void Heartbeat()
+        {
+            Send(new S2CHeartbeatMsg { timestamp = DateTimeOffset.Now.ToUnixTimeSeconds() });
         }
 
         /// <summary>
