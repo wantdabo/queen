@@ -348,6 +348,8 @@ namespace Queen.Server.Roles.Common
 
         private void OnRoleJoin(RoleJoinEvent e)
         {
+            if (e.role.info.uuid != info.uuid) return;
+            
             online = true;
             jobs.Clear();
             TODO(() =>
@@ -358,6 +360,8 @@ namespace Queen.Server.Roles.Common
 
         private void OnRoleQuit(RoleQuitEvent e)
         {
+            if (e.role.info.uuid != info.uuid) return;
+            
             jobs.Clear();
             TODO(() =>
             {
