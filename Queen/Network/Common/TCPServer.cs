@@ -1,25 +1,38 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Queen.Network.Common.Channels;
 using TouchSocket.Core;
 using TouchSocket.Sockets;
 
 namespace Queen.Network.Common
 {
     /// <summary>
-    /// 服务端网络节点
+    /// TCP 服务端网络节点
     /// </summary>
     public class TCPServer : NetNode
     {
+        /// <summary>
+        /// 地址
+        /// </summary>
+        public string ip { get; protected set; }
+        /// <summary>
+        /// 端口
+        /// </summary>
+        public ushort port { get; protected set; }
+        /// <summary>
+        /// 最大连接数
+        /// </summary>
+        protected int maxconn { get; set; }
+        /// <summary>
+        /// Slave（主网）最大工作线程
+        /// </summary>
+        protected int sthread { get; set; }
+
         protected override void OnCreate()
         {
             base.OnCreate();
             var service = new TcpService();
             service.Connected = (c, e) =>
             {
-                var channel = new NetChannel(c);
+                var channel = new TCPServerC(c);
                 if (false == AddChannel(channel)) return EasyTask.CompletedTask;
                 EmitConnectEvent(channel);
 
@@ -49,6 +62,29 @@ namespace Queen.Network.Common
                 .SetTcpDataHandlingAdapter(() => new FixedHeaderPackageAdapter())
             );
             service.Start();
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+        }
+
+        /// <summary>
+        /// 创建服务端网络节点
+        /// </summary>
+        /// <param name="ip">地址</param>
+        /// <param name="port">端口</param>
+        /// <param name="notify">是否自动通知消息（子线程）</param>
+        /// <param name="maxconn">最大连接数</param>
+        /// <param name="sthread">Slave（主网）最大工作线程</param>
+        /// <param name="maxpps">最大网络收发包每秒</param>
+        public void Initialize(string ip, ushort port, bool notify, int maxconn, int sthread, int maxpps)
+        {
+            this.ip = ip;
+            this.port = port;
+            this.maxconn = maxconn;
+            this.sthread = sthread;
+            Initialize(notify, maxpps);
         }
     }
 }

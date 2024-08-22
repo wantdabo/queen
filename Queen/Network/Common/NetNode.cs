@@ -34,32 +34,15 @@ namespace Queen.Network.Common
             public INetMessage msg;
         }
 
-        /// <summary>
-        /// 地址
-        /// </summary>
-        public string ip { get; protected set; }
-        /// <summary>
-        /// 端口
-        /// </summary>
-        public ushort port { get; protected set; }
         /// <summary>z
         /// 是否自动通知消息
         /// </summary>
-        protected bool notify { get; set; }
-        /// <summary>
-        /// 最大连接数
-        /// </summary>
-        protected int maxconn { get; set; }
-        
-        /// <summary>
-        /// Slave（主网）最大工作线程
-        /// </summary>
-        protected int sthread { get; set; }
+        protected bool notify { get; private set; }
 
         /// <summary>
         /// 最大网络收发包每秒
         /// </summary>
-        protected int maxpps { get; set; }
+        protected int maxpps { get; private set; }
 
         /// <summary>
         /// 注册消息回调集合
@@ -103,19 +86,11 @@ namespace Queen.Network.Common
         /// <summary>
         /// 创建服务端网络节点
         /// </summary>
-        /// <param name="ip">地址</param>
-        /// <param name="port">端口</param>
         /// <param name="notify">是否自动通知消息（子线程）</param>
-        /// <param name="maxconn">最大连接数</param>
-        /// <param name="sthread">Slave（主网）最大工作线程</param>
         /// <param name="maxpps">最大网络收发包每秒</param>
-        public void Initialize(string ip, ushort port, bool notify, int maxconn, int sthread, int maxpps)
+        public void Initialize(bool notify, int maxpps)
         {
-            this.ip = ip;
-            this.port = port;
             this.notify = notify;
-            this.maxconn = maxconn;
-            this.sthread = sthread;
             this.maxpps = maxpps;
         }
 
@@ -254,7 +229,7 @@ namespace Queen.Network.Common
 
                 return;
             }
-        
+
             // 解包
             if (false == ProtoPack.UnPack(data, out var msgType, out var msg)) return;
             EnqueuePackage(channel, msgType, msg);

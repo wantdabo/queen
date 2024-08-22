@@ -11,46 +11,17 @@ namespace Queen.Network.Common
     /// <summary>
     /// 通信渠道
     /// </summary>
-    public class NetChannel
+    public abstract class NetChannel
     {
-        private string mid { get; set; }
-
         /// <summary>
         /// ID
         /// </summary>
-        public string id
-        {
-            get
-            {
-                return mid;
-            }
-            private set { mid = value; }
-        }
+        public abstract string id { get; }
 
         /// <summary>
         /// 活性
         /// </summary>
-        public bool alive { get { return client.Online; } }
-
-        /// <summary>
-        /// TS.Client
-        /// </summary>
-        private TcpSessionClient client { get; set; }
-
-        public NetChannel(TcpSessionClient client)
-        {
-            this.id = client.Id;
-            this.client = client;
-        }
-
-        /// <summary>
-        /// 断开连接
-        /// </summary>
-        public void Disconnect()
-        {
-            if (false == alive) return;
-            client.SafeCloseAsync();
-        }
+        public abstract bool alive { get; }
 
         /// <summary>
         /// 发送数据
@@ -66,11 +37,28 @@ namespace Queen.Network.Common
         /// 发送数据
         /// </summary>
         /// <param name="data">二进制数据</param>
-        public void Send(byte[] data)
+        public abstract void Send(byte[] data);
+
+        /// <summary>
+        /// 断开连接
+        /// </summary>
+        public abstract void Disconnect();
+    }
+    
+    /// <summary>
+    /// 通信渠道
+    /// </summary>
+    /// <typeparam name="T">通信节点</typeparam>
+    public abstract class NetChannel<T> : NetChannel
+    {
+        /// <summary>
+        /// Node
+        /// </summary>
+        protected T socket { get; private set; }
+
+        public NetChannel(T socket)
         {
-            if (false == alive) return;
-            
-            client.SendAsync(data);
+            this.socket = socket;
         }
     }
 }
