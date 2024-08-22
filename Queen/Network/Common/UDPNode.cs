@@ -31,6 +31,7 @@ namespace Queen.Network.Common
             channel = new UDPNodeC(udpSession);
             udpSession.Received = (c, e) =>
             {
+                EmitReceiveEvent(channel, e.ByteBlock.Memory.ToArray());
                 return EasyTask.CompletedTask;
             };
             udpSession.Setup(new TouchSocketConfig()
@@ -56,7 +57,7 @@ namespace Queen.Network.Common
             this.port = port;
             Initialize(notify, int.MaxValue);
         }
-        
+
         /// <summary>
         /// 发送数据
         /// </summary>
