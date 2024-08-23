@@ -1,4 +1,6 @@
 ﻿using Queen.Core;
+using Queen.Network.Common;
+using Queen.Protocols;
 
 namespace Queen.Bot.Core
 {
@@ -20,6 +22,12 @@ namespace Queen.Bot.Core
 
             engine.logger.Info($"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}", ConsoleColor.Yellow);
             engine.logger.Info("queen.bot is running...");
+            TCPClient socket = AddComp<TCPClient>();
+            socket.Initialize(false);
+            socket.Create();
+            socket.Connect("127.0.0.1", 12801);
+            socket.Send(new C2SLoginMsg { username = "", password = "" });
+            socket.Send(new C2SLoginMsg());
         }
 
         protected override void OnDestroy()
