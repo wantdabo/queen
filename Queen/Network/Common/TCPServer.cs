@@ -22,7 +22,7 @@ namespace Queen.Network.Common
         /// </summary>
         protected int maxconn { get; set; }
         /// <summary>
-        /// Slave（主网）最大工作线程
+        /// 最大工作线程
         /// </summary>
         protected int sthread { get; set; }
 
@@ -76,7 +76,7 @@ namespace Queen.Network.Common
         /// <param name="port">端口</param>
         /// <param name="notify">是否自动通知消息（子线程）</param>
         /// <param name="maxconn">最大连接数</param>
-        /// <param name="sthread">Slave（主网）最大工作线程</param>
+        /// <param name="sthread">最大工作线程</param>
         /// <param name="maxpps">最大网络收发包每秒</param>
         public void Initialize(string ip, ushort port, bool notify, int maxconn, int sthread, int maxpps)
         {
