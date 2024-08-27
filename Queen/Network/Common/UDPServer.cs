@@ -75,9 +75,10 @@ namespace Queen.Network.Common
             // 驱动
             Task.Run(() =>
             {
-                while (server.IsRunning)
+                var netmanager = server;
+                while (netmanager == server && netmanager.IsRunning)
                 {
-                    server.PollEvents();
+                    netmanager.PollEvents();
                     Thread.Sleep(1);
                 }
             });

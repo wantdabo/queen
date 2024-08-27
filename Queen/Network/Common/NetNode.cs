@@ -84,7 +84,7 @@ namespace Queen.Network.Common
         }
 
         /// <summary>
-        /// 创建服务端网络节点
+        /// 创建网络节点
         /// </summary>
         /// <param name="notify">是否自动通知消息（子线程）</param>
         /// <param name="maxpps">最大网络收发包每秒</param>

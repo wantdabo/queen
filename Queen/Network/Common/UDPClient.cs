@@ -53,7 +53,7 @@ namespace Queen.Network.Common
         /// <param name="connectkey">连接校验 KEY</param>
         public void Connect(string ip, ushort port, string connectkey)
         {
-            if (connected) return;
+            if (connected) { Disconnect(); }
             EventBasedNetListener listener = new EventBasedNetListener();
             client = new NetManager(listener);
             client.Start();
@@ -72,8 +72,19 @@ namespace Queen.Network.Common
                 EmitReceiveEvent(channel, reader.RawData);
             };
             channel = new UDPNodeC(client.Connect(ip, port, connectkey));
+            
+            // 驱动
+            Task.Run(() =>
+            {
+                var netmanager = client;
+                while (netmanager == client && netmanager.IsRunning)
+                {
+                    netmanager.PollEvents();
+                    Thread.Sleep(1);
+                }
+            });
         }
-        
+
         /// <summary>
         /// 断开连接
         /// </summary>
