@@ -29,24 +29,19 @@ namespace Queen.Bot.Core
             // socket.Connect("127.0.0.1", 12801);
             // socket.Send(new C2SLoginMsg { username = "", password = "" });
             // socket.Send(new C2SLoginMsg());
-
-            var udpnode = AddComp<UDPNode>();
-            udpnode.Initialize("127.0.0.1", 8801, true, 4, 1000);
-            udpnode.Create();
-            udpnode.Recv<C2SLoginMsg>((c, m) =>
+            UDPServer udpserv = AddComp<UDPServer>();
+            udpserv.Initialize("127.0.0.1", 9901, true, 1000, "KEY", 1000);
+            udpserv.Create();
+            udpserv.Recv<C2SLoginMsg>((c, msg) =>
             {
-                c.Send(new S2CLoginMsg { code = 1, uuid = "testuuid." });
+                
             });
 
-            var udpnode2 = AddComp<UDPNode>();
-            udpnode2.Initialize("127.0.0.1", 8802, true, 4, 1000);
-            udpnode2.Create();
-            udpnode2.Recv<S2CLoginMsg>((c, m) =>
-            {
-
-            });
-            udpnode2.Send(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8801), new C2SLoginMsg { username = "123", password = "456" });
-            udpnode2.Send(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8801), new C2SLoginMsg { username = "123", password = "456" });
+            UDPClient udpclient = AddComp<UDPClient>();
+            udpclient.Initialize(true);
+            udpclient.Create();
+            udpclient.Connect("127.0.0.1", 9901, "KEY");
+            udpclient.Send(new C2SLoginMsg { username = "123", password = "456" });
         }
 
         protected override void OnDestroy()

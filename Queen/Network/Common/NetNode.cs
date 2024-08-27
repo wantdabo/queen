@@ -88,7 +88,7 @@ namespace Queen.Network.Common
         /// </summary>
         /// <param name="notify">是否自动通知消息（子线程）</param>
         /// <param name="maxpps">最大网络收发包每秒</param>
-        public void Initialize(bool notify, int maxpps)
+        protected void Initialize(bool notify, int maxpps)
         {
             this.notify = notify;
             this.maxpps = maxpps;

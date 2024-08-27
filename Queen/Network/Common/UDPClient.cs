@@ -1,17 +1,13 @@
-using Queen.Core;
+using LiteNetLib;
 using Queen.Network.Common.Channels;
 using Queen.Protocols.Common;
-using System.Net.Sockets;
-using TouchSocket.Core;
-using TouchSocket.Sockets;
-using TcpClient = TouchSocket.Sockets.TcpClient;
 
 namespace Queen.Network.Common
 {
     /// <summary>
-    /// TCP 客户端网络节点
+    /// UDP 客户端网络节点
     /// </summary>
-    public class TCPClient : NetNode
+    public class UDPClient : NetNode
     {
         /// <summary>
         /// 服务器 IP
@@ -22,15 +18,24 @@ namespace Queen.Network.Common
         /// </summary>
         public ushort port { get; private set; }
         /// <summary>
+        /// 连接校验 KEY
+        /// </summary>
+        protected string connectkey { get; set; }
+        /// <summary>
         /// 连接状态
         /// </summary>
         public bool connected => null != channel && channel.alive;
-        
+
         /// <summary>
         /// 通信渠道
         /// </summary>
-        private TCPClientC channel { get; set; }
-        
+        private UDPNodeC channel { get; set; }
+
+        /// <summary>
+        /// Socket
+        /// </summary>
+        private NetManager client { get; set; }
+
         /// <summary>
         /// 创建服务端网络节点
         /// </summary>
@@ -45,34 +50,28 @@ namespace Queen.Network.Common
         /// </summary>
         /// <param name="ip">地址</param>
         /// <param name="port">端口</param>
-        public void Connect(string ip, ushort port)
+        /// <param name="connectkey">连接校验 KEY</param>
+        public void Connect(string ip, ushort port, string connectkey)
         {
             if (connected) return;
-            this.ip = ip;
-            this.port = port;
-
-            var tcpClient = new TcpClient();
-            channel = new TCPClientC(tcpClient);
-            tcpClient.Connected = (c, e) =>
+            EventBasedNetListener listener = new EventBasedNetListener();
+            client = new NetManager(listener);
+            client.Start();
+            listener.PeerConnectedEvent += (NetPeer peer) =>
             {
                 EmitConnectEvent(channel);
-                return EasyTask.CompletedTask;
             };
-            tcpClient.Closed = (c, e) =>
+
+            listener.PeerDisconnectedEvent += (NetPeer peer, DisconnectInfo disconnectInfo) =>
             {
                 EmitDisconnectEvent(channel);
-                return EasyTask.CompletedTask;
             };
-            tcpClient.Received = (c, e) =>
+
+            listener.NetworkReceiveEvent += (NetPeer peer, NetPacketReader reader, byte c, DeliveryMethod deliveryMethod) =>
             {
-                EmitReceiveEvent(channel, e.ByteBlock.Memory.ToArray());
-                return EasyTask.CompletedTask;
+                EmitReceiveEvent(channel, reader.RawData);
             };
-            tcpClient.Setup(new TouchSocketConfig()
-                .SetRemoteIPHost($"{ip}:{port}")
-                .SetTcpDataHandlingAdapter(() => new FixedHeaderPackageAdapter())
-            );
-            tcpClient.Connect();
+            channel = new UDPNodeC(client.Connect(ip, port, connectkey));
         }
         
         /// <summary>
@@ -81,6 +80,7 @@ namespace Queen.Network.Common
         public void Disconnect()
         {
             channel.Disconnect();
+            client.Stop();
         }
 
         /// <summary>
