@@ -1,5 +1,6 @@
 ﻿using Queen.Core;
 using Queen.Network.Common;
+using Queen.Network.Cross;
 using Queen.Protocols;
 using System.Net;
 
@@ -29,19 +30,20 @@ namespace Queen.Bot.Core
             // socket.Connect("127.0.0.1", 12801);
             // socket.Send(new C2SLoginMsg { username = "", password = "" });
             // socket.Send(new C2SLoginMsg());
-            UDPServer udpserv = AddComp<UDPServer>();
-            udpserv.Initialize("127.0.0.1", 9901, true, 1000, "KEY", 1000);
-            udpserv.Create();
-            udpserv.Recv<C2SLoginMsg>((c, msg) =>
-            {
-                
-            });
 
-            UDPClient udpclient = AddComp<UDPClient>();
-            udpclient.Initialize(true);
-            udpclient.Create();
-            udpclient.Connect("127.0.0.1", 9901, "KEY");
-            udpclient.Send(new C2SLoginMsg { username = "123", password = "456" });
+            var rpc1 = AddComp<RPC>();
+            rpc1.Initialize("127.0.0.1", 8801);
+            rpc1.Create();
+            rpc1.Recv<C2SLoginMsg>((channel, msg) =>
+            {
+            
+            });
+            
+            UDPClient udpc = AddComp<UDPClient>();
+            udpc.Initialize(true);
+            udpc.Create();
+            udpc.Connect("127.0.0.1", 8801, "QUEEN_RPC");
+            udpc.Send(new C2SLoginMsg { username = "123", password = "456" });
         }
 
         protected override void OnDestroy()

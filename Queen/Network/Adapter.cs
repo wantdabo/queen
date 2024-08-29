@@ -44,6 +44,18 @@ namespace Queen.Network
         /// 消息方法回调
         /// </summary>
         public List<ActionInfo> actionInfos = new();
+        
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+            OnBind();
+        }
+
+        protected override void OnDestroy()
+        {
+            base.OnDestroy();
+            OnUnbind();
+        }
 
         /// <summary>
         /// 初始化
