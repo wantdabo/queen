@@ -5,28 +5,28 @@ using Queen.Common.DB;
 using Queen.Server.System.Authentication;
 using Queen.Server.System.Commune;
 
-namespace Queen.Server.Core
+namespace Queen.Server.Core;
+
+/// <summary>
+/// Queen.Server 引擎
+/// </summary>
+public class Server : Engine<Server>
 {
     /// <summary>
-    /// Queen.Server 引擎
+    /// 服务器配置
     /// </summary>
-    public class Server : Engine<Server>
-    {
-        /// <summary>
-        /// 服务器配置
-        /// </summary>
-        public Settings settings { get; private set; }
-        /// <summary>
-        /// 数据库
-        /// </summary>
-        public DBO dbo { get; private set; }
-        /// <summary>
-        /// 网络
-        /// </summary>
-        public Slave slave { get; private set; }
+    public Settings settings { get; private set; }
+    /// <summary>
+    /// 数据库
+    /// </summary>
+    public DBO dbo { get; private set; }
+    /// <summary>
+    /// 网络
+    /// </summary>
+    public Slave slave { get; private set; }
 
-        protected override void OnCreate()
-        {
+    protected override void OnCreate()
+    {
             base.OnCreate();
             settings = AddComp<Settings>();
             settings.Create();
@@ -53,9 +53,8 @@ namespace Queen.Server.Core
             Console.Title = settings.name;
         }
 
-        protected override void OnDestroy()
-        {
+    protected override void OnDestroy()
+    {
             base.OnDestroy();
         }
-    }
 }

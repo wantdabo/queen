@@ -3,66 +3,66 @@ using System;
 using System.Collections.Concurrent;
 using System.Runtime.ExceptionServices;
 
-namespace Queen.Common
-{
-    /// <summary>
-    /// 日志系统
-    /// </summary>
-    public class Logger : Comp
-    {
-        private string logdir = $"{Directory.GetCurrentDirectory()}/Res/Logs/";
+namespace Queen.Common;
 
+/// <summary>
+/// 日志系统
+/// </summary>
+public class Logger : Comp
+{
+    private string logdir = $"{Directory.GetCurrentDirectory()}/Res/Logs/";
+
+    /// <summary>
+    /// 日志等级
+    /// </summary>
+    public enum LogLevel
+    {
+        /// <summary>
+        /// 信息
+        /// </summary>
+        Info,
+        /// <summary>
+        /// 警告
+        /// </summary>
+        Warn,
+        /// <summary>
+        /// 错误
+        /// </summary>
+        Error,
+    }
+
+    /// <summary>
+    /// 日志数据结构
+    /// </summary>
+    private struct LogInfo
+    {
         /// <summary>
         /// 日志等级
         /// </summary>
-        public enum LogLevel
-        {
-            /// <summary>
-            /// 信息
-            /// </summary>
-            Info,
-            /// <summary>
-            /// 警告
-            /// </summary>
-            Warn,
-            /// <summary>
-            /// 错误
-            /// </summary>
-            Error,
-        }
-
+        public LogLevel ll;
         /// <summary>
-        /// 日志数据结构
+        /// 日志时间
         /// </summary>
-        private struct LogInfo
-        {
-            /// <summary>
-            /// 日志等级
-            /// </summary>
-            public LogLevel ll;
-            /// <summary>
-            /// 日志时间
-            /// </summary>
-            public string time;
-            /// <summary>
-            /// 日志内容
-            /// </summary>
-            public string message;
-            /// <summary>
-            /// 日志颜色
-            /// </summary>
-            public ConsoleColor color;
-        }
-
+        public string time;
         /// <summary>
-        /// 日志队列
+        /// 日志内容
         /// </summary>
-        private ConcurrentQueue<string> logInfos = new();
+        public string message;
+        /// <summary>
+        /// 日志颜色
+        /// </summary>
+        public ConsoleColor color;
+    }
 
-        private StreamWriter writer;
+    /// <summary>
+    /// 日志队列
+    /// </summary>
+    private ConcurrentQueue<string> logInfos = new();
 
-        protected override void OnCreate()
-        {
+    private StreamWriter writer;
+
+    protected override void OnCreate()
+    {
             base.OnCreate();
 
             Task.Run(() =>
@@ -94,65 +94,65 @@ namespace Queen.Common
             };
         }
 
-        protected override void OnDestroy()
-        {
+    protected override void OnDestroy()
+    {
             base.OnDestroy();
             writer.Flush();
             writer.Close();
         }
 
-        /// <summary>
-        /// 信息日志
-        /// </summary>
-        /// <param name="message">日志内容</param>
-        public void Info(string message, ConsoleColor color = ConsoleColor.White)
-        {
+    /// <summary>
+    /// 信息日志
+    /// </summary>
+    /// <param name="message">日志内容</param>
+    public void Info(string message, ConsoleColor color = ConsoleColor.White)
+    {
             Log(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
-        /// <summary>
-        /// 警告日志
-        /// </summary>
-        /// <param name="message">日志内容</param>
-        public void Warn(string message, ConsoleColor color = ConsoleColor.White)
-        {
+    /// <summary>
+    /// 警告日志
+    /// </summary>
+    /// <param name="message">日志内容</param>
+    public void Warn(string message, ConsoleColor color = ConsoleColor.White)
+    {
             Log(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
-        /// <summary>
-        /// 错误日志
-        /// </summary>
-        /// <param name="message">日志内容</param>
-        public void Error(string message, ConsoleColor color = ConsoleColor.White)
-        {
+    /// <summary>
+    /// 错误日志
+    /// </summary>
+    /// <param name="message">日志内容</param>
+    public void Error(string message, ConsoleColor color = ConsoleColor.White)
+    {
             Log(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
         }
 
-        /// <summary>
-        /// 错误日志
-        /// </summary>
-        /// <param name="e">异常</param>
-        public void Error(Exception e, ConsoleColor color = ConsoleColor.White)
-        {
+    /// <summary>
+    /// 错误日志
+    /// </summary>
+    /// <param name="e">异常</param>
+    public void Error(Exception e, ConsoleColor color = ConsoleColor.White)
+    {
             Error($"{e.Message}\n{e.StackTrace}");
         }
 
-        /// <summary>
-        /// 错误日志
-        /// </summary>
-        /// <param name="message">日志内容</param>
-        /// <param name="e">异常</param>
-        public void Error(string message, Exception e, ConsoleColor color = ConsoleColor.White)
-        {
+    /// <summary>
+    /// 错误日志
+    /// </summary>
+    /// <param name="message">日志内容</param>
+    /// <param name="e">异常</param>
+    public void Error(string message, Exception e, ConsoleColor color = ConsoleColor.White)
+    {
             Error($"{message}\n{e.Message}\n{e.Message}\n{e.StackTrace}");
         }
 
-        /// <summary>
-        /// 打印日志
-        /// </summary>
-        /// <param name="log">日志</param>
-        private void Log(LogInfo log)
-        {
+    /// <summary>
+    /// 打印日志
+    /// </summary>
+    /// <param name="log">日志</param>
+    private void Log(LogInfo log)
+    {
             var llstr = string.Empty;
             if (LogLevel.Info == log.ll)
             {
@@ -181,14 +181,13 @@ namespace Queen.Common
             Console.ForegroundColor = ConsoleColor.White;
         }
 
-        /// <summary>
-        /// 存盘
-        /// </summary>
-        private void SaveDisk()
-        {
+    /// <summary>
+    /// 存盘
+    /// </summary>
+    private void SaveDisk()
+    {
             while (logInfos.TryDequeue(out var log))
                 writer.WriteLine(log);
             writer.Flush();
         }
-    }
 }

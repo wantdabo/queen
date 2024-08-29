@@ -12,21 +12,21 @@ using Queen.Network.Common;
 using Queen.Server.System.Commune;
 using System.IO;
 
-namespace Queen.Server.System.Authentication
+namespace Queen.Server.System.Authentication;
+
+/// <summary>
+/// 验证器消息适配器
+/// </summary>
+public class Adapter : Adapter<Authenticator>
 {
     /// <summary>
-    /// 验证器消息适配器
+    /// 玩家登录
     /// </summary>
-    public class Adapter : Adapter<Authenticator>
+    /// <param name="channel">通信渠道</param>
+    /// <param name="msg">消息</param>
+    [NetBinding]
+    private void OnC2SLogin(NetChannel channel, C2SLoginMsg msg)
     {
-        /// <summary>
-        /// 玩家登录
-        /// </summary>
-        /// <param name="channel">通信渠道</param>
-        /// <param name="msg">消息</param>
-        [NetBinding]
-        private void OnC2SLogin(NetChannel channel, C2SLoginMsg msg)
-        {
             engine.logger.Info($"a user try to login. username -> {msg.username}");
 
             if (false == bridge.engine.dbo.Find("roles", Builders<DBRoleValue>.Filter.Eq(p => p.username, msg.username), out var values))
@@ -58,14 +58,14 @@ namespace Queen.Server.System.Authentication
             engine.logger.Info($"user login success. uuid -> {reader.uuid}, username -> {msg.username}");
         }
 
-        /// <summary>
-        /// 玩家登出
-        /// </summary>
-        /// <param name="channel">通信渠道</param>
-        /// <param name="msg">消息</param>
-        [NetBinding]
-        private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
-        {
+    /// <summary>
+    /// 玩家登出
+    /// </summary>
+    /// <param name="channel">通信渠道</param>
+    /// <param name="msg">消息</param>
+    [NetBinding]
+    private void OnC2SLogout(NetChannel channel, C2SLogoutMsg msg)
+    {
             var role = bridge.party.GetRole(channel);
             if (null == role)
             {
@@ -80,14 +80,14 @@ namespace Queen.Server.System.Authentication
             engine.logger.Info($"user logout success. uuid -> {role.info.uuid}");
         }
 
-        /// <summary>
-        /// 玩家注册
-        /// </summary>
-        /// <param name="channel">通信渠道</param>
-        /// <param name="msg">消息</param>
-        [NetBinding]
-        private void OnC2SRegister(NetChannel channel, C2SRegisterMsg msg)
-        {
+    /// <summary>
+    /// 玩家注册
+    /// </summary>
+    /// <param name="channel">通信渠道</param>
+    /// <param name="msg">消息</param>
+    [NetBinding]
+    private void OnC2SRegister(NetChannel channel, C2SRegisterMsg msg)
+    {
             engine.logger.Info($"a new user try to register username -> {msg.username}");
             if (bridge.engine.dbo.Find("roles", Builders<DBRoleValue>.Filter.Eq(p => p.username, msg.username), out var values))
             {
@@ -104,20 +104,19 @@ namespace Queen.Server.System.Authentication
             engine.logger.Info($"registration success. uuid -> {uuid}, username -> {msg.username}");
         }
 
-        [NetBinding]
-        private void OnNodeConnect(NetChannel channel, NodeConnectMsg msg)
-        {
+    [NetBinding]
+    private void OnNodeConnect(NetChannel channel, NodeConnectMsg msg)
+    {
 
         }
 
-        [NetBinding]
-        private void OnNodeDisconnect(NetChannel channel, NodeDisconnectMsg msg)
-        {
+    [NetBinding]
+    private void OnNodeDisconnect(NetChannel channel, NodeDisconnectMsg msg)
+    {
             var role = bridge.party.GetRole(channel);
             if (null == role) return;
 
             bridge.party.Quit(role);
             engine.logger.Info($"user logout by disconnect. uuid -> {role.info.uuid}, username -> {role.info.username}");
         }
-    }
 }

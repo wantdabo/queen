@@ -1,9 +1,8 @@
-namespace Queen.DBObserve.Inputs
+namespace Queen.DBObserve.Inputs;
+
+public class InstructionDef
 {
-    public class InstructionDef
-    {
-        public const string CLEAR = "CLEAR";
-        public const string HELP = "HELP";
-        public const string FIND = "FIND";
-    }
+    public const string CLEAR = "CLEAR";
+    public const string HELP = "HELP";
+    public const string FIND = "FIND";
 }

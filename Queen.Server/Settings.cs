@@ -6,77 +6,77 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server
+namespace Queen.Server;
+
+public class Settings : Comp
 {
-    public class Settings : Comp
+    /// <summary>
+    /// 服务器名字
+    /// </summary>
+    public string name { get; private set; }
+
+    /// <summary>
+    /// 主机
+    /// </summary>
+    public string host { get; private set; }
+
+    /// <summary>
+    /// 端口
+    /// </summary>
+    public ushort port { get; private set; }
+
+    /// <summary>
+    /// 最大连接数
+    /// </summary>
+    public int maxconn { get; private set; }
+
+    /// <summary>
+    /// Slave（主网）最大工作线程
+    /// </summary>
+    public int sthread { get; private set;}
+
+    /// <summary>
+    /// 最大网络收发包每秒
+    /// </summary>
+    public int maxpps { get; private set; }
+
+    /// <summary>
+    /// 数据库主机
+    /// </summary>
+    public string dbhost { get; private set; }
+
+    /// <summary>
+    /// 数据库端口
+    /// </summary>
+    public int dbport { get; private set; }
+
+    /// <summary>
+    /// 数据库名
+    /// </summary>
+    public string dbname { get; private set; }
+
+    /// <summary>
+    /// 数据库身份校验
+    /// </summary>
+    public bool dbauth { get; private set; }
+
+    /// <summary>
+    /// 数据库用户名
+    /// </summary>
+    public string dbuser { get; private set; }
+
+    /// <summary>
+    /// 数据库密码
+    /// </summary>
+    public string dbpwd { get; private set; }
+
+    /// <summary>
+    /// 数据落地时间间隔（秒）
+    /// </summary>
+    public int dbsave { get; private set; }
+
+    protected override void OnCreate()
     {
-        /// <summary>
-        /// 服务器名字
-        /// </summary>
-        public string name { get; private set; }
-
-        /// <summary>
-        /// 主机
-        /// </summary>
-        public string host { get; private set; }
-
-        /// <summary>
-        /// 端口
-        /// </summary>
-        public ushort port { get; private set; }
-
-        /// <summary>
-        /// 最大连接数
-        /// </summary>
-        public int maxconn { get; private set; }
-
-        /// <summary>
-        /// Slave（主网）最大工作线程
-        /// </summary>
-        public int sthread { get; private set;}
-
-        /// <summary>
-        /// 最大网络收发包每秒
-        /// </summary>
-        public int maxpps { get; private set; }
-
-        /// <summary>
-        /// 数据库主机
-        /// </summary>
-        public string dbhost { get; private set; }
-
-        /// <summary>
-        /// 数据库端口
-        /// </summary>
-        public int dbport { get; private set; }
-
-        /// <summary>
-        /// 数据库名
-        /// </summary>
-        public string dbname { get; private set; }
-
-        /// <summary>
-        /// 数据库身份校验
-        /// </summary>
-        public bool dbauth { get; private set; }
-
-        /// <summary>
-        /// 数据库用户名
-        /// </summary>
-        public string dbuser { get; private set; }
-
-        /// <summary>
-        /// 数据库密码
-        /// </summary>
-        public string dbpwd { get; private set; }
-
-        /// <summary>
-        /// 数据落地时间间隔（秒）
-        /// </summary>
-        public int dbsave { get; private set; }
-
-        protected override void OnCreate()
-        {
             base.OnCreate();
             var jobj = JObject.Parse(File.ReadAllText($"{Directory.GetCurrentDirectory()}/Res/settings.json"));
             name = jobj.Value<string>("name");
@@ -94,9 +94,8 @@ namespace Queen.Server
             dbsave = jobj.Value<int>("dbsave");
         }
 
-        protected override void OnDestroy()
-        {
+    protected override void OnDestroy()
+    {
             base.OnDestroy();
         }
-    }
 }

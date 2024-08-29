@@ -1,7 +1,6 @@
-﻿namespace Luban
+﻿namespace Luban;
+
+public interface ITypeId
 {
-    public interface ITypeId
-    {
-        int GetTypeId();
-    }
+    int GetTypeId();
 }

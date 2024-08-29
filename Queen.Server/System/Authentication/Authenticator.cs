@@ -12,24 +12,23 @@ using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.System.Authentication
-{
-    /// <summary>
-    /// 登录
-    /// </summary>
-    public class Authenticator : Sys<Adapter>
-    {
-        public Party party;
+namespace Queen.Server.System.Authentication;
 
-        protected override void OnCreate()
-        {
+/// <summary>
+/// 登录
+/// </summary>
+public class Authenticator : Sys<Adapter>
+{
+    public Party party;
+
+    protected override void OnCreate()
+    {
             base.OnCreate();
             party = engine.GetComp<Party>();
         }
 
-        protected override void OnDestroy()
-        {
+    protected override void OnDestroy()
+    {
             base.OnDestroy();
         }
-    }
 }

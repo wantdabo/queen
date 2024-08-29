@@ -10,8 +10,8 @@
 using Luban;
 
 
-namespace Conf
-{
+namespace Conf;
+
 public partial class ItemInfos
 {
     private readonly System.Collections.Generic.Dictionary<int, Conf.ItemInfo> _dataMap;
@@ -47,6 +47,3 @@ public partial class ItemInfos
     }
 
 }
-
-}
-

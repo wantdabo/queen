@@ -11,25 +11,25 @@ using System.Text;
 using System.Threading.Tasks;
 using Adapter = Queen.Network.Adapter;
 
-namespace Queen.Server.System
+namespace Queen.Server.System;
+
+/// <summary>
+/// 系统
+/// </summary>
+public abstract class Sys : Comp
 {
-    /// <summary>
-    /// 系统
-    /// </summary>
-    public abstract class Sys : Comp
-    {
-    }
+}
 
-    /// <summary>
-    /// 系统
-    /// </summary>
-    /// <typeparam name="TAdapter">消息适配器的类型</typeparam>
-    public abstract class Sys<TAdapter> : Sys where TAdapter : Adapter, new()
-    {
-        protected TAdapter adapter;
+/// <summary>
+/// 系统
+/// </summary>
+/// <typeparam name="TAdapter">消息适配器的类型</typeparam>
+public abstract class Sys<TAdapter> : Sys where TAdapter : Adapter, new()
+{
+    protected TAdapter adapter;
 
-        protected override void OnCreate()
-        {
+    protected override void OnCreate()
+    {
             base.OnCreate();
             adapter = AddComp<TAdapter>();
             adapter.Initialize(this);
@@ -37,17 +37,17 @@ namespace Queen.Server.System
             NetRecv();
         }
 
-        protected override void OnDestroy()
-        {
+    protected override void OnDestroy()
+    {
             base.OnDestroy();
             NetUnRecv();
         }
 
-        /// <summary>
-        /// 自动注册消息接收
-        /// </summary>
-        private void NetRecv()
-        {
+    /// <summary>
+    /// 自动注册消息接收
+    /// </summary>
+    private void NetRecv()
+    {
             foreach (var method in adapter.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
             {
                 if(null == method.GetCustomAttribute<NetBinding>()) continue;
@@ -70,11 +70,11 @@ namespace Queen.Server.System
             }
         }
 
-        /// <summary>
-        /// 自动注销消息接收
-        /// </summary>
-        private void NetUnRecv()
-        {
+    /// <summary>
+    /// 自动注销消息接收
+    /// </summary>
+    private void NetUnRecv()
+    {
             foreach (var actionInfo in adapter.actionInfos)
             {
                 var recvMethod = engine.slave.GetType().GetMethod("UnRecv").MakeGenericMethod(actionInfo.msgType);
@@ -82,5 +82,4 @@ namespace Queen.Server.System
             }
             adapter.actionInfos.Clear();
         }
-    }
 }

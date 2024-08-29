@@ -49,11 +49,6 @@ public class RPC : Comp
     /// </summary>
     private Queue<UDPClient> clients = new();
 
-    /// <summary>
-    /// 协议映射集合
-    /// </summary>
-    private Dictionary<Delegate, Delegate> actionDict = new();
-
     protected override void OnCreate()
     {
         base.OnCreate();
@@ -98,14 +93,14 @@ public class RPC : Comp
         server.Recv(action);
     }
     
-    public void Remote<ST>(string ip, ushort port, ST sm) where ST : INetMessage
-    {
-    }
-
-    public (RPCState, RT) Remote<ST, RT>(string ip, ushort port, ST sm, uint timeout = 500) where ST : INetMessage where RT : INetMessage
-    {
-        return default;
-    }
+    // public void Remote<ST>(string ip, ushort port, ST sm) where ST : INetMessage
+    // {
+    // }
+    //
+    // public (RPCState, RT) Remote<ST, RT>(string ip, ushort port, ST sm, uint timeout = 500) where ST : INetMessage where RT : INetMessage
+    // {
+    //     return default;
+    // }
  
     private void OnExecute(ExecuteEvent e)
     {

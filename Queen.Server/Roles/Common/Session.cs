@@ -6,16 +6,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Server.Roles.Common
+namespace Queen.Server.Roles.Common;
+
+/// <summary>
+/// 会话
+/// </summary>
+public class Session : Comp
 {
     /// <summary>
-    /// 会话
+    /// 通信渠道
     /// </summary>
-    public class Session : Comp
-    {
-        /// <summary>
-        /// 通信渠道
-        /// </summary>
-        public NetChannel channel;
-    }
+    public NetChannel channel;
 }
