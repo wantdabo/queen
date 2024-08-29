@@ -1,7 +1,6 @@
 using MessagePack;
-using Queen.Protocols.Common;
 
-namespace Queen.Network.Cross;
+namespace Queen.Protocols.Common;
 
 [MessagePackObject(true)]
 public class RPCMessage : INetMessage

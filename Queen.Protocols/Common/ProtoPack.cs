@@ -8,39 +8,39 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Queen.Protocols.Common;
-
-/// <summary>
-/// 消息结构接口
-/// </summary>
-public interface INetMessage
-{
-}
-
-/// <summary>
-/// 协议序列化
-/// </summary>
-public partial class ProtoPack
+namespace Queen.Protocols.Common
 {
     /// <summary>
-    /// UInt16 字节数量
+    /// 消息结构接口
     /// </summary>
-    public static byte UINT16_LEN = 2;
-        
-    /// <summary>
-    /// Int32 字节数量
-    /// </summary>
-    public static byte INT32_LEN = 4;
-
-    /// <summary>
-    /// 反序列化消息
-    /// </summary>
-    /// <param name="bytes">二进制数据</param>
-    /// <param name="msgType">消息类型</param>
-    /// <param name="msg">消息</param>
-    /// <returns>YES/NO</returns>
-    public static bool UnPack(byte[] bytes, out Type? msgType, out INetMessage? msg)
+    public interface INetMessage
     {
+    }
+
+    /// <summary>
+    /// 协议序列化
+    /// </summary>
+    public partial class ProtoPack
+    {
+        /// <summary>
+        /// UInt16 字节数量
+        /// </summary>
+        public static byte UINT16_LEN = 2;
+
+        /// <summary>
+        /// Int32 字节数量
+        /// </summary>
+        public static byte INT32_LEN = 4;
+
+        /// <summary>
+        /// 反序列化消息
+        /// </summary>
+        /// <param name="bytes">二进制数据</param>
+        /// <param name="msgType">消息类型</param>
+        /// <param name="msg">消息</param>
+        /// <returns>YES/NO</returns>
+        public static bool UnPack(byte[] bytes, out Type? msgType, out INetMessage? msg)
+        {
             msg = null;
             msgType = null;
             try
@@ -51,7 +51,7 @@ public partial class ProtoPack
                 Array.Copy(bytes, UINT16_LEN, data, 0, bytes.Length - UINT16_LEN);
                 var msgId = BitConverter.ToUInt16(proto);
                 if (false == messageDict.TryGetValue(msgId, out msgType)) return false;
-                
+
                 msgType = messageDict[msgId];
                 msg = MessagePackSerializer.Deserialize(msgType, data) as INetMessage;
             }
@@ -63,15 +63,15 @@ public partial class ProtoPack
             return true;
         }
 
-    /// <summary>
-    /// 序列化消息
-    /// </summary>
-    /// <typeparam name="T">消息类型</typeparam>
-    /// <param name="msg">消息</param>
-    /// <param name="bytes">二进制数据</param>
-    /// <returns>YES/NO</returns>
-    public static bool Pack<T>(T msg, out byte[]? bytes) where T : INetMessage
-    {
+        /// <summary>
+        /// 序列化消息
+        /// </summary>
+        /// <typeparam name="T">消息类型</typeparam>
+        /// <param name="msg">消息</param>
+        /// <param name="bytes">二进制数据</param>
+        /// <returns>YES/NO</returns>
+        public static bool Pack<T>(T msg, out byte[]? bytes) where T : INetMessage
+        {
             bytes = null;
             var kv = messageDict.FirstOrDefault((kv) => kv.Value == msg.GetType());
             if (null == kv.Value) return false;
@@ -99,4 +99,5 @@ public partial class ProtoPack
             MessagePackSerializer.DefaultOptions = option;
         }
 #endif
+    }
 }

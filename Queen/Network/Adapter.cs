@@ -14,7 +14,7 @@ namespace Queen.Network;
 public class NetBinding : Attribute
 {
 }
-    
+
 /// <summary>
 /// 消息方法结构体
 /// </summary>
@@ -29,7 +29,7 @@ public struct ActionInfo
     /// </summary>
     public Delegate action;
 }
-    
+
 /// <summary>
 /// 消息适配器
 /// </summary>
@@ -39,12 +39,12 @@ public abstract class Adapter : Comp
     /// 桥接
     /// </summary>
     protected Comp bridge;
-        
+
     /// <summary>
     /// 消息方法回调
     /// </summary>
     public List<ActionInfo> actionInfos = new();
-        
+
     protected override void OnCreate()
     {
         base.OnCreate();

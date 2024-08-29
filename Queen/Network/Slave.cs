@@ -18,15 +18,15 @@ public class Slave : Comp
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            engine.eventor.Listen<ExecuteEvent>(OnExecute);
-        }
+        base.OnCreate();
+        engine.eventor.Listen<ExecuteEvent>(OnExecute);
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-            engine.eventor.UnListen<ExecuteEvent>(OnExecute);
-        }
+        base.OnDestroy();
+        engine.eventor.UnListen<ExecuteEvent>(OnExecute);
+    }
 
     /// <summary>
     /// 配置主网
@@ -38,15 +38,15 @@ public class Slave : Comp
     /// <param name="maxpps">最大网络收发包每秒</param>
     public void Initialize(string ip, ushort port, int maxconn, int sthread, int maxpps)
     {
-            tcp = AddComp<TCPServer>();
-            tcp.Initialize(ip, port, false, maxconn, sthread, maxpps);
-            tcp.Create();
-        }
+        tcp = AddComp<TCPServer>();
+        tcp.Initialize(ip, port, false, maxconn, sthread, maxpps);
+        tcp.Create();
+    }
 
     private void OnExecute(ExecuteEvent e)
     {
-            tcp.Notify();
-        }
+        tcp.Notify();
+    }
 
     /// <summary>
     /// 注销消息接收
@@ -55,9 +55,9 @@ public class Slave : Comp
     /// <param name="action">回调</param>
     public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
     {
-            engine.EnsureThread();
-            tcp.UnRecv(action);
-        }
+        engine.EnsureThread();
+        tcp.UnRecv(action);
+    }
 
     /// <summary>
     /// 注销消息接收
@@ -66,7 +66,7 @@ public class Slave : Comp
     /// <param name="action">回调</param>
     public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
     {
-            engine.EnsureThread();
-            tcp.Recv(action);
-        }
+        engine.EnsureThread();
+        tcp.Recv(action);
+    }
 }
