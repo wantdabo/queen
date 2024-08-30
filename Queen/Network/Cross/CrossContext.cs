@@ -33,7 +33,7 @@ public class CrossContext(NetChannel channel, string route, string content) : Cr
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
     public void Response<T>(ushort state, T content)
     {
-        Response(state, Newtonsoft.Json.JsonConvert.SerializeObject(content));
+        Response(state, Conv<T>(content));
     }
 
     /// <summary>

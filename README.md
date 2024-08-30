@@ -36,6 +36,8 @@
 ---
 
 ### TODO
+- RPC 上下文，路由追踪（支持不允许反调，避免死锁）
+- Role 与 Role 之间 RPC 优雅 API 包装支持
 - Role 冷销毁/热内存常驻
 - Eventor Tell 执行过程移除导致 BUG
 - 时间轮，用于定时执行某些任务
