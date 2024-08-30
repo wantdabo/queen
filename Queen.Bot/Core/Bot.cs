@@ -24,26 +24,25 @@ public class Bot : Engine<Bot>
 
         engine.logger.Info($"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}", ConsoleColor.Yellow);
         engine.logger.Info("queen.bot is running...");
-        // TCPClient socket = AddComp<TCPClient>();
-        // socket.Initialize(false);
-        // socket.Create();
-        // socket.Connect("127.0.0.1", 12801);
-        // socket.Send(new C2SLoginMsg { username = "", password = "" });
-        // socket.Send(new C2SLoginMsg());
-
+        Console.Title = settings.name;
+        
         var rpc1 = AddComp<RPC>();
         rpc1.Initialize("127.0.0.1", 8801);
         rpc1.Create();
-        rpc1.Recv<C2SLoginMsg>((channel, msg) =>
+        rpc1.Routing("test/hello", (context) =>
         {
-            
+            engine.logger.Info(context.content);
+            context.Response(CrossState.Success, "你好呀，来访者。");
         });
-            
-        UDPClient udpc = AddComp<UDPClient>();
-        udpc.Initialize(true);
-        udpc.Create();
-        udpc.Connect("127.0.0.1", 8801, "QUEEN_RPC");
-        udpc.Send(new C2SLoginMsg { username = "123", password = "456" });
+
+        var rpc2 = AddComp<RPC>();
+        rpc2.Initialize("127.0.0.1", 8802);
+        rpc2.Create();
+        Task.Run(() =>
+        {
+            var result = rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！");
+            if (CrossState.Success == result.state) engine.logger.Info(result.content);
+        });
     }
 
     protected override void OnDestroy()

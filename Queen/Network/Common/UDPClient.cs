@@ -69,7 +69,7 @@ public class UDPClient : NetNode
 
         listener.NetworkReceiveEvent += (NetPeer peer, NetPacketReader reader, byte c, DeliveryMethod deliveryMethod) =>
         {
-            EmitReceiveEvent(channel, reader.RawData);
+            EmitReceiveEvent(channel, reader.GetRemainingBytes());
         };
         channel = new UDPNodeC(client.Connect(ip, port, connectkey));
             
