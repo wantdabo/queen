@@ -187,7 +187,7 @@
         - 包括，可能需要设计，事务系统、Gameplay、聊天系统，都可以基于 `Queen` 来设计一个进程
     - ##### <span id="bizframework.2">2.Role</span>
         - <span id="bizframework.2.1">1.初识 Role</span>
-            - Role 就是玩家，在 `Queen.Server` 中实现的。在 `Queen.Server` Role 是最小业务单位。玩家通过了验证，就会产生一个 Role，与前端保持长连接通信，业务处理
+            - Role 就是玩家，在 `Queen.Server` 中实现的。在 `Queen.Server` Role 是最小并发单位。玩家通过了验证，就会产生一个 Role，与前端保持长连接通信，业务处理
             - `Queen.Server` 是多线程的设计。但是，Role 自身的业务逻辑处理是单线程的。Role 与 Role 之间是无法直接访问的，尽管他们在同一个 `Queen.Server`
             - 简单举个例子,`Queen.Server` 中，Role 作为最小单位多线程并发。 **Role [ Bag、Equip、Mail ...]** 自身的业务，均为单线程处理。
             - 因此，`Queen.Server` 是可以做到一直扩展（开进程），承载无数的 Role 进行服务
