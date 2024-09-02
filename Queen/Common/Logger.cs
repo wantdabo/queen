@@ -63,43 +63,43 @@ public class Logger : Comp
 
     protected override void OnCreate()
     {
-            base.OnCreate();
+        base.OnCreate();
 
-            Task.Run(() =>
+        Task.Run(() =>
+        {
+            while (true)
             {
-                while (true)
-                {
-                    Thread.Sleep(100);
-                    SaveDisk();
-                }
-            });
-
-            if (false == Directory.Exists(logdir)) Directory.CreateDirectory(logdir);
-
-            var logFilePath = $"{logdir}Log_{DateTime.Now.ToString("yyyy-MM-dd")}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
-            var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
-            writer = new StreamWriter(fs);
-
-            AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
-            {
-                Error((e.ExceptionObject as Exception));
+                Thread.Sleep(100);
                 SaveDisk();
-            };
+            }
+        });
 
-            TaskScheduler.UnobservedTaskException += (sender, e) =>
-            {
-                Error(e.Exception);
-                SaveDisk();
-                e.SetObserved();
-            };
-        }
+        if (false == Directory.Exists(logdir)) Directory.CreateDirectory(logdir);
+
+        var logFilePath = $"{logdir}Log_{DateTime.Now.ToString("yyyy-MM-dd")}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
+        var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
+        writer = new StreamWriter(fs);
+
+        AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
+        {
+            Error((e.ExceptionObject as Exception));
+            SaveDisk();
+        };
+
+        TaskScheduler.UnobservedTaskException += (sender, e) =>
+        {
+            Error(e.Exception);
+            SaveDisk();
+            e.SetObserved();
+        };
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-            writer.Flush();
-            writer.Close();
-        }
+        base.OnDestroy();
+        writer.Flush();
+        writer.Close();
+    }
 
     /// <summary>
     /// 信息日志
@@ -107,8 +107,8 @@ public class Logger : Comp
     /// <param name="message">日志内容</param>
     public void Info(string message, ConsoleColor color = ConsoleColor.White)
     {
-            Log(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
-        }
+        Log(new LogInfo { ll = LogLevel.Info, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+    }
 
     /// <summary>
     /// 警告日志
@@ -116,8 +116,8 @@ public class Logger : Comp
     /// <param name="message">日志内容</param>
     public void Warn(string message, ConsoleColor color = ConsoleColor.White)
     {
-            Log(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
-        }
+        Log(new LogInfo { ll = LogLevel.Warn, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+    }
 
     /// <summary>
     /// 错误日志
@@ -125,8 +125,8 @@ public class Logger : Comp
     /// <param name="message">日志内容</param>
     public void Error(string message, ConsoleColor color = ConsoleColor.White)
     {
-            Log(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
-        }
+        Log(new LogInfo { ll = LogLevel.Error, time = $"{DateTime.Now.ToString("yyyy-MM-dd")} {DateTime.Now.ToLongTimeString()}", message = message, color = color });
+    }
 
     /// <summary>
     /// 错误日志
@@ -134,8 +134,8 @@ public class Logger : Comp
     /// <param name="e">异常</param>
     public void Error(Exception e, ConsoleColor color = ConsoleColor.White)
     {
-            Error($"{e.Message}\n{e.StackTrace}");
-        }
+        Error($"{e.Message}\n{e.StackTrace}");
+    }
 
     /// <summary>
     /// 错误日志
@@ -144,8 +144,8 @@ public class Logger : Comp
     /// <param name="e">异常</param>
     public void Error(string message, Exception e, ConsoleColor color = ConsoleColor.White)
     {
-            Error($"{message}\n{e.Message}\n{e.Message}\n{e.StackTrace}");
-        }
+        Error($"{message}\n{e.Message}\n{e.Message}\n{e.StackTrace}");
+    }
 
     /// <summary>
     /// 打印日志
@@ -153,41 +153,41 @@ public class Logger : Comp
     /// <param name="log">日志</param>
     private void Log(LogInfo log)
     {
-            var llstr = string.Empty;
-            if (LogLevel.Info == log.ll)
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                llstr = "[INFO] ";
-            }
-            else if (LogLevel.Warn == log.ll)
-            {
-                Console.ForegroundColor = ConsoleColor.Gray;
-                llstr = "[WARN] ";
-            }
-            else if (LogLevel.Error == log.ll)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                llstr = "[ERRO] ";
-            }
-
-            logInfos.Enqueue($"{llstr}{log.time} {log.message}");
-
-            Console.Write(llstr);
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write($"{log.time} ");
-            Console.ForegroundColor = log.color;
-            Console.Write($"{log.message}");
-            Console.WriteLine();
-            Console.ForegroundColor = ConsoleColor.White;
+        var llstr = string.Empty;
+        if (LogLevel.Info == log.ll)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            llstr = "[INFO] ";
         }
+        else if (LogLevel.Warn == log.ll)
+        {
+            Console.ForegroundColor = ConsoleColor.Gray;
+            llstr = "[WARN] ";
+        }
+        else if (LogLevel.Error == log.ll)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            llstr = "[ERRO] ";
+        }
+
+        logInfos.Enqueue($"{llstr}{log.time} {log.message}");
+
+        Console.Write(llstr);
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.Write($"{log.time} ");
+        Console.ForegroundColor = log.color;
+        Console.Write($"{log.message}");
+        Console.WriteLine();
+        Console.ForegroundColor = ConsoleColor.White;
+    }
 
     /// <summary>
     /// 存盘
     /// </summary>
     private void SaveDisk()
     {
-            while (logInfos.TryDequeue(out var log))
-                writer.WriteLine(log);
-            writer.Flush();
-        }
+        while (logInfos.TryDequeue(out var log))
+            writer.WriteLine(log);
+        writer.Flush();
+    }
 }
