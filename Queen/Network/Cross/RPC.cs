@@ -17,11 +17,15 @@ public class RPC : Comp
     /// <summary>
     /// 地址
     /// </summary>
-    public string ip { get; set; }
+    public string ip { get; private set; }
     /// <summary>
     /// 端口
     /// </summary>
-    public ushort port { get; set; }
+    public ushort port { get; private set; }
+    /// <summary>
+    /// 超时设定
+    /// </summary>
+    public uint timeout { get; private set; }
     /// <summary>
     /// 服务器节点
     /// </summary>
@@ -56,18 +60,20 @@ public class RPC : Comp
         server.UnRecv<ReqCrossMessage>(OnReqCross);
         server.Destroy();
     }
-    
+
     /// <summary>
     /// 初始化 RPC
     /// </summary>
     /// <param name="ip">IP 地址</param>
     /// <param name="port">端口</param>
-    public void Initialize(string ip, ushort port)
+    /// <param name="timeout">端口</param>
+    public void Initialize(string ip, ushort port, uint timeout)
     {
         this.ip = ip;
         this.port = port;
+        this.timeout = timeout;
     }
-    
+
     /// <summary>
     /// 监听路由
     /// </summary>
@@ -79,7 +85,7 @@ public class RPC : Comp
         if (ractions.ContainsKey(route)) throw new Exception("route can't be repeat.");
         ractions.Add(route, action);
     }
-    
+
     /// <summary>
     /// 注销路由
     /// </summary>
@@ -98,29 +104,26 @@ public class RPC : Comp
     /// <param name="port">目标主机端口</param>
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
-    /// <param name="timeout">超时设定</param>
-    /// <returns>RPC 结果</returns>
-    public CrossResult Cross(string ip, ushort port, string route, string content, uint timeout = 500)
+    /// <param name="callback">回调</param>
+    public void Cross(string ip, ushort port, string route, string content, Action<ushort, string> callback = null)
     {
-        // 如果池子未有客户端节点，需要等待主线程分配客户端节点
-        if (false == clients.TryDequeue(out var client))
-        {
-            // 申请一个新的客户端节点
-            ApplyClient();
-            while (true)
-            {
-                if (clients.TryDequeue(out client)) break;
-                Thread.Sleep(1);
-            }
-        }
-
-        CrossResult result = new CrossResult { state = CrossState.Wait };
+        var client = ApplyClient();
+        Action recycle = null;
         var action = (NetChannel channel, ResCrossMessage msg) =>
         {
-            result.state = msg.state;
-            result.content = msg.content;
+            if (null == recycle) return;
+            recycle?.Invoke();
+            recycle = null;
+            callback?.Invoke(msg.state, msg.content);
         };
-    
+        recycle = () =>
+        {
+            // RPC 结束, 清理状态 && 断开连接
+            client.UnRecv(action);
+            client.Disconnect();
+            clients.Enqueue(client);
+        };
+
         // UDP 与目标主机建立短链接
         client.Connect(ip, port, KEY);
         client.Recv(action);
@@ -135,20 +138,11 @@ public class RPC : Comp
         Task.Run(async () =>
         {
             await Task.Delay((int)timeout);
-            result.state = CrossState.Timeout;
+            recycle?.Invoke();
+            recycle = null;
         });
-        
-        // 等待响应中
-        while (CrossState.Wait == result.state) Thread.Sleep(1);
-        
-        // RPC 结束, 清理状态 && 断开连接
-        client.UnRecv(action);
-        client.Disconnect();
-        clients.Enqueue(client);
-
-        return result;
     }
-    
+
     /// <summary>
     /// RPC 通信
     /// </summary>
@@ -156,14 +150,58 @@ public class RPC : Comp
     /// <param name="port">目标主机端口</param>
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
-    /// <param name="timeout">超时设定</param>
+    /// <returns>RPC 结果</returns>
+    public CrossResult Cross(string ip, ushort port, string route, string content)
+    {
+        CrossResult result = new CrossResult { state = CrossState.Wait };
+        var action = (NetChannel channel, ResCrossMessage msg) =>
+        {
+            result.state = msg.state;
+            result.content = msg.content;
+        };
+        var client = ApplyClient();
+        // UDP 与目标主机建立短链接
+        client.Connect(ip, port, KEY);
+        client.Recv(action);
+        // 发送 RPC 的数据
+        client.Send(new ReqCrossMessage
+        {
+            route = route,
+            content = content,
+        });
+
+        // 超时设定
+        Task.Run(async () =>
+        {
+            await Task.Delay((int)timeout);
+            result.state = CrossState.Timeout;
+        });
+
+        // 等待响应中
+        while (CrossState.Wait == result.state) Thread.Sleep(1);
+
+        // RPC 结束, 清理状态 && 断开连接
+        client.UnRecv(action);
+        client.Disconnect();
+        clients.Enqueue(client);
+
+        return result;
+    }
+
+    /// <summary>
+    /// RPC 通信
+    /// </summary>
+    /// <param name="ip">目标主机 IP</param>
+    /// <param name="port">目标主机端口</param>
+    /// <param name="route">路径</param>
+    /// <param name="content">传输内容</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
     /// <returns>RPC 结果</returns>
-    public CrossResult Cross<T>(string ip, ushort port, string route, T content, uint timeout = 500)
+    public CrossResult Cross<T>(string ip, ushort port, string route, T content)
     {
-        return Cross(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), timeout);
+        return Cross(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content));
     }
-    
+
     /// <summary>
     /// 收到 RPC 消息
     /// </summary>
@@ -177,18 +215,31 @@ public class RPC : Comp
 
             return;
         }
-        
+
         action.Invoke(new CrossContext(channel, msg.route, msg.content));
     }
 
     /// <summary>
     /// 申请一个新的客户端节点
     /// </summary>
-    private void ApplyClient()
+    private UDPClient ApplyClient()
     {
-        requirecc++;
+        // 如果池子未有客户端节点，需要等待主线程分配客户端节点
+        if (false == clients.TryDequeue(out var client))
+        {
+            // 申请一个新的客户端节点
+            requirecc++;
+            if (engine.ethread) BebornClients();
+            while (true)
+            {
+                if (clients.TryDequeue(out client)) break;
+                Thread.Sleep(1);
+            }
+        }
+
+        return client;
     }
-    
+
     /// <summary>
     /// 生成需求的客户端节点数
     /// </summary>

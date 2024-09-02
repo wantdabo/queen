@@ -18,7 +18,7 @@ public class UDPNodeC(NetPeer socket) : NetChannel<NetPeer>(socket)
 
     public override void Send(byte[] data)
     {
-        socket.Send(data, DeliveryMethod.ReliableSequenced);
+        socket.Send(data, DeliveryMethod.ReliableOrdered);
     }
 
     public override void Disconnect()

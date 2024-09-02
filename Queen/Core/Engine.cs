@@ -52,12 +52,23 @@ public class Engine : Comp
     /// <summary>
     /// 主线程 ID
     /// </summary>
-    private readonly int threadId;
+    private readonly int ethreadId;
+    
+    /// <summary>
+    /// 主线程
+    /// </summary>
+    public bool ethread
+    {
+        get
+        {
+            return Thread.CurrentThread.ManagedThreadId == ethreadId;
+        }
+    }
 
     public Engine()
     {
         // 记录运行线程
-        threadId = Thread.CurrentThread.ManagedThreadId;
+        ethreadId = Thread.CurrentThread.ManagedThreadId;
     }
 
     protected override void OnCreate()
@@ -102,7 +113,7 @@ public class Engine : Comp
     /// </summary>
     public void EnsureThread()
     {
-        if (Thread.CurrentThread.ManagedThreadId != threadId)
+        if (false == ethread)
         {
             throw new Exception("this method must be called from the main thread.");
         }

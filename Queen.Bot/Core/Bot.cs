@@ -27,21 +27,25 @@ public class Bot : Engine<Bot>
         Console.Title = settings.name;
         
         var rpc1 = AddComp<RPC>();
-        rpc1.Initialize("127.0.0.1", 8801);
+        rpc1.Initialize("127.0.0.1", 8801, 500);
         rpc1.Create();
         rpc1.Routing("test/hello", (context) =>
         {
             engine.logger.Info(context.content);
-            context.Response(CrossState.Success, "你好呀，来访者。");
+            var content = "";
+            for (int i = 0; i < 10000; i++)
+            {
+                content += "a";
+            }
+            context.Response(CrossState.Success, content);
         });
 
         var rpc2 = AddComp<RPC>();
-        rpc2.Initialize("127.0.0.1", 8802);
+        rpc2.Initialize("127.0.0.1", 8802, 500);
         rpc2.Create();
-        Task.Run(() =>
+        rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！", (state, content) =>
         {
-            var result = rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！");
-            if (CrossState.Success == result.state) engine.logger.Info(result.content);
+            if (CrossState.Success == state) engine.logger.Info(content);
         });
     }
 
