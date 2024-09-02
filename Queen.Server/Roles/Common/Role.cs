@@ -126,16 +126,16 @@ public class Role : Comp
     /// 协议映射集合
     /// </summary>
     private Dictionary<Delegate, Delegate> actionDict = new();
-        
+
     /// <summary>
     /// 心跳计时器 ID
     /// </summary>
-    private uint heartbeatTiming;
+    private uint heartbeatTiming { get; set; }
 
     /// <summary>
     /// 数据自动保存计时器 ID
     /// </summary>
-    private uint dbsaveTiming;
+    private uint dbsaveTiming { get; set; }
 
     protected override void OnCreate()
     {
@@ -146,6 +146,12 @@ public class Role : Comp
         engine.eventor.Listen<RoleJoinEvent>(OnRoleJoin);
         engine.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
         eventor.Listen<DBSaveEvent>(OnDBSave);
+        // 心跳发送
+        heartbeatTiming = engine.ticker.Timing((t) =>
+        {
+            Heartbeat();
+        }, 5, -1);
+        
         // 数据写盘
         dbsaveTiming = engine.ticker.Timing((t) => TODO(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
 
@@ -349,12 +355,13 @@ public class Role : Comp
     private void OnRoleJoin(RoleJoinEvent e)
     {
         if (e.role.info.uuid != info.uuid) return;
-            
+        Heartbeat();
         online = true;
         jobs.Clear();
         TODO(() =>
         {
             eventor.Tell(e);
+            Send(new S2CRoleJoinedMsg { });
         });
     }
 

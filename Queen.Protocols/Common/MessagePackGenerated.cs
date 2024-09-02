@@ -48,7 +48,7 @@ namespace MessagePack.Resolvers
 
         static GeneratedResolverGetFormatterHelper()
         {
-            lookup = new global::System.Collections.Generic.Dictionary<global::System.Type, int>(13)
+            lookup = new global::System.Collections.Generic.Dictionary<global::System.Type, int>(14)
             {
                 { typeof(global::Queen.Protocols.C2SLoginMsg), 0 },
                 { typeof(global::Queen.Protocols.C2SLogoutMsg), 1 },
@@ -62,7 +62,8 @@ namespace MessagePack.Resolvers
                 { typeof(global::Queen.Protocols.S2CLoginMsg), 9 },
                 { typeof(global::Queen.Protocols.S2CLogoutMsg), 10 },
                 { typeof(global::Queen.Protocols.S2CRegisterMsg), 11 },
-                { typeof(global::Queen.Protocols.S2CTestMsg), 12 },
+                { typeof(global::Queen.Protocols.S2CRoleJoinedMsg), 12 },
+                { typeof(global::Queen.Protocols.S2CTestMsg), 13 },
             };
         }
 
@@ -88,7 +89,8 @@ namespace MessagePack.Resolvers
                 case 9: return new MessagePack.Formatters.Queen.Protocols.S2CLoginMsgFormatter();
                 case 10: return new MessagePack.Formatters.Queen.Protocols.S2CLogoutMsgFormatter();
                 case 11: return new MessagePack.Formatters.Queen.Protocols.S2CRegisterMsgFormatter();
-                case 12: return new MessagePack.Formatters.Queen.Protocols.S2CTestMsgFormatter();
+                case 12: return new MessagePack.Formatters.Queen.Protocols.S2CRoleJoinedMsgFormatter();
+                case 13: return new MessagePack.Formatters.Queen.Protocols.S2CTestMsgFormatter();
                 default: return null;
             }
         }
@@ -548,6 +550,32 @@ namespace MessagePack.Formatters.Queen.Protocols
             }
 
             reader.Depth--;
+            return ____result;
+        }
+    }
+
+    public sealed class S2CRoleJoinedMsgFormatter : global::MessagePack.Formatters.IMessagePackFormatter<global::Queen.Protocols.S2CRoleJoinedMsg>
+    {
+        public void Serialize(ref global::MessagePack.MessagePackWriter writer, global::Queen.Protocols.S2CRoleJoinedMsg value, global::MessagePack.MessagePackSerializerOptions options)
+        {
+            if (value is null)
+            {
+                writer.WriteNil();
+                return;
+            }
+
+            writer.WriteMapHeader(0);
+        }
+
+        public global::Queen.Protocols.S2CRoleJoinedMsg Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
+        {
+            if (reader.TryReadNil())
+            {
+                return null;
+            }
+
+            reader.Skip();
+            var ____result = new global::Queen.Protocols.S2CRoleJoinedMsg();
             return ____result;
         }
     }
