@@ -32,16 +32,16 @@ public class MDBO : Comp
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            connect = ConnectionMultiplexer.Connect($"{dbhost}:{dbport},password={dbpwd},abortConnect=false");
-        }
+        base.OnCreate();
+        connect = ConnectionMultiplexer.Connect($"{dbhost}:{dbport},password={dbpwd},abortConnect=false");
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-            connect.Close();
-            connect = null;
-        }
+        base.OnDestroy();
+        connect.Close();
+        connect = null;
+    }
 
     /// <summary>
     /// 配置数据库
@@ -51,22 +51,22 @@ public class MDBO : Comp
     /// <param name="dbpwd">DB 密码</param>
     public void Initialize(string dbhost, int dbport, string dbpwd)
     {
-            this.dbhost = dbhost;
-            this.dbport = dbport;
-            this.dbpwd = dbpwd;
-        }
+        this.dbhost = dbhost;
+        this.dbport = dbport;
+        this.dbpwd = dbpwd;
+    }
 
     /// <summary>
     /// 数据存在
     /// </summary>
     /// <param name="key">KEY</param>
     /// <returns>YES/NO</returns>
-    public bool Exists(string key) 
+    public bool Exists(string key)
     {
-            var db = connect.GetDatabase();
+        var db = connect.GetDatabase();
 
-            return db.KeyExists(key);
-        }
+        return db.KeyExists(key);
+    }
 
     /// <summary>
     /// 获取数据
@@ -74,17 +74,17 @@ public class MDBO : Comp
     /// <param name="key">KEY</param>
     /// <param name="value">VALUE</param>
     /// <returns>YES/NO</returns>
-    public bool Get(string key, out string value) 
+    public bool Get(string key, out string value)
     {
-            value = default;
-            var db = connect.GetDatabase();
+        value = default;
+        var db = connect.GetDatabase();
 
-            if (false == Exists(key)) return false;
+        if (false == Exists(key)) return false;
 
-            value = db.StringGet(key);
+        value = db.StringGet(key);
 
-            return true;
-        } 
+        return true;
+    }
 
     /// <summary>
     /// 设置数据
@@ -92,22 +92,22 @@ public class MDBO : Comp
     /// <param name="key">KEY</param>
     /// <param name="value">VALUE</param>
     /// <returns>YES/NO</returns>
-    public bool Set(string key, string value) 
+    public bool Set(string key, string value)
     {
-            var db = connect.GetDatabase();
+        var db = connect.GetDatabase();
 
-            return db.StringSet(key, value);
-        }
+        return db.StringSet(key, value);
+    }
 
     /// <summary>
     /// 删除数据
     /// </summary>
     /// <param name="key">KEY</param>
     /// <returns>YES/NO</returns>
-    public bool Del(string key) 
+    public bool Del(string key)
     {
-            var db = connect.GetDatabase();
+        var db = connect.GetDatabase();
 
-            return db.KeyDelete(key);
-        }
+        return db.KeyDelete(key);
+    }
 }

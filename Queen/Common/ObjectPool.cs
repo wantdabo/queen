@@ -23,17 +23,17 @@ public class ObjectPool : Comp
     /// <returns>实例化对象</returns>
     public T Get<T>(string key, Action<T> callback = null)
     {
-            engine.EnsureThread();
-            if (pool.TryGetValue(typeof(T), out var dict) && dict.TryGetValue(key, out var queue) && queue.Count > 0)
-            {
-                var obj = (T)queue.Dequeue();
-                callback?.Invoke(obj);
+        engine.EnsureThread();
+        if (pool.TryGetValue(typeof(T), out var dict) && dict.TryGetValue(key, out var queue) && queue.Count > 0)
+        {
+            var obj = (T)queue.Dequeue();
+            callback?.Invoke(obj);
 
-                return obj;
-            }
-
-            return default;
+            return obj;
         }
+
+        return default;
+    }
 
     /// <summary>
     /// 将一个实例化对象存入对象池
@@ -44,23 +44,23 @@ public class ObjectPool : Comp
     /// <param name="callback">回调（成功存入才会执行）</param>
     public void Set<T>(string key, T obj, Action<T> callback = null)
     {
-            engine.EnsureThread();
-            if (null == obj) return;
+        engine.EnsureThread();
+        if (null == obj) return;
 
-            if (false == pool.TryGetValue(typeof(T), out var dict))
-            {
-                dict = new();
-                pool.Add(typeof(T), dict);
-            }
-            if (false == dict.TryGetValue(key, out var queue))
-            {
-                queue = new();
-                dict.Add(key, queue);
-            }
-
-            if (queue.Contains(obj)) return;
-            
-            queue.Enqueue(obj);
-            callback?.Invoke(obj);
+        if (false == pool.TryGetValue(typeof(T), out var dict))
+        {
+            dict = new();
+            pool.Add(typeof(T), dict);
         }
+        if (false == dict.TryGetValue(key, out var queue))
+        {
+            queue = new();
+            dict.Add(key, queue);
+        }
+
+        if (queue.Contains(obj)) return;
+
+        queue.Enqueue(obj);
+        callback?.Invoke(obj);
+    }
 }

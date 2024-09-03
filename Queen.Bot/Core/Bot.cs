@@ -28,7 +28,7 @@ public class Bot : Engine<Bot>
         Console.Title = settings.name;
 
         var rpc1 = AddComp<RPC>();
-        rpc1.Initialize("127.0.0.1", 8801, 500000);
+        rpc1.Initialize("127.0.0.1", 8801, 5000);
         rpc1.Create();
         rpc1.Routing("test/hello", (context) =>
         {
@@ -37,7 +37,7 @@ public class Bot : Engine<Bot>
         });
 
         var rpc2 = AddComp<RPC>();
-        rpc2.Initialize("127.0.0.1", 8802, 500000);
+        rpc2.Initialize("127.0.0.1", 8802, 5000);
         rpc2.Create();
         rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！", (state, content) =>
         {
