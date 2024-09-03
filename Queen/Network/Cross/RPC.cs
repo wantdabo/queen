@@ -113,19 +113,15 @@ public class RPC : Comp
     {
         var id = Guid.NewGuid().ToString();
         var client = GetClient(ip, port);
-        Action recycle = null;
-        var action = (NetChannel channel, ResCrossMessage msg) =>
+        bool istimeout = false;
+        Action<NetChannel, ResCrossMessage> action = null;
+        action = (channel, msg) =>
         {
+            if (istimeout) return;
             if (msg.id != id) return;
-            if (null == recycle) return;
-            recycle?.Invoke();
-            recycle = null;
-            callback?.Invoke(msg.state, msg.content);
-        };
-        recycle = () =>
-        {
-            // RPC 结束, 清理状态 && 断开连接
+            
             client.UnRecv(action);
+            callback?.Invoke(msg.state, msg.content);
         };
 
         client.Recv(action);
@@ -141,9 +137,23 @@ public class RPC : Comp
         Task.Run(async () =>
         {
             await Task.Delay((int)timeout);
-            recycle?.Invoke();
-            recycle = null;
+            istimeout = true;
+            client.UnRecv(action);
         });
+    }
+
+    /// <summary>
+    /// RPC 通信
+    /// </summary>
+    /// <param name="ip">目标主机 IP</param>
+    /// <param name="port">目标主机端口</param>
+    /// <param name="route">路径</param>
+    /// <param name="content">传输内容</param>
+    /// <param name="callback">回调</param>
+    /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
+    public void Cross<T>(string ip, ushort port, string route, T content, Action<ushort, string> callback = null) where T : class
+    {
+        Cross(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), callback);
     }
 
     /// <summary>
@@ -200,7 +210,7 @@ public class RPC : Comp
     /// <param name="content">传输内容</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
     /// <returns>RPC 结果</returns>
-    public CrossResult Cross<T>(string ip, ushort port, string route, T content)
+    public CrossResult Cross<T>(string ip, ushort port, string route, T content) where T : class
     {
         return Cross(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content));
     }

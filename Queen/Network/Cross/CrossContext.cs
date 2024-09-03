@@ -36,7 +36,7 @@ public class CrossContext(NetChannel channel, string id, string route, string co
     /// <param name="state">RPC 状态</param>
     /// <param name="content">传输内容</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
-    public void Response<T>(ushort state, T content)
+    public void Response<T>(ushort state, T content) where T : class
     {
         Response(state, Conv<T>(content));
     }

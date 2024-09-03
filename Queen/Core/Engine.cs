@@ -115,7 +115,7 @@ public class Engine : Comp
     {
         if (false == ethread)
         {
-            throw new Exception("this method must be called from the main thread.");
+            throw new Exception("this method must be called on main thread.");
         }
     }
 

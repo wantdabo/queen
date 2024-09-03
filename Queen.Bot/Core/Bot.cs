@@ -39,13 +39,11 @@ public class Bot : Engine<Bot>
         var rpc2 = AddComp<RPC>();
         rpc2.Initialize("127.0.0.1", 8802, 5000);
         rpc2.Create();
-        rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！", (state, content) =>
+        Task.Run(() =>
         {
-            if (state == CROSS_STATE.SUCCESS) engine.logger.Info(content);
-        });
-        rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！", (state, content) =>
-        {
-            if (state == CROSS_STATE.SUCCESS) engine.logger.Info(content);
+            rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！");
+            rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！");
+            rpc2.Cross("127.0.0.1", 8801, "test/hello", "你好，世界！");
         });
     }
 

@@ -33,10 +33,6 @@ public static class CROSS_STATE
 public class CrossResult : CrossContentConv
 {
     /// <summary>
-    /// RPC ID
-    /// </summary>
-    public string id { get; set; }
-    /// <summary>
     /// RPC 状态
     /// </summary>
     public ushort state { get; set; }
