@@ -49,13 +49,13 @@ public class Config : Comp
 
     protected override void OnCreate()
     {
-            base.OnCreate();
+        base.OnCreate();
 
-            location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{respath}Configs/{cfgName}.bytes")); });
-        }
+        location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{respath}Configs/{cfgName}.bytes")); });
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-        }
+        base.OnDestroy();
+    }
 }

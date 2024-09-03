@@ -4,8 +4,10 @@
 
 ### 大致全貌
 - TCP 通信
+- RPC 远程调用
 - MessagePack 协议
 - MongoDB 数据库
+- 协程
 - Luban 配置
 
 #### [项目结构](#projectdire)
@@ -44,7 +46,6 @@
 - 增加崩溃容灾数据保存抢救
 - Queen.Bot 设计
 - Ticker 计时器 BUG
-- RPC
 - 事务系统（基于 Redis）
 - 定位系统（基于 Redis）
 - 远程日志存盘系统，因为 Server 这些后面是要分布式的。所以，Logger 系统需要集中远程日志

@@ -1,4 +1,5 @@
 ﻿using Queen.Common;
+using Queen.Common.Parallel;
 using Queen.Network.Common;
 using Queen.Protocols.Common;
 using Queen.Protocols;
@@ -45,6 +46,10 @@ public class Engine : Comp
     /// </summary>
     public Ticker ticker { get; private set; }
     /// <summary>
+    /// 协程
+    /// </summary>
+    public CoroutineScheduler coroutines { get; private set; }
+    /// <summary>
     /// 对象池
     /// </summary>
     public ObjectPool pool { get; private set; }
@@ -53,7 +58,7 @@ public class Engine : Comp
     /// 主线程 ID
     /// </summary>
     private readonly int ethreadId;
-    
+
     /// <summary>
     /// 主线程
     /// </summary>
@@ -98,6 +103,10 @@ public class Engine : Comp
 
         ticker = AddComp<Ticker>();
         ticker.Create();
+
+        coroutines = AddComp<CoroutineScheduler>();
+        coroutines.Initialize(ticker);
+        coroutines.Create();
 
         pool = AddComp<ObjectPool>();
         pool.Create();

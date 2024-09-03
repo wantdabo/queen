@@ -52,10 +52,9 @@ public class Ticker : Comp
     /// </summary>
     public uint frame { get; private set; }
     /// <summary>
-    /// Tick 间隔
+    /// Tick 间隔 (50 fps)
     /// </summary>
     public float tick { get; private set; } = 1 / 50f;
-
     /// <summary>
     /// 最新的毫秒
     /// </summary>
@@ -95,7 +94,6 @@ public class Ticker : Comp
         var nms = nowMilliSeconds;
         elapsed += (nms - lastMilliSeconds) / engine.cfg.thousand;
         lastMilliSeconds = nms;
-
         while (elapsed >= tick)
         {
             frame++;
