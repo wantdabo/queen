@@ -3,28 +3,28 @@ namespace Queen.Network.Cross;
 /// <summary>
 /// RPC 状态
 /// </summary>
-public class CrossState
+public static class CROSS_STATE
 {
     /// <summary>
     /// 等待
     /// </summary>
-    public const ushort Wait = 1;
+    public const ushort WAIT = 1;
     /// <summary>
     /// 成功
     /// </summary>
-    public const ushort Success = 2;
+    public const ushort SUCCESS = 2;
     /// <summary>
     /// 错误
     /// </summary>
-    public const ushort Error = 3;
+    public const ushort ERROR = 3;
     /// <summary>
     /// 超时
     /// </summary>
-    public const ushort Timeout = 4;
+    public const ushort TIMEOUT = 4;
     /// <summary>
     /// 404
     /// </summary>
-    public const ushort NotFound = 5;
+    public const ushort NOTFOUND = 5;
 }
 
 /// <summary>
@@ -32,6 +32,10 @@ public class CrossState
 /// </summary>
 public class CrossResult : CrossContentConv
 {
+    /// <summary>
+    /// RPC ID
+    /// </summary>
+    public string id { get; set; }
     /// <summary>
     /// RPC 状态
     /// </summary>

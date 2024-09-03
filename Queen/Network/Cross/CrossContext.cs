@@ -8,14 +8,19 @@ namespace Queen.Network.Cross;
 /// RPC 上下文
 /// </summary>
 /// <param name="channel">通信渠道</param>
+/// /// <param name="id">RPC ID</param>
 /// <param name="route">路径</param>
 /// <param name="content">传输内容</param>
-public class CrossContext(NetChannel channel, string route, string content) : CrossContentConv
+public class CrossContext(NetChannel channel, string id, string route, string content) : CrossContentConv
 {
     /// <summary>
     /// 通信渠道
     /// </summary>
     private NetChannel channel { get; set; } = channel;
+    /// <summary>
+    /// RPC ID
+    /// </summary>
+    public string id { get; set; } = id;
     /// <summary>
     /// 路径
     /// </summary>
@@ -44,9 +49,10 @@ public class CrossContext(NetChannel channel, string route, string content) : Cr
     /// <exception cref="Exception">响应的方法，state 传参必须为 Success 或 Error</exception>
     public void Response(ushort state, string content)
     {
-        if (CrossState.Success != state && CrossState.Error != state) throw new Exception("invoke response method, the state of parameter only can be success or error.");
+        if (CROSS_STATE.SUCCESS != state && CROSS_STATE.ERROR != state) throw new Exception("invoke response method, the state of parameter only can be success or error.");
         channel.Send(new ResCrossMessage
         {
+            id = id,
             state = state,
             content = content,
         });

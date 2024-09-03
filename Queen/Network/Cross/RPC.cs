@@ -39,15 +39,19 @@ public class RPC : Comp
     /// </summary>
     private uint requirecc { get; set; } = 0;
     /// <summary>
-    /// 客户端节点列表
+    /// 生成客户端节点的队列
     /// </summary>
-    private ConcurrentQueue<UDPClient> clients = new();
+    private ConcurrentQueue<UDPClient> bornclients = new();
+    /// <summary>
+    /// 客户端节点
+    /// </summary>
+    private Dictionary<string, UDPClient> clients = new();
 
     protected override void OnCreate()
     {
         base.OnCreate();
         server = AddComp<UDPServer>();
-        server.Initialize(ip, port, false, 10000, KEY, int.MaxValue);
+        server.Initialize(ip, port, false, int.MaxValue, KEY, int.MaxValue);
         server.Create();
         engine.eventor.Listen<ExecuteEvent>(OnExecute);
         server.Recv<ReqCrossMessage>(OnReqCross);
@@ -96,7 +100,7 @@ public class RPC : Comp
         if (false == ractions.ContainsKey(route)) return;
         ractions.Remove(route);
     }
-    
+
     /// <summary>
     /// RPC 通信
     /// </summary>
@@ -107,10 +111,12 @@ public class RPC : Comp
     /// <param name="callback">回调</param>
     public void Cross(string ip, ushort port, string route, string content, Action<ushort, string> callback = null)
     {
-        var client = ApplyClient();
+        var id = Guid.NewGuid().ToString();
+        var client = GetClient(ip, port);
         Action recycle = null;
         var action = (NetChannel channel, ResCrossMessage msg) =>
         {
+            if (msg.id != id) return;
             if (null == recycle) return;
             recycle?.Invoke();
             recycle = null;
@@ -120,20 +126,17 @@ public class RPC : Comp
         {
             // RPC 结束, 清理状态 && 断开连接
             client.UnRecv(action);
-            client.Disconnect();
-            clients.Enqueue(client);
         };
 
-        // UDP 与目标主机建立短链接
-        client.Connect(ip, port, KEY);
         client.Recv(action);
         // 发送 RPC 的数据
         client.Send(new ReqCrossMessage
         {
+            id = id,
             route = route,
             content = content,
         });
-        
+
         // 超时设定
         Task.Run(async () =>
         {
@@ -153,19 +156,21 @@ public class RPC : Comp
     /// <returns>RPC 结果</returns>
     public CrossResult Cross(string ip, ushort port, string route, string content)
     {
-        CrossResult result = new CrossResult { state = CrossState.Wait };
+        var id = Guid.NewGuid().ToString();
+        CrossResult result = new CrossResult { state = CROSS_STATE.WAIT };
         var action = (NetChannel channel, ResCrossMessage msg) =>
         {
+            if (msg.id != id) return;
+
             result.state = msg.state;
             result.content = msg.content;
         };
-        var client = ApplyClient();
-        // UDP 与目标主机建立短链接
-        client.Connect(ip, port, KEY);
+        var client = GetClient(ip, port);
         client.Recv(action);
         // 发送 RPC 的数据
         client.Send(new ReqCrossMessage
         {
+            id = id,
             route = route,
             content = content,
         });
@@ -174,16 +179,14 @@ public class RPC : Comp
         Task.Run(async () =>
         {
             await Task.Delay((int)timeout);
-            result.state = CrossState.Timeout;
+            result.state = CROSS_STATE.TIMEOUT;
         });
 
         // 等待响应中
-        while (CrossState.Wait == result.state) Thread.Sleep(1);
+        while (CROSS_STATE.WAIT == result.state) Thread.Sleep(1);
 
         // RPC 结束, 清理状态 && 断开连接
         client.UnRecv(action);
-        client.Disconnect();
-        clients.Enqueue(client);
 
         return result;
     }
@@ -211,31 +214,41 @@ public class RPC : Comp
     {
         if (false == ractions.TryGetValue(msg.route, out var action))
         {
-            channel.Send(new ResCrossMessage { state = CrossState.NotFound });
+            channel.Send(new ResCrossMessage { id = msg.id, state = CROSS_STATE.NOTFOUND });
 
             return;
         }
 
-        action.Invoke(new CrossContext(channel, msg.route, msg.content));
+        action.Invoke(new CrossContext(channel, msg.id, msg.route, msg.content));
     }
 
     /// <summary>
     /// 申请一个新的客户端节点
     /// </summary>
-    private UDPClient ApplyClient()
+    /// <param name="ip">IP 地址</param>
+    /// <param name="port">端口</param>
+    private UDPClient GetClient(string ip, ushort port)
     {
+        var key = $"{ip}:{port}";
         // 如果池子未有客户端节点，需要等待主线程分配客户端节点
-        if (false == clients.TryDequeue(out var client))
+        if (false == clients.TryGetValue(key, out var client))
         {
             // 申请一个新的客户端节点
             requirecc++;
             if (engine.ethread) BebornClients();
             while (true)
             {
-                if (clients.TryDequeue(out client)) break;
+                if (bornclients.TryDequeue(out client))
+                {
+                    clients.Add(key, client);
+                    break;
+                }
                 Thread.Sleep(1);
             }
         }
+
+        // UDP 与目标主机建立短链接
+        if (false == client.connected) client.Connect(ip, port, KEY);
 
         return client;
     }
@@ -253,14 +266,14 @@ public class RPC : Comp
             client.Initialize(true);
             client.Create();
 
-            clients.Enqueue(client);
+            bornclients.Enqueue(client);
         }
         requirecc = 0;
     }
 
     private void OnExecute(ExecuteEvent e)
     {
-        server.Notify();
         BebornClients();
+        server.Notify();
     }
 }
