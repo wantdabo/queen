@@ -47,7 +47,7 @@ public abstract class Comp
     /// <summary>
     /// 销毁一个 Queen 对象
     /// </summary>
-    public virtual void Destroy()
+    public void Destroy()
     {
         engine.EnsureThread();
         parent.RmvComp(this);
