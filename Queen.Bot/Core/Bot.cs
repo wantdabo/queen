@@ -1,4 +1,5 @@
-﻿using Queen.Common.Parallel.Instructions;
+﻿using Queen.Common.Parallel;
+using Queen.Common.Parallel.Instructions;
 using Queen.Core;
 using Queen.Network.Common;
 using Queen.Network.Cross;
@@ -18,12 +19,20 @@ public class Bot : Engine<Bot>
     /// 机器人配置
     /// </summary>
     public Settings settings { get; private set; }
+    /// <summary>
+    /// 协程
+    /// </summary>
+    public CoroutineScheduler coroutines { get; private set; }
 
     protected override void OnCreate()
     {
         base.OnCreate();
         settings = AddComp<Settings>();
         settings.Create();
+        
+        coroutines = AddComp<CoroutineScheduler>();
+        coroutines.Initialize(ticker);
+        coroutines.Create();
 
         engine.logger.Info($"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}", ConsoleColor.Yellow);
         engine.logger.Info("queen.bot is running...");
