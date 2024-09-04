@@ -34,6 +34,7 @@ public class Bot : Engine<Bot>
         rpc1.Create();
         rpc1.Routing("test/hello", (context) =>
         {
+            Thread.Sleep(6000);
             engine.logger.Info(context.content);
             context.Response(CROSS_STATE.SUCCESS, "你好，来访者。");
         });

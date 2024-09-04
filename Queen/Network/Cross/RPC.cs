@@ -31,6 +31,10 @@ public class RPC : Comp
     /// </summary>
     public uint timeout { get; private set; }
     /// <summary>
+    /// 死等上限
+    /// </summary>
+    public uint deadtime { get; private set; }
+    /// <summary>
     /// 服务器节点
     /// </summary>
     private UDPServer server { get; set; }
@@ -38,6 +42,10 @@ public class RPC : Comp
     /// 路由方法列表
     /// </summary>
     private Dictionary<string, Action<CrossContext>> ractions = new();
+    /// <summary>
+    /// RPC 请求消息的队列
+    /// </summary>
+    private ConcurrentQueue<(NetChannel, ReqCrossMessage)> reqlist = new();
     /// <summary>
     /// 生成客户端节点的队列
     /// </summary>
@@ -51,7 +59,7 @@ public class RPC : Comp
     {
         base.OnCreate();
         server = AddComp<UDPServer>();
-        server.Initialize(ip, port, false, int.MaxValue, KEY, int.MaxValue);
+        server.Initialize(ip, port, true, int.MaxValue, KEY, int.MaxValue);
         server.Create();
         server.Recv<ReqCrossMessage>(OnReqCross);
         engine.eventor.Listen<ExecuteEvent>(OnExecute);
@@ -71,13 +79,15 @@ public class RPC : Comp
     /// <param name="ip">IP 地址</param>
     /// <param name="port">端口</param>
     /// <param name="idleclientc">空闲等待的 Client 数量</param>
-    /// <param name="timeout">端口</param>
-    public void Initialize(string ip, ushort port, ushort idleclientc, uint timeout)
+    /// <param name="timeout">超时设定</param>
+    /// <param name="deadtime">死等上限</param>
+    public void Initialize(string ip, ushort port, ushort idleclientc, uint timeout, uint deadtime = 60000)
     {
         this.ip = ip;
         this.port = port;
         this.idleclientc = idleclientc;
         this.timeout = timeout;
+        this.deadtime = deadtime;
     }
 
     /// <summary>
@@ -148,7 +158,19 @@ public class RPC : Comp
     {
         var id = Guid.NewGuid().ToString();
         var client = GetClient(ip, port);
+        Action<NetChannel, ACKCrossMessage> ackation = null;
         Action<NetChannel, ResCrossMessage> action = null;
+
+        bool ack = false;
+        ackation = (channel, msg) =>
+        {
+            if (id.Equals(msg.id))
+            {
+                ack = true;
+                client.UnRecv(ackation);
+            }
+        };
+
         action = (channel, msg) =>
         {
             if (null == action) return;
@@ -158,12 +180,14 @@ public class RPC : Comp
             action = null;
         };
 
+        client.Recv(ackation);
         client.Recv(action);
         // 发送 RPC 的数据
         client.Send(new ReqCrossMessage { id = id, route = route, content = content });
         Task.Run(async () =>
         {
             await Task.Delay((int)timeout);
+            if (ack) await Task.Delay((int)deadtime);
             if (null == action) return;
             callback?.Invoke(new CrossResult { state = CROSS_STATE.TIMEOUT });
             client.UnRecv(action);
@@ -216,23 +240,6 @@ public class RPC : Comp
     }
 
     /// <summary>
-    /// 收到 RPC 消息
-    /// </summary>
-    /// <param name="channel">通信渠道</param>
-    /// <param name="msg">消息</param>
-    private void OnReqCross(NetChannel channel, ReqCrossMessage msg)
-    {
-        if (false == ractions.TryGetValue(msg.route, out var action))
-        {
-            channel.Send(new ResCrossMessage { id = msg.id, state = CROSS_STATE.NOTFOUND });
-
-            return;
-        }
-
-        action.Invoke(new CrossContext(channel, msg.id, msg.route, msg.content));
-    }
-
-    /// <summary>
     /// 申请一个新的客户端节点
     /// </summary>
     /// <param name="ip">IP 地址</param>
@@ -276,9 +283,40 @@ public class RPC : Comp
         }
     }
 
+    /// <summary>
+    /// RPC 消息同时
+    /// </summary>
+    private void NotifyRPC()
+    {
+        while (reqlist.TryDequeue(out var req))
+        {
+            if (false == ractions.TryGetValue(req.Item2.route, out var action))
+            {
+                req.Item1.Send(new ResCrossMessage { id = req.Item2.id, state = CROSS_STATE.NOTFOUND });
+
+                return;
+            }
+
+            action.Invoke(new CrossContext(req.Item1, req.Item2.id, req.Item2.route, req.Item2.content));
+        }
+    }
+    
+    /// <summary>
+    /// 收到 RPC 消息
+    /// </summary>
+    /// <param name="channel">通信渠道</param>
+    /// <param name="msg">消息</param>
+    private void OnReqCross(NetChannel channel, ReqCrossMessage msg)
+    {
+        // 发送 ACK
+        channel.Send(new ACKCrossMessage { id = msg.id });
+        // RPC 消息进入队列
+        reqlist.Enqueue((channel, msg));
+    }
+
     private void OnExecute(ExecuteEvent e)
     {
+        NotifyRPC();
         BebornClients();
-        server.Notify();
     }
 }

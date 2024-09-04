@@ -38,7 +38,6 @@
 ---
 
 ### TODO
-- RPC 收到即刻取消请求端的 TIMEOUT 机制，进行死等。
 - Role 与 Role 之间 RPC 优雅 API 包装支持
 - Role 冷销毁/热内存常驻
 - Eventor Tell 执行过程移除导致 BUG

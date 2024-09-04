@@ -3,6 +3,18 @@ using MessagePack;
 namespace Queen.Protocols.Common
 {
     /// <summary>
+    /// RPC ACK 消息
+    /// </summary>
+    [MessagePackObject(true)]
+    public class ACKCrossMessage : INetMessage
+    {
+        /// <summary>
+        /// RPC ID
+        /// </summary>
+        public string id { get; set; }
+    }
+
+    /// <summary>
     /// RPC 发起消息
     /// </summary>
     [MessagePackObject(true)]
