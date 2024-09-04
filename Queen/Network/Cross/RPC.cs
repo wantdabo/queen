@@ -146,7 +146,29 @@ public class RPC : Comp
     /// <param name="callback">回调</param>
     public void CrossAsync(string ip, ushort port, string route, string content, Action<CrossResult> callback = null)
     {
-        Task.Run(() => callback?.Invoke(CrossSync(ip, port, route, content)));
+        var id = Guid.NewGuid().ToString();
+        var client = GetClient(ip, port);
+        Action<NetChannel, ResCrossMessage> action = null;
+        action = (channel, msg) =>
+        {
+            if (null == action) return;
+            if (msg.id != id) return;
+            callback?.Invoke(new CrossResult { state = msg.state, content = msg.content });
+            client.UnRecv(action);
+            action = null;
+        };
+
+        client.Recv(action);
+        // 发送 RPC 的数据
+        client.Send(new ReqCrossMessage { id = id, route = route, content = content });
+        Task.Run(async () =>
+        {
+            await Task.Delay((int)timeout);
+            if (null == action) return;
+            callback?.Invoke(new CrossResult { state = CROSS_STATE.TIMEOUT });
+            client.UnRecv(action);
+            action = null;
+        });
     }
 
     /// <summary>
@@ -173,37 +195,8 @@ public class RPC : Comp
     /// <returns>RPC 结果</returns>
     public CrossResult CrossSync(string ip, ushort port, string route, string content)
     {
-        var id = Guid.NewGuid().ToString();
-        CrossResult result = new CrossResult { state = CROSS_STATE.WAIT };
-        var action = (NetChannel channel, ResCrossMessage msg) =>
-        {
-            if (msg.id != id) return;
-
-            result.state = msg.state;
-            result.content = msg.content;
-        };
-        var client = GetClient(ip, port);
-        client.Recv(action);
-        // 发送 RPC 的数据
-        client.Send(new ReqCrossMessage
-        {
-            id = id,
-            route = route,
-            content = content,
-        });
-
-        // 超时设定
-        Task.Run(async () =>
-        {
-            await Task.Delay((int)timeout);
-            result.state = CROSS_STATE.TIMEOUT;
-        });
-
-        // 等待响应中
-        while (CROSS_STATE.WAIT == result.state) Thread.Sleep(1);
-
-        // RPC 结束, 清理状态 && 断开连接
-        client.UnRecv(action);
+        var result = CrossAsync(ip, port, route, content);
+        if (CROSS_STATE.WAIT == result.state) Thread.Sleep(1);
 
         return result;
     }
@@ -250,10 +243,9 @@ public class RPC : Comp
         // 如果池子未有客户端节点，需要等待主线程分配客户端节点
         if (false == clients.TryGetValue(key, out var client))
         {
-            // 申请一个新的客户端节点
-            if (engine.ethread) BebornClients();
             while (true)
             {
+                if (engine.ethread) BebornClients();
                 if (bornclients.TryDequeue(out client))
                 {
                     clients.TryAdd(key, client);
