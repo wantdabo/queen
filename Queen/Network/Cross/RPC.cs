@@ -23,6 +23,10 @@ public class RPC : Comp
     /// </summary>
     public ushort port { get; private set; }
     /// <summary>
+    /// 空闲等待的 Client 数量
+    /// </summary>
+    public ushort idleclientc { get; private set; }
+    /// <summary>
     /// 超时设定
     /// </summary>
     public uint timeout { get; private set; }
@@ -35,17 +39,13 @@ public class RPC : Comp
     /// </summary>
     private Dictionary<string, Action<CrossContext>> ractions = new();
     /// <summary>
-    /// 客户端节点需求新增
-    /// </summary>
-    private uint requirecc { get; set; } = 0;
-    /// <summary>
     /// 生成客户端节点的队列
     /// </summary>
     private ConcurrentQueue<UDPClient> bornclients = new();
     /// <summary>
     /// 客户端节点
     /// </summary>
-    private Dictionary<string, UDPClient> clients = new();
+    private ConcurrentDictionary<string, UDPClient> clients = new();
 
     protected override void OnCreate()
     {
@@ -53,16 +53,16 @@ public class RPC : Comp
         server = AddComp<UDPServer>();
         server.Initialize(ip, port, false, int.MaxValue, KEY, int.MaxValue);
         server.Create();
-        engine.eventor.Listen<ExecuteEvent>(OnExecute);
         server.Recv<ReqCrossMessage>(OnReqCross);
+        engine.eventor.Listen<ExecuteEvent>(OnExecute);
     }
 
     protected override void OnDestroy()
     {
         base.OnDestroy();
-        engine.eventor.UnListen<ExecuteEvent>(OnExecute);
         server.UnRecv<ReqCrossMessage>(OnReqCross);
         server.Destroy();
+        engine.eventor.UnListen<ExecuteEvent>(OnExecute);
     }
 
     /// <summary>
@@ -70,11 +70,13 @@ public class RPC : Comp
     /// </summary>
     /// <param name="ip">IP 地址</param>
     /// <param name="port">端口</param>
+    /// <param name="idleclientc">空闲等待的 Client 数量</param>
     /// <param name="timeout">端口</param>
-    public void Initialize(string ip, ushort port, uint timeout)
+    public void Initialize(string ip, ushort port, ushort idleclientc, uint timeout)
     {
         this.ip = ip;
         this.port = port;
+        this.idleclientc = idleclientc;
         this.timeout = timeout;
     }
 
@@ -86,8 +88,7 @@ public class RPC : Comp
     /// <exception cref="Exception">不能添加重复的路径</exception>
     public void Routing(string route, Action<CrossContext> action)
     {
-        if (ractions.ContainsKey(route)) throw new Exception("route can't be repeat.");
-        ractions.Add(route, action);
+        if (false == ractions.TryAdd(route, action)) throw new Exception("route can't be repeat.");
     }
 
     /// <summary>
@@ -108,38 +109,44 @@ public class RPC : Comp
     /// <param name="port">目标主机端口</param>
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
-    /// <param name="callback">回调</param>
-    public void Cross(string ip, ushort port, string route, string content, Action<ushort, string> callback = null)
+    /// <returns>RPC 结果</returns>
+    public CrossResult CrossAsync(string ip, ushort port, string route, string content)
     {
-        var id = Guid.NewGuid().ToString();
-        var client = GetClient(ip, port);
-        bool istimeout = false;
-        Action<NetChannel, ResCrossMessage> action = null;
-        action = (channel, msg) =>
+        var result = new CrossResult();
+        CrossAsync(ip, port, route, content, (r) =>
         {
-            if (istimeout) return;
-            if (msg.id != id) return;
-            
-            client.UnRecv(action);
-            callback?.Invoke(msg.state, msg.content);
-        };
-
-        client.Recv(action);
-        // 发送 RPC 的数据
-        client.Send(new ReqCrossMessage
-        {
-            id = id,
-            route = route,
-            content = content,
+            result.state = r.state;
+            result.content = r.content;
         });
 
-        // 超时设定
-        Task.Run(async () =>
-        {
-            await Task.Delay((int)timeout);
-            istimeout = true;
-            client.UnRecv(action);
-        });
+        return result;
+    }
+
+    /// <summary>
+    /// RPC 通信
+    /// </summary>
+    /// <param name="ip">目标主机 IP</param>
+    /// <param name="port">目标主机端口</param>
+    /// <param name="route">路径</param>
+    /// <param name="content">传输内容</param>
+    /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
+    /// <returns>RPC 结果</returns>
+    public CrossResult CrossAsync<T>(string ip, ushort port, string route, T content) where T : class
+    {
+        return CrossAsync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content));
+    }
+
+    /// <summary>
+    /// RPC 通信
+    /// </summary>
+    /// <param name="ip">目标主机 IP</param>
+    /// <param name="port">目标主机端口</param>
+    /// <param name="route">路径</param>
+    /// <param name="content">传输内容</param>
+    /// <param name="callback">回调</param>
+    public void CrossAsync(string ip, ushort port, string route, string content, Action<CrossResult> callback = null)
+    {
+        Task.Run(() => callback?.Invoke(CrossSync(ip, port, route, content)));
     }
 
     /// <summary>
@@ -151,9 +158,9 @@ public class RPC : Comp
     /// <param name="content">传输内容</param>
     /// <param name="callback">回调</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
-    public void Cross<T>(string ip, ushort port, string route, T content, Action<ushort, string> callback = null) where T : class
+    public void CrossAsync<T>(string ip, ushort port, string route, T content, Action<CrossResult> callback = null) where T : class
     {
-        Cross(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), callback);
+        CrossAsync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), callback);
     }
 
     /// <summary>
@@ -164,7 +171,7 @@ public class RPC : Comp
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
     /// <returns>RPC 结果</returns>
-    public CrossResult Cross(string ip, ushort port, string route, string content)
+    public CrossResult CrossSync(string ip, ushort port, string route, string content)
     {
         var id = Guid.NewGuid().ToString();
         CrossResult result = new CrossResult { state = CROSS_STATE.WAIT };
@@ -210,9 +217,9 @@ public class RPC : Comp
     /// <param name="content">传输内容</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
     /// <returns>RPC 结果</returns>
-    public CrossResult Cross<T>(string ip, ushort port, string route, T content) where T : class
+    public CrossResult CrossSync<T>(string ip, ushort port, string route, T content) where T : class
     {
-        return Cross(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content));
+        return CrossSync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content));
     }
 
     /// <summary>
@@ -244,13 +251,12 @@ public class RPC : Comp
         if (false == clients.TryGetValue(key, out var client))
         {
             // 申请一个新的客户端节点
-            requirecc++;
             if (engine.ethread) BebornClients();
             while (true)
             {
                 if (bornclients.TryDequeue(out client))
                 {
-                    clients.Add(key, client);
+                    clients.TryAdd(key, client);
                     break;
                 }
                 Thread.Sleep(1);
@@ -269,16 +275,13 @@ public class RPC : Comp
     private void BebornClients()
     {
         // 新增客户端节点（需要在主线才能新增）
-        if (0 > requirecc) return;
-        for (int i = 0; i < requirecc; i++)
+        while (idleclientc > bornclients.Count)
         {
             var client = AddComp<UDPClient>();
             client.Initialize(true);
             client.Create();
-
             bornclients.Enqueue(client);
         }
-        requirecc = 0;
     }
 
     private void OnExecute(ExecuteEvent e)

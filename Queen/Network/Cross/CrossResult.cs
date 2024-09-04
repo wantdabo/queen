@@ -35,7 +35,7 @@ public class CrossResult : CrossContentConv
     /// <summary>
     /// RPC 状态
     /// </summary>
-    public ushort state { get; set; }
+    public ushort state { get; set; } = CROSS_STATE.WAIT;
     /// <summary>
     /// 传输内容
     /// </summary>
