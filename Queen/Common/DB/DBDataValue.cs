@@ -26,7 +26,7 @@ public class DBDataValue : DBValue<DBDataValue>
 
     public override void Set(DBDataValue src)
     {
-            prefix = src.prefix;
-            value = src.value;
-        }
+        prefix = src.prefix;
+        value = src.value;
+    }
 }

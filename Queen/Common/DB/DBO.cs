@@ -21,23 +21,23 @@ public class DBO : Comp
     /// <summary>
     /// DB 端口
     /// </summary>
-    public int dbport{ get; private set; }
+    public int dbport { get; private set; }
     /// <summary>
     /// DB 身份校验
     /// </summary>
-    public bool dbauth{ get; private set; }
+    public bool dbauth { get; private set; }
     /// <summary>
     /// DB 用户名
     /// </summary>
-    public string dbuser{ get; private set; }
+    public string dbuser { get; private set; }
     /// <summary>
     /// DB 密码
     /// </summary>
-    public string dbpwd{ get; private set; }
+    public string dbpwd { get; private set; }
     /// <summary>
     /// DB 名字
     /// </summary>
-    public string dbname{ get; private set; }
+    public string dbname { get; private set; }
     /// <summary>
     /// Mongo 连接
     /// </summary>
@@ -45,18 +45,18 @@ public class DBO : Comp
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            if (dbauth)
-                connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}");
-            else
-                connect = new MongoClient($"mongodb://{dbhost}:{dbport}/{dbname}");
-        }
+        base.OnCreate();
+        if (dbauth)
+            connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}");
+        else
+            connect = new MongoClient($"mongodb://{dbhost}:{dbport}/{dbname}");
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-            connect = null;
-        }
+        base.OnDestroy();
+        connect = null;
+    }
 
     /// <summary>
     /// 配置数据库
@@ -69,13 +69,13 @@ public class DBO : Comp
     /// <param name="dbname">DB 名字</param>
     public void Initialize(string dbhost, int dbport, bool dbauth, string dbuser, string dbpwd, string dbname)
     {
-            this.dbhost = dbhost;
-            this.dbport = dbport;
-            this.dbauth = dbauth;
-            this.dbuser = dbuser;
-            this.dbpwd = dbpwd;
-            this.dbname = dbname;
-        }
+        this.dbhost = dbhost;
+        this.dbport = dbport;
+        this.dbauth = dbauth;
+        this.dbuser = dbuser;
+        this.dbpwd = dbpwd;
+        this.dbname = dbname;
+    }
 
     /// <summary>
     /// Mongo 新增
@@ -86,12 +86,12 @@ public class DBO : Comp
     /// <returns>YES/NO</returns>
     public bool Insert<T>(string name, T value) where T : DBValue<T>
     {
-            var database = connect.GetDatabase(dbname);
-            var collection = database.GetCollection<T>(name);
-            collection.InsertOne(value);
+        var database = connect.GetDatabase(dbname);
+        var collection = database.GetCollection<T>(name);
+        collection.InsertOne(value);
 
-            return true;
-        }
+        return true;
+    }
 
     /// <summary>
     /// Mongo 删除
@@ -102,12 +102,12 @@ public class DBO : Comp
     /// <returns>YES/NO</returns>
     public bool Delete<T>(string name, FilterDefinition<T> filter) where T : DBValue<T>
     {
-            var database = connect.GetDatabase(dbname);
-            var collection = database.GetCollection<T>(name);
-            var result = collection.DeleteOne(filter);
+        var database = connect.GetDatabase(dbname);
+        var collection = database.GetCollection<T>(name);
+        var result = collection.DeleteOne(filter);
 
-            return result.DeletedCount > 0;
-        }
+        return result.DeletedCount > 0;
+    }
 
     /// <summary>
     /// Mongo 更新
@@ -119,16 +119,16 @@ public class DBO : Comp
     /// <returns>YES/NO</returns>
     public bool Update<T>(string name, FilterDefinition<T> filter, T value) where T : DBValue<T>, new()
     {
-            if (false == Find(name, filter, out var values)) return false;
+        if (false == Find(name, filter, out var values)) return false;
 
-            var val = values.First();
-            val.Set(value);
-            var database = connect.GetDatabase(dbname);
-            var collection = database.GetCollection<T>(name);
-            var result = collection.ReplaceOne(filter, val);
+        var val = values.First();
+        val.Set(value);
+        var database = connect.GetDatabase(dbname);
+        var collection = database.GetCollection<T>(name);
+        var result = collection.ReplaceOne(filter, val);
 
-            return result.ModifiedCount > 0;
-        }
+        return result.ModifiedCount > 0;
+    }
 
     /// <summary>
     /// Mongo 覆盖（如有数据，将会更新，否则便新增）
@@ -140,10 +140,10 @@ public class DBO : Comp
     /// <returns>YES/NO</returns>
     public bool Replace<T>(string name, FilterDefinition<T> filter, T value) where T : DBValue<T>, new()
     {
-            if (false == Find(name, filter, out var values)) return Insert(name, value);
+        if (false == Find(name, filter, out var values)) return Insert(name, value);
 
-            return Update(name, filter, value);
-        }
+        return Update(name, filter, value);
+    }
 
     /// <summary>
     /// Mongo 查询
@@ -155,11 +155,11 @@ public class DBO : Comp
     /// <returns>YES/NO</returns>
     public bool Find<T>(string name, FilterDefinition<T> filter, out List<T> values) where T : DBValue<T>, new()
     {
-            var database = connect.GetDatabase(dbname);
-            var collection = database.GetCollection<T>(name);
-            var result = collection.FindSync(filter);
-            values = result.ToList();
+        var database = connect.GetDatabase(dbname);
+        var collection = database.GetCollection<T>(name);
+        var result = collection.FindSync(filter);
+        values = result.ToList();
 
-            return values.Count > 0;
-        }
+        return values.Count > 0;
+    }
 }

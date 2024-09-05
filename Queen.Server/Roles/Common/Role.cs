@@ -77,7 +77,6 @@ public class Role : Comp
     /// 在线
     /// </summary>
     public bool online { get; private set; }
-
     /// <summary>
     /// 玩家信息
     /// </summary>
@@ -86,52 +85,42 @@ public class Role : Comp
     /// 玩家信息 (数据库)
     /// </summary>
     private RoleInfo dbcache { get; set; }
-
     /// <summary>
     /// 玩家信息备份
     /// </summary>
     private RoleInfo backup { get; set; }
-
     /// <summary>
     /// 玩家会话
     /// </summary>
     public Session session { get; set; }
-
     /// <summary>
     /// 事件订阅派发者
     /// </summary>
     public Eventor eventor { get; set; }
-
     /// <summary>
     /// 工作中
     /// </summary>
     public bool working { get; private set; }
-
     /// <summary>
     /// 任务列表
     /// </summary>
     private ConcurrentQueue<Action> jobs = new();
-
     /// <summary>
     /// 发送列表
     /// </summary>
     private ConcurrentQueue<Action> sends = new();
-
     /// <summary>
     /// behaviors 集合
     /// </summary>
     private Dictionary<Type, RoleBehavior> behaviorDict = new();
-
     /// <summary>
     /// 协议映射集合
     /// </summary>
     private Dictionary<Delegate, Delegate> actionDict = new();
-
     /// <summary>
     /// 心跳计时器 ID
     /// </summary>
     private uint heartbeatTiming { get; set; }
-
     /// <summary>
     /// 数据自动保存计时器 ID
     /// </summary>
@@ -151,7 +140,7 @@ public class Role : Comp
         {
             Heartbeat();
         }, 5, -1);
-        
+
         // 数据写盘
         dbsaveTiming = engine.ticker.Timing((t) => TODO(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
 
@@ -254,13 +243,13 @@ public class Role : Comp
     {
         sends.Enqueue(() => { session.channel.Send(msg); });
     }
-        
+
     /// <summary>
     /// 心跳
     /// </summary>
     private void Heartbeat()
     {
-        Send(new S2CHeartbeatMsg { timestamp = DateTimeOffset.Now.ToUnixTimeSeconds() });
+        Send(new S2CHeartbeatMsg { timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds() });
     }
 
     /// <summary>
@@ -308,7 +297,7 @@ public class Role : Comp
         if (working) return;
 
         if (0 == jobs.Count) return;
-            
+
         // 开启任务线程
         Task.Run(() =>
         {
@@ -318,14 +307,14 @@ public class Role : Comp
                 while (true)
                 {
                     if (false == jobs.TryDequeue(out var job)) break;
-                        
+
                     // 备份数据
                     Backup();
                     // 执行任务
                     job.Invoke();
                     // 重置备份
                     Reset();
-                        
+
                     // 任务中产生的有效数据，推送至客户端
                     while (sends.TryDequeue(out var send)) send.Invoke();
                 }
@@ -368,7 +357,7 @@ public class Role : Comp
     private void OnRoleQuit(RoleQuitEvent e)
     {
         if (e.role.info.uuid != info.uuid) return;
-            
+
         jobs.Clear();
         TODO(() =>
         {

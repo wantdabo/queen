@@ -16,15 +16,15 @@ public class Random : Comp
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            seed = int.MaxValue;
-            random = new System.Random(seed);
-        }
+        base.OnCreate();
+        seed = int.MaxValue;
+        random = new System.Random(seed);
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-        }
+        base.OnDestroy();
+    }
 
     /// <summary>
     /// 整数范围随机
@@ -34,8 +34,8 @@ public class Random : Comp
     /// <returns>结果</returns>
     public int Range(int min, int max)
     {
-            return random.Next(min, max);
-        }
+        return random.Next(min, max);
+    }
 
     /// <summary>
     /// 浮点数范围随机
@@ -45,6 +45,6 @@ public class Random : Comp
     /// <returns>结果</returns>
     public float Range(float min, float max)
     {
-            return random.Next((int)(min * engine.cfg.float2Int), (int)(max * engine.cfg.float2Int)) * engine.cfg.int2Float;
-        }
+        return random.Next((int)(min * engine.cfg.float2Int), (int)(max * engine.cfg.float2Int)) * engine.cfg.int2Float;
+    }
 }

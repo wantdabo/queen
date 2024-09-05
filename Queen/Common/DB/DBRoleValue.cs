@@ -35,9 +35,9 @@ public class DBRoleValue : DBValue<DBRoleValue>
 
     public override void Set(DBRoleValue src)
     {
-            uuid = src.uuid;
-            nickname = src.nickname;
-            username = src.username;
-            password = src.password;
-        }
+        uuid = src.uuid;
+        nickname = src.nickname;
+        username = src.username;
+        password = src.password;
+    }
 }
