@@ -2,6 +2,8 @@
 using Queen.Core;
 using Queen.Protocols;
 using Queen.Common.DB;
+using Queen.Common.MDB;
+using Queen.Network.Cross;
 using Queen.Server.System.Authentication;
 using Queen.Server.System.Commune;
 
@@ -21,40 +23,56 @@ public class Server : Engine<Server>
     /// </summary>
     public DBO dbo { get; private set; }
     /// <summary>
+    /// 内存数据库
+    /// </summary>
+    public MDBO mdbo { get; private set; }
+    /// <summary>
     /// 网络
     /// </summary>
     public Slave slave { get; private set; }
+    /// <summary>
+    /// RPC
+    /// </summary>
+    public RPC rpc { get; private set; }
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            settings = AddComp<Settings>();
-            settings.Create();
+        base.OnCreate();
+        settings = AddComp<Settings>();
+        settings.Create();
 
-            dbo = AddComp<DBO>();
-            dbo.Initialize(settings.dbhost, settings.dbport, settings.dbauth, settings.dbuser, settings.dbpwd, settings.dbname);
-            dbo.Create();
+        dbo = AddComp<DBO>();
+        dbo.Initialize(settings.dbhost, settings.dbport, settings.dbauth, settings.dbuser, settings.dbpwd, settings.dbname);
+        dbo.Create();
 
-            slave = AddComp<Slave>();
-            slave.Initialize(settings.host, settings.port, settings.maxconn, settings.sthread, settings.maxpps);
-            slave.Create();
+        mdbo = AddComp<MDBO>();
+        mdbo.Initialize(settings.mdbhost, settings.mdbport, settings.mdbpwd);
+        mdbo.Create();
 
-            var authenticator = AddComp<Authenticator>();
-            var party = AddComp<Party>();
-            authenticator.Create();
-            party.Create();
+        slave = AddComp<Slave>();
+        slave.Initialize(settings.host, settings.port, settings.maxconn, settings.sthread, settings.maxpps);
+        slave.Create();
 
-            engine.logger.Info(
-                $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
-                $"\n\tdbhost: {settings.dbhost}\n\tdbport: {settings.dbport}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
-                , ConsoleColor.Yellow);
-            engine.logger.Info("queen.server is running...");
+        rpc = AddComp<RPC>();
+        rpc.Initialize(settings.rpchost, settings.rpcport, settings.rpcidlecc, settings.rpctimeout, settings.rpcdeadtime);
+        rpc.Create();
 
-            Console.Title = settings.name;
-        }
+        var authenticator = AddComp<Authenticator>();
+        var party = AddComp<Party>();
+        authenticator.Create();
+        party.Create();
+
+        engine.logger.Info(
+            $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
+            $"\n\tdbhost: {settings.dbhost}\n\tdbport: {settings.dbport}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
+        , ConsoleColor.Yellow);
+        engine.logger.Info("queen.server is running...");
+
+        Console.Title = settings.name;
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-        }
+        base.OnDestroy();
+    }
 }

@@ -25,7 +25,7 @@ public class RPC : Comp
     /// <summary>
     /// 空闲等待的 Client 数量
     /// </summary>
-    public ushort idleclientc { get; private set; }
+    public ushort idlecc { get; private set; }
     /// <summary>
     /// 超时设定
     /// </summary>
@@ -78,14 +78,14 @@ public class RPC : Comp
     /// </summary>
     /// <param name="ip">IP 地址</param>
     /// <param name="port">端口</param>
-    /// <param name="idleclientc">空闲等待的 Client 数量</param>
+    /// <param name="idlecc">空闲等待的 Client 数量</param>
     /// <param name="timeout">超时设定</param>
     /// <param name="deadtime">死等上限</param>
-    public void Initialize(string ip, ushort port, ushort idleclientc, uint timeout, uint deadtime = 60000)
+    public void Initialize(string ip, ushort port, ushort idlecc, uint timeout, uint deadtime = 60000)
     {
         this.ip = ip;
         this.port = port;
-        this.idleclientc = idleclientc;
+        this.idlecc = idlecc;
         this.timeout = timeout;
         this.deadtime = deadtime;
     }
@@ -274,7 +274,7 @@ public class RPC : Comp
     private void BebornClients()
     {
         // 新增客户端节点（需要在主线才能新增）
-        while (idleclientc > bornclients.Count)
+        while (idlecc > bornclients.Count)
         {
             var client = AddComp<UDPClient>();
             client.Initialize(true);

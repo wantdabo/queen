@@ -14,88 +14,116 @@ public class Settings : Comp
     /// 服务器名字
     /// </summary>
     public string name { get; private set; }
-
     /// <summary>
     /// 主机
     /// </summary>
     public string host { get; private set; }
-
     /// <summary>
     /// 端口
     /// </summary>
     public ushort port { get; private set; }
-
     /// <summary>
     /// 最大连接数
     /// </summary>
     public int maxconn { get; private set; }
-
     /// <summary>
     /// Slave（主网）最大工作线程
     /// </summary>
-    public int sthread { get; private set;}
-
+    public int sthread { get; private set; }
     /// <summary>
     /// 最大网络收发包每秒
     /// </summary>
     public int maxpps { get; private set; }
-
     /// <summary>
     /// 数据库主机
     /// </summary>
     public string dbhost { get; private set; }
-
     /// <summary>
     /// 数据库端口
     /// </summary>
     public int dbport { get; private set; }
-
+    /// <summary>
+    /// RPC 主机
+    /// </summary>
+    public string rpchost { get; private set; }
+    /// <summary>
+    /// RPC 端口
+    /// </summary>
+    public ushort rpcport { get; private set; }
+    /// <summary>
+    /// RPC 闲置等待的数量（库存通信用的 RPC.Clinet）
+    /// </summary>
+    public ushort rpcidlecc { get; private set; }
+    /// <summary>
+    /// RPC 超时设定
+    /// </summary>
+    public uint rpctimeout { get; private set; }
+    /// <summary>
+    /// RPC 超时延长，目标如果收到 RPC 消息 ACK，将会进入这个等待时长
+    /// </summary>
+    public uint rpcdeadtime { get; private set; }
     /// <summary>
     /// 数据库名
     /// </summary>
     public string dbname { get; private set; }
-
     /// <summary>
     /// 数据库身份校验
     /// </summary>
     public bool dbauth { get; private set; }
-
     /// <summary>
     /// 数据库用户名
     /// </summary>
     public string dbuser { get; private set; }
-
     /// <summary>
     /// 数据库密码
     /// </summary>
     public string dbpwd { get; private set; }
-
     /// <summary>
     /// 数据落地时间间隔（秒）
     /// </summary>
     public int dbsave { get; private set; }
+    /// <summary>
+    /// 内存数据库主机
+    /// </summary>
+    public string mdbhost { get; private set; }
+    /// <summary>
+    /// 内存数据库端口
+    /// </summary>
+    public ushort mdbport { get; private set; }
+    /// <summary>
+    /// 内存数据库密码
+    /// </summary>
+    public string mdbpwd { get; private set; }
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            var jobj = JObject.Parse(File.ReadAllText($"{Directory.GetCurrentDirectory()}/Res/settings.json"));
-            name = jobj.Value<string>("name");
-            host = jobj.Value<string>("host");
-            port = jobj.Value<ushort>("port");
-            maxconn = jobj.Value<int>("maxconn");
-            sthread = jobj.Value<int>("sthread");
-            maxpps = jobj.Value<int>("maxpps");
-            dbhost = jobj.Value<string>("dbhost");
-            dbport = jobj.Value<int>("dbport");
-            dbname = jobj.Value<string>("dbname");
-            dbauth = jobj.Value<bool>("dbauth");
-            dbuser = jobj.Value<string>("dbuser");
-            dbpwd = jobj.Value<string>("dbpwd");
-            dbsave = jobj.Value<int>("dbsave");
-        }
+        base.OnCreate();
+        var jobj = JObject.Parse(File.ReadAllText($"{Directory.GetCurrentDirectory()}/Res/settings.json"));
+        name = jobj.Value<string>("name");
+        host = jobj.Value<string>("host");
+        port = jobj.Value<ushort>("port");
+        maxconn = jobj.Value<int>("maxconn");
+        sthread = jobj.Value<int>("sthread");
+        maxpps = jobj.Value<int>("maxpps");
+        rpchost = jobj.Value<string>("rpchost");
+        rpcport = jobj.Value<ushort>("rpcport");
+        rpcidlecc = jobj.Value<ushort>("rpcidlecc");
+        rpctimeout = jobj.Value<uint>("rpctimeout");
+        rpcdeadtime = jobj.Value<uint>("rpcdeadtime");
+        dbhost = jobj.Value<string>("dbhost");
+        dbport = jobj.Value<int>("dbport");
+        dbname = jobj.Value<string>("dbname");
+        dbauth = jobj.Value<bool>("dbauth");
+        dbuser = jobj.Value<string>("dbuser");
+        dbpwd = jobj.Value<string>("dbpwd");
+        dbsave = jobj.Value<int>("dbsave");
+        mdbhost = jobj.Value<string>("mdbhost");
+        mdbport = jobj.Value<ushort>("mdbport");
+        mdbpwd = jobj.Value<string>("mdbpwd");
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-        }
+        base.OnDestroy();
+    }
 }
