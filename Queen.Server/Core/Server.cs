@@ -57,10 +57,8 @@ public class Server : Engine<Server>
         rpc.Initialize(settings.rpchost, settings.rpcport, settings.rpcidlecc, settings.rpctimeout, settings.rpcdeadtime);
         rpc.Create();
 
-        var authenticator = AddComp<Authenticator>();
-        var party = AddComp<Party>();
-        authenticator.Create();
-        party.Create();
+        AddComp<Party>().Create();
+        AddComp<Authenticator>().Create();
 
         engine.logger.Info(
             $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +

@@ -6,6 +6,7 @@ using Queen.Protocols;
 using Queen.Protocols.Common;
 using Queen.Server.Core;
 using Queen.Server.Roles.Bags;
+using Queen.Server.Roles.Common.Contacts;
 using Queen.Server.System.Commune;
 using System.Collections.Concurrent;
 
@@ -168,10 +169,24 @@ public class Role : Comp
         this.dbcache = info;
     }
 
+    /// <summary>
+    /// 联系
+    /// </summary>
+    public Contact contact { get; private set; }
+    /// <summary>
+    /// 背包
+    /// </summary>
+    public Bag bag { get; private set; }
+
     private void Behaviors()
     {
+        contact = AddComp<Contact>();
+        contact.Initialize(this);
+        contact.Create();
+        
         // 背包
-        AddBehavior<Bag>().Create();
+        bag = AddBehavior<Bag>();
+        bag.Create();
     }
 
     /// <summary>

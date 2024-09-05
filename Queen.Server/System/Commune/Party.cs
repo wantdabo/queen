@@ -73,15 +73,15 @@ public class Party : Sys
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            engine.eventor.Listen<ExecuteEvent>(OnExecute);
-        }
+        base.OnCreate();
+        engine.eventor.Listen<ExecuteEvent>(OnExecute);
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-            engine.eventor.UnListen<ExecuteEvent>(OnExecute);
-        }
+        base.OnDestroy();
+        engine.eventor.UnListen<ExecuteEvent>(OnExecute);
+    }
 
     /// <summary>
     /// 玩家加入
@@ -90,23 +90,23 @@ public class Party : Sys
     /// <returns>玩家</returns>
     public void Join(RoleJoinInfo info)
     {
-            var role = GetRole(info.uuid);
-            if (null != role) Quit(role);
-            
-            if (null == role)
-            {
-                role = AddComp<Role>();
-                role.session = role.AddComp<Session>();
-                role.session.Create();
-                role.Initialize(new() { uuid = info.uuid, username = info.username, nickname = info.nickname, password = info.password });
-                role.Create();
-                roleDict.Add(role.info.uuid, role);
-            }
-            role.session.channel = info.channel;
-            
-            if (role.online) return;
-            engine.eventor.Tell(new RoleJoinEvent { role = role });
+        var role = GetRole(info.uuid);
+        if (null != role) Quit(role);
+
+        if (null == role)
+        {
+            role = AddComp<Role>();
+            role.session = role.AddComp<Session>();
+            role.session.Create();
+            role.Initialize(new() { uuid = info.uuid, username = info.username, nickname = info.nickname, password = info.password });
+            role.Create();
+            roleDict.Add(role.info.uuid, role);
         }
+        role.session.channel = info.channel;
+
+        if (role.online) return;
+        engine.eventor.Tell(new RoleJoinEvent { role = role });
+    }
 
     /// <summary>
     /// 玩家退出
@@ -114,9 +114,9 @@ public class Party : Sys
     /// <param name="role">玩家</param>
     public void Quit(Role role)
     {
-            if (false == role.online) return;
-            engine.eventor.Tell(new RoleQuitEvent { role = role });
-        }
+        if (false == role.online) return;
+        engine.eventor.Tell(new RoleQuitEvent { role = role });
+    }
 
     /// <summary>
     /// 获取玩家
@@ -125,10 +125,10 @@ public class Party : Sys
     /// <returns>玩家</returns>
     public Role GetRole(string uuid)
     {
-            roleDict.TryGetValue(uuid, out var role);
+        roleDict.TryGetValue(uuid, out var role);
 
-            return role;
-        }
+        return role;
+    }
 
     /// <summary>
     /// 获取玩家
@@ -137,16 +137,16 @@ public class Party : Sys
     /// <returns>玩家</returns>
     public Role GetRole(NetChannel channel)
     {
-            foreach (var kv in roleDict)
-            {
-                if (channel.id == kv.Value.session.channel.id) return kv.Value;
-            }
-
-            return null;
+        foreach (var kv in roleDict)
+        {
+            if (channel.id == kv.Value.session.channel.id) return kv.Value;
         }
+
+        return null;
+    }
 
     private void OnExecute(ExecuteEvent e)
     {
 
-        }
+    }
 }

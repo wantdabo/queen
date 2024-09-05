@@ -23,12 +23,12 @@ public class Authenticator : Sys<Adapter>
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            party = engine.GetComp<Party>();
-        }
+        base.OnCreate();
+        party = engine.GetComp<Party>();
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-        }
+        base.OnDestroy();
+    }
 }
