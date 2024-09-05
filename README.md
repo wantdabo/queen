@@ -4,10 +4,11 @@
 
 ### 大致全貌
 - TCP 通信
+- UDP 可靠通信
 - RPC 远程调用
+- 轻量协程
 - MessagePack 协议
 - MongoDB 数据库
-- 协程
 - Luban 配置
 
 #### [项目结构](#projectdire)
