@@ -28,11 +28,6 @@ namespace Queen.Protocols.Common
         public static byte UINT16_LEN = 2;
 
         /// <summary>
-        /// Int32 字节数量
-        /// </summary>
-        public static byte INT32_LEN = 4;
-
-        /// <summary>
         /// 反序列化消息
         /// </summary>
         /// <param name="bytes">二进制数据</param>
