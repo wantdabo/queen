@@ -16,19 +16,19 @@ public class MDBO : Comp
     /// <summary>
     /// DB 主机
     /// </summary>
-    private string dbhost;
+    private string dbhost { get; set; }
     /// <summary>
     /// DB 端口
     /// </summary>
-    private int dbport;
+    private int dbport { get; set; }
     /// <summary>
     /// DB 密码
     /// </summary>
-    private string dbpwd;
+    private string dbpwd { get; set; }
     /// <summary>
     /// Redis 连接
     /// </summary>
-    private ConnectionMultiplexer connect;
+    private ConnectionMultiplexer connect { get; set; }
 
     protected override void OnCreate()
     {
