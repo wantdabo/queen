@@ -67,6 +67,7 @@ public class CoroutineScheduler : Comp
         if (false == caches.TryDequeue(out var coroutine)) coroutine = new Coroutine();
         coroutine.Reset(++incrementId, this, enumerator);
         coroutines.Add(coroutine);
+        if (false == coroutine.Execute()) Shutdown(coroutine);
 
         return coroutine;
     }
