@@ -51,7 +51,7 @@ public abstract class NetNode : Comp
     /// <summary>
     /// 网络消息包缓存
     /// </summary>
-    private ConcurrentQueue<NetPackage> netPackages = new();
+    private ConcurrentQueue<NetPackage> netpackages = new();
 
     /// <summary>
     /// 通信渠道集合
@@ -191,7 +191,7 @@ public abstract class NetNode : Comp
     /// <param name="msg">消息</param>
     private void EnqueuePackage(NetChannel channel, Type msgType, INetMessage msg)
     {
-        netPackages.Enqueue(new NetPackage { channel = channel, msgType = msgType, msg = msg });
+        netpackages.Enqueue(new NetPackage { channel = channel, msgType = msgType, msg = msg });
         if (notify) Notify();
     }
 
@@ -243,7 +243,7 @@ public abstract class NetNode : Comp
     /// </summary>
     public void Notify()
     {
-        while (netPackages.TryDequeue(out var package))
+        while (netpackages.TryDequeue(out var package))
         {
             if (false == messageActionDict.TryGetValue(package.msgType, out var actions)) continue;
             if (null == actions) continue;
