@@ -49,12 +49,10 @@ public class Engine : Comp
     /// 对象池
     /// </summary>
     public ObjectPool pool { get; private set; }
-
     /// <summary>
     /// 主线程 ID
     /// </summary>
     private readonly int ethreadID;
-
     /// <summary>
     /// 主线程
     /// </summary>

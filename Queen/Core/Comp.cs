@@ -34,7 +34,7 @@ public abstract class Comp
     /// <summary>
     /// 创建一个 Queen 对象
     /// </summary>
-    public virtual void Create()
+    public void Create()
     {
         engine.EnsureThread();
         OnCreate();

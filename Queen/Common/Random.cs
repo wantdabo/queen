@@ -7,7 +7,7 @@ namespace Queen.Common;
 /// </summary>
 public class Random : Comp
 {
-    private System.Random random;
+    private System.Random random { get; set; }
 
     /// <summary>
     /// 随机种子
