@@ -35,6 +35,7 @@ public class Coroutine
         this.id = id;
         this.scheduler = scheduler;
         this.enumerator = enumerator;
+        this.working = false;
     }
 
     /// <summary>
