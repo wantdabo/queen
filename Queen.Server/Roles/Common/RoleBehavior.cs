@@ -107,6 +107,8 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
     {
         get
         {
+            if (engine.ethread) return mdata;
+
             dirty = true;
             Backup();
 
@@ -217,7 +219,7 @@ public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> 
         base.OnDestroy();
         NetUnRecv();
     }
-        
+
     /// <summary>
     /// 自动注册消息接收
     /// </summary>
@@ -225,7 +227,7 @@ public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> 
     {
         foreach (var method in adapter.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
         {
-            if(null == method.GetCustomAttribute<NetBinding>()) continue;
+            if (null == method.GetCustomAttribute<NetBinding>()) continue;
             var ps = method.GetParameters();
             if (1 != ps.Length) continue;
             var msgType = ps[0].ParameterType;
