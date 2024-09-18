@@ -43,7 +43,6 @@ public class Bot : Engine<Bot>
         rpc1.Create();
         rpc1.Routing("test/hello", (context) =>
         {
-            Thread.Sleep(6000);
             engine.logger.Info(context.content);
             context.Response(CROSS_STATE.SUCCESS, "你好，来访者。");
         });
@@ -71,6 +70,7 @@ public class Bot : Engine<Bot>
 
     private IEnumerator<Instruction> CSCross(RPC rpc)
     {
+        yield return new WaitForSeconds(5f);
         var result = rpc.CrossAsync("127.0.0.1", 8801, "test/hello", "你好，世界！3");
         while (CROSS_STATE.WAIT == result.state) yield return null;
         engine.logger.Info($"{result.state}, {result.content}");
