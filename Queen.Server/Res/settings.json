@@ -20,7 +20,7 @@
   // RPC 超时设定
   "rpctimeout": 5000,
   // RPC 超时延长，目标如果收到 RPC 消息 ACK，将会进入这个等待时长
-  "rpcdeadtime": 60000,
+  "rpcdeadtime": 10000,
   // 数据库主机
   "dbhost": "127.0.0.1",
   // 数据库端口
