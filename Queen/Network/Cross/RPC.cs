@@ -119,15 +119,16 @@ public class RPC : Comp
     /// <param name="port">目标主机端口</param>
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
+    /// <param name="checkonline">是否检查在线状态</param>
     /// <returns>RPC 结果</returns>
-    public CrossResult CrossAsync(string ip, ushort port, string route, string content)
+    public CrossResult CrossAsync(string ip, ushort port, string route, string content, bool checkonline = true)
     {
         var result = new CrossResult();
         CrossAsync(ip, port, route, content, (r) =>
         {
             result.state = r.state;
             result.content = r.content;
-        });
+        }, checkonline);
 
         return result;
     }
@@ -139,11 +140,12 @@ public class RPC : Comp
     /// <param name="port">目标主机端口</param>
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
+    /// <param name="checkonline">是否检查在线状态</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
     /// <returns>RPC 结果</returns>
-    public CrossResult CrossAsync<T>(string ip, ushort port, string route, T content) where T : class
+    public CrossResult CrossAsync<T>(string ip, ushort port, string route, T content, bool checkonline = true) where T : class
     {
-        return CrossAsync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content));
+        return CrossAsync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), checkonline);
     }
 
     /// <summary>
@@ -154,8 +156,15 @@ public class RPC : Comp
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
     /// <param name="callback">回调</param>
-    public void CrossAsync(string ip, ushort port, string route, string content, Action<CrossResult> callback = null)
+    /// <param name="checkonline">是否检查在线状态</param>
+    public void CrossAsync(string ip, ushort port, string route, string content, Action<CrossResult> callback, bool checkonline = true)
     {
+        if (checkonline && false == Online(ip, port))
+        {
+            callback?.Invoke(new CrossResult { state = CROSS_STATE.NOTFOUND, content = "target host is offline." });
+            return;
+        }
+
         var id = Guid.NewGuid().ToString();
         var client = GetClient(ip, port);
         Action<NetChannel, ACKCrossMessage> ackation = null;
@@ -203,10 +212,11 @@ public class RPC : Comp
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
     /// <param name="callback">回调</param>
+    /// <param name="checkonline">是否检查在线状态</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
-    public void CrossAsync<T>(string ip, ushort port, string route, T content, Action<CrossResult> callback = null) where T : class
+    public void CrossAsync<T>(string ip, ushort port, string route, T content, Action<CrossResult> callback, bool checkonline = true) where T : class
     {
-        CrossAsync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), callback);
+        CrossAsync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), callback, checkonline);
     }
 
     /// <summary>
@@ -216,10 +226,16 @@ public class RPC : Comp
     /// <param name="port">目标主机端口</param>
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
+    /// <param name="checkonline">是否检查在线状态</param>
     /// <returns>RPC 结果</returns>
-    public CrossResult CrossSync(string ip, ushort port, string route, string content)
+    public CrossResult CrossSync(string ip, ushort port, string route, string content, bool checkonline = true)
     {
-        var result = CrossAsync(ip, port, route, content);
+        if (checkonline && !Online(ip, port))
+        {
+            return new CrossResult { state = CROSS_STATE.NOTFOUND, content = "Target host is offline." };
+        }
+
+        var result = CrossAsync(ip, port, route, content, false);
         if (CROSS_STATE.WAIT == result.state) Thread.Sleep(1);
 
         return result;
@@ -233,10 +249,27 @@ public class RPC : Comp
     /// <param name="route">路径</param>
     /// <param name="content">传输内容</param>
     /// <typeparam name="T">NewtonJson 的转化类型</typeparam>
+    /// <param name="checkonline">是否检查在线状态</param>
     /// <returns>RPC 结果</returns>
-    public CrossResult CrossSync<T>(string ip, ushort port, string route, T content) where T : class
+    public CrossResult CrossSync<T>(string ip, ushort port, string route, T content, bool checkonline = true) where T : class
     {
-        return CrossSync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content));
+        return CrossSync(ip, port, route, Newtonsoft.Json.JsonConvert.SerializeObject(content), checkonline);
+    }
+
+    /// <summary>
+    /// RPC 目标主机是否在线
+    /// </summary>
+    /// <param name="ip">目标主机 IP</param>
+    /// <param name="port">目标主机端口</param>
+    /// <returns>YES/NO</returns>
+    public bool Online(string ip, ushort port)
+    {
+        if (ip.Equals(this.ip) && port == this.port) return true;
+
+        var result = CrossAsync(ip, port, "online", "", false);
+        while (CROSS_STATE.WAIT == result.state) Thread.Sleep(1);
+
+        return CROSS_STATE.SUCCESS == result.state;
     }
 
     /// <summary>
@@ -300,7 +333,7 @@ public class RPC : Comp
             action.Invoke(new CrossContext(req.Item1, req.Item2.id, req.Item2.route, req.Item2.content));
         }
     }
-    
+
     /// <summary>
     /// 收到 RPC 消息
     /// </summary>
@@ -308,6 +341,12 @@ public class RPC : Comp
     /// <param name="msg">消息</param>
     private void OnReqCross(NetChannel channel, ReqCrossMessage msg)
     {
+        if (msg.route.Equals("online"))
+        {
+            channel.Send(new ResCrossMessage { id = msg.id, state = CROSS_STATE.SUCCESS });
+            return;
+        }
+
         // 发送 ACK
         channel.Send(new ACKCrossMessage { id = msg.id });
         // RPC 消息进入队列

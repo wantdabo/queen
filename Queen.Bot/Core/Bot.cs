@@ -70,7 +70,8 @@ public class Bot : Engine<Bot>
 
     private IEnumerator<Instruction> CSCross(RPC rpc)
     {
-        yield return new WaitForSeconds(5f);
+        var online = rpc.Online("127.0.0.1", 8801);
+        Console.WriteLine(online);
         var result = rpc.CrossAsync("127.0.0.1", 8801, "test/hello", "你好，世界！3");
         while (CROSS_STATE.WAIT == result.state) yield return null;
         engine.logger.Info($"{result.state}, {result.content}");
