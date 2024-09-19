@@ -317,7 +317,7 @@ public class RPC : Comp
     }
 
     /// <summary>
-    /// RPC 消息同时
+    /// RPC 消息通知
     /// </summary>
     private void NotifyRPC()
     {
