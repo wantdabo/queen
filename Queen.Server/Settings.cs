@@ -82,18 +82,6 @@ public class Settings : Comp
     /// 数据落地时间间隔（秒）
     /// </summary>
     public int dbsave { get; private set; }
-    /// <summary>
-    /// 内存数据库主机
-    /// </summary>
-    public string mdbhost { get; private set; }
-    /// <summary>
-    /// 内存数据库端口
-    /// </summary>
-    public ushort mdbport { get; private set; }
-    /// <summary>
-    /// 内存数据库密码
-    /// </summary>
-    public string mdbpwd { get; private set; }
 
     protected override void OnCreate()
     {
@@ -117,9 +105,6 @@ public class Settings : Comp
         dbuser = jobj.Value<string>("dbuser");
         dbpwd = jobj.Value<string>("dbpwd");
         dbsave = jobj.Value<int>("dbsave");
-        mdbhost = jobj.Value<string>("mdbhost");
-        mdbport = jobj.Value<ushort>("mdbport");
-        mdbpwd = jobj.Value<string>("mdbpwd");
     }
 
     protected override void OnDestroy()

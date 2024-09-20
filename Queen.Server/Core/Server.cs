@@ -23,10 +23,6 @@ public class Server : Engine<Server>
     /// </summary>
     public DBO dbo { get; private set; }
     /// <summary>
-    /// 内存数据库
-    /// </summary>
-    public MDBO mdbo { get; private set; }
-    /// <summary>
     /// 网络
     /// </summary>
     public Slave slave { get; private set; }
@@ -45,10 +41,6 @@ public class Server : Engine<Server>
         dbo.Initialize(settings.dbhost, settings.dbport, settings.dbauth, settings.dbuser, settings.dbpwd, settings.dbname);
         dbo.Create();
 
-        mdbo = AddComp<MDBO>();
-        mdbo.Initialize(settings.mdbhost, settings.mdbport, settings.mdbpwd);
-        mdbo.Create();
-
         slave = AddComp<Slave>();
         slave.Initialize(settings.host, settings.port, settings.maxconn, settings.sthread, settings.maxpps);
         slave.Create();
@@ -62,6 +54,7 @@ public class Server : Engine<Server>
 
         engine.logger.Info(
             $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
+            $"\n\trpchost: {settings.rpchost}\n\trpcport: {settings.rpcport}\n\trpctimeout: {settings.rpctimeout}\n\trpcdeadtime: {settings.rpcdeadtime}" +
             $"\n\tdbhost: {settings.dbhost}\n\tdbport: {settings.dbport}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
         , ConsoleColor.Yellow);
         engine.logger.Info("queen.server is running...");

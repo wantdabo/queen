@@ -1,0 +1,14 @@
+{
+  // 服务器名字
+  "name": "queen.compass",
+  // RPC 主机
+  "rpchost": "127.0.0.1",
+  // RPC 端口
+  "rpcport": 10001,
+  // RPC 闲置等待的数量（库存通信用的 RPC.Clinet）
+  "rpcidlecc": 5,
+  // RPC 超时设定
+  "rpctimeout": 5000,
+  // RPC 超时延长，目标如果收到 RPC 消息 ACK，将会进入这个等待时长
+  "rpcdeadtime": 60000
+}

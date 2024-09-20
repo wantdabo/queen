@@ -30,3 +30,5 @@ Queen.Server/Queen.Server.csproj.user
 /Queen.Bot/bin
 /Queen.DBObserve/bin
 /Queen.DBObserve/obj
+/Queen.Compass/obj
+/Queen.Compass/bin

@@ -161,7 +161,7 @@ public class RPC : Comp
     {
         if (checkonline && false == Online(ip, port))
         {
-            callback?.Invoke(new CrossResult { state = CROSS_STATE.NOTFOUND, content = "target host is offline." });
+            callback?.Invoke(new CrossResult { state = CROSS_STATE.ERROR, content = "target host is offline." });
             return;
         }
 
