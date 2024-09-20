@@ -58,7 +58,7 @@ public class Bot : Engine<Bot>
             rpc2.CrossSync("127.0.0.1", 8801, "test/hello", "你好，世界！1");
         });
         // 异步 RPC
-        rpc2.CrossAsync("127.0.0.1", 8801, "test/hello", "你好，世界！2", (result) => { });
+        rpc2.CrossAsync("127.0.0.1", 8801, "test/hello", "你好，世界！2");
         // 协程 RPC
         engine.coroutines.Execute(CSCross(rpc2));
     }
