@@ -52,7 +52,7 @@ public class Ticker : Comp
     /// </summary>
     public uint frame { get; private set; }
     /// <summary>
-    /// Tick 间隔 (50 fps)
+    /// tick 间隔 (50 fps)
     /// </summary>
     public float tick { get; private set; } = 1 / 50f;
     /// <summary>
