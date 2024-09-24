@@ -6,7 +6,11 @@ namespace Queen.Compass.Stores;
 public class RoleInfo
 {
     [JsonProperty]
+    public string uuid { get; set; }
+    [JsonProperty]
     public string point { get; set; }
     [JsonProperty]
-    public string uuid { get; set; }
+    public string ip { get; set; }
+    [JsonProperty]
+    public ushort port { get; set; }
 }
