@@ -22,15 +22,15 @@ public class Settings : Comp
 
     protected override void OnCreate()
     {
-            base.OnCreate();
-            var jobj = JObject.Parse(File.ReadAllText($"{Directory.GetCurrentDirectory()}/Res/settings.json"));
-            name = jobj.Value<string>("name");
-            host = jobj.Value<string>("host");
-            port = jobj.Value<ushort>("port");
-        }
+        base.OnCreate();
+        var jobj = JObject.Parse(File.ReadAllText($"{Directory.GetCurrentDirectory()}/Res/settings.json"));
+        name = jobj.Value<string>("name");
+        host = jobj.Value<string>("host");
+        port = jobj.Value<ushort>("port");
+    }
 
     protected override void OnDestroy()
     {
-            base.OnDestroy();
-        }
+        base.OnDestroy();
+    }
 }
