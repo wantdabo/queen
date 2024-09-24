@@ -236,7 +236,7 @@ public class RPC : Comp
         }
 
         var result = CrossAsync(ip, port, route, content, false);
-        if (CROSS_STATE.WAIT == result.state) Thread.Sleep(1);
+        while (CROSS_STATE.WAIT == result.state) Thread.Sleep(1);
 
         return result;
     }
