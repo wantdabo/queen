@@ -22,10 +22,6 @@ public class CrossContext(NetChannel channel, string id, string route, string co
     /// </summary>
     public string id { get; set; } = id;
     /// <summary>
-    /// 路径
-    /// </summary>
-    public string route { get; private set; } = route;
-    /// <summary>
     /// 传输内容
     /// </summary>
     public string content { get; private set; } = content;
