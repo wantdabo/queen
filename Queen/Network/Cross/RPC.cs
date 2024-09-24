@@ -106,7 +106,7 @@ public class RPC : Comp
     /// </summary>
     /// <param name="route">路径</param>
     /// <param name="action">路由动作</param>
-    private void UnRouting(string route, Action<CrossContext> action)
+    public void UnRouting(string route, Action<CrossContext> action)
     {
         if (false == ractions.ContainsKey(route)) return;
         ractions.Remove(route);
