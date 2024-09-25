@@ -53,6 +53,7 @@ public class UDPClient : NetNode
     /// <param name="connectkey">连接校验 KEY</param>
     public void Connect(string ip, ushort port, string connectkey)
     {
+        this.connectkey = connectkey;
         if (connected) { Disconnect(); }
         EventBasedNetListener listener = new EventBasedNetListener();
         client = new NetManager(listener);
