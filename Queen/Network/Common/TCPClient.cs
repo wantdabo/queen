@@ -25,12 +25,12 @@ public class TCPClient : NetNode
     /// 连接状态
     /// </summary>
     public bool connected => null != channel && channel.alive;
-        
+
     /// <summary>
     /// 通信渠道
     /// </summary>
     private TCPClientC channel { get; set; }
-        
+
     /// <summary>
     /// 创建服务端网络节点
     /// </summary>
@@ -47,34 +47,41 @@ public class TCPClient : NetNode
     /// <param name="port">端口</param>
     public void Connect(string ip, ushort port)
     {
-        if (connected) return;
-        this.ip = ip;
-        this.port = port;
+        try
+        {
+            if (connected) return;
+            this.ip = ip;
+            this.port = port;
 
-        var tcpClient = new TcpClient();
-        channel = new TCPClientC(tcpClient);
-        tcpClient.Connected = (c, e) =>
+            var tcpClient = new TcpClient();
+            channel = new TCPClientC(tcpClient);
+            tcpClient.Connected = (c, e) =>
+            {
+                EmitConnectEvent(channel);
+                return EasyTask.CompletedTask;
+            };
+            tcpClient.Closed = (c, e) =>
+            {
+                EmitDisconnectEvent(channel);
+                return EasyTask.CompletedTask;
+            };
+            tcpClient.Received = (c, e) =>
+            {
+                EmitReceiveEvent(channel, e.ByteBlock.Memory.ToArray());
+                return EasyTask.CompletedTask;
+            };
+            tcpClient.Setup(new TouchSocketConfig()
+                .SetRemoteIPHost($"{ip}:{port}")
+                .SetTcpDataHandlingAdapter(() => new FixedHeaderPackageAdapter())
+            );
+            tcpClient.Connect();
+        }
+        catch (SocketException e)
         {
-            EmitConnectEvent(channel);
-            return EasyTask.CompletedTask;
-        };
-        tcpClient.Closed = (c, e) =>
-        {
-            EmitDisconnectEvent(channel);
-            return EasyTask.CompletedTask;
-        };
-        tcpClient.Received = (c, e) =>
-        {
-            EmitReceiveEvent(channel, e.ByteBlock.Memory.ToArray());
-            return EasyTask.CompletedTask;
-        };
-        tcpClient.Setup(new TouchSocketConfig()
-            .SetRemoteIPHost($"{ip}:{port}")
-            .SetTcpDataHandlingAdapter(() => new FixedHeaderPackageAdapter())
-        );
-        tcpClient.Connect();
+            
+        }
     }
-        
+
     /// <summary>
     /// 断开连接
     /// </summary>

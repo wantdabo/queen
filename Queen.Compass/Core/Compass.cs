@@ -38,16 +38,6 @@ namespace Queen.Compass.Core
                 , ConsoleColor.Yellow);
             engine.logger.Info("queen.compass is running...");
 
-            var rpc2 = AddComp<RPC>();
-            rpc2.Initialize("127.0.0.1", 8802, 5, 5000);
-            rpc2.Create();
-            Task.Run(() =>
-            {
-                var point = new PointInfo { name = "queen.bot", ip = "127.0.0.1", port = 8002 };
-                var result = rpc2.CrossSync("127.0.0.1", 10001, "COMPASS/SET_POINT", point);
-                Console.WriteLine($"{result.state}, {result.content}");
-            });
-
             Console.Title = settings.name;
         }
 
