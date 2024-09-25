@@ -43,8 +43,8 @@ namespace Queen.Compass.Core
             rpc2.Create();
             Task.Run(() =>
             {
-                var point = new PointInfo { name = "queen.bot", ip = "192.168.2.146", port = 8002 };
-                var result = rpc2.CrossSync("192.168.2.146", 10001, "COMPASS/SET_POINT", point);
+                var point = new PointInfo { name = "queen.bot", ip = "127.0.0.1", port = 8002 };
+                var result = rpc2.CrossSync("127.0.0.1", 10001, "COMPASS/SET_POINT", point);
                 Console.WriteLine($"{result.state}, {result.content}");
             });
 
