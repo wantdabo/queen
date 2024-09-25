@@ -37,7 +37,7 @@ public class RPC : Comp
     /// <summary>
     /// 服务器节点
     /// </summary>
-    private UDPServer server { get; set; }
+    private TCPServer server { get; set; }
     /// <summary>
     /// 路由方法列表
     /// </summary>
@@ -49,17 +49,17 @@ public class RPC : Comp
     /// <summary>
     /// 生成客户端节点的队列
     /// </summary>
-    private ConcurrentQueue<UDPClient> bornclients = new();
+    private ConcurrentQueue<TCPClient> bornclients = new();
     /// <summary>
     /// 客户端节点
     /// </summary>
-    private ConcurrentDictionary<string, UDPClient> clients = new();
+    private ConcurrentDictionary<string, TCPClient> clients = new();
 
     protected override void OnCreate()
     {
         base.OnCreate();
-        server = AddComp<UDPServer>();
-        server.Initialize(ip, port, true, int.MaxValue, KEY, int.MaxValue);
+        server = AddComp<TCPServer>();
+        server.Initialize(ip, port, true, int.MaxValue, 5, int.MaxValue);
         server.Create();
         server.Recv<ReqCrossMessage>(OnReqCross);
         engine.eventor.Listen<ExecuteEvent>(OnExecute);
@@ -277,7 +277,7 @@ public class RPC : Comp
     /// </summary>
     /// <param name="ip">IP 地址</param>
     /// <param name="port">端口</param>
-    private UDPClient GetClient(string ip, ushort port)
+    private TCPClient GetClient(string ip, ushort port)
     {
         var key = $"{ip}:{port}";
         // 如果池子未有客户端节点，需要等待主线程分配客户端节点
@@ -296,7 +296,7 @@ public class RPC : Comp
         }
 
         // UDP 与目标主机建立短链接
-        if (false == client.connected) client.Connect(ip, port, KEY);
+        if (false == client.connected) client.Connect(ip, port);
 
         return client;
     }
@@ -309,7 +309,7 @@ public class RPC : Comp
         // 新增客户端节点（需要在主线才能新增）
         while (idlecc > bornclients.Count)
         {
-            var client = AddComp<UDPClient>();
+            var client = AddComp<TCPClient>();
             client.Initialize(true);
             client.Create();
             bornclients.Enqueue(client);
