@@ -9,6 +9,7 @@ namespace Queen.Compass
         ///     服务器名字
         /// </summary>
         public string name { get; private set; }
+        public float refreshtime { get; private set; }
         /// <summary>
         ///     RPC 主机
         /// </summary>
@@ -35,6 +36,7 @@ namespace Queen.Compass
             base.OnCreate();
             var jobj = JObject.Parse(File.ReadAllText($"{Directory.GetCurrentDirectory()}/Res/settings.json"));
             name = jobj.Value<string>("name");
+            refreshtime = jobj.Value<float>("refreshtime");
             rpchost = jobj.Value<string>("rpchost");
             rpcport = jobj.Value<ushort>("rpcport");
             rpcidlecc = jobj.Value<ushort>("rpcidlecc");

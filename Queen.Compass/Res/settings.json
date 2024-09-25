@@ -1,6 +1,8 @@
 {
   // 服务器名字
   "name": "queen.compass",
+  // 刷新数据时间 /秒
+  "refreshtime": 5,
   // RPC 主机
   "rpchost": "127.0.0.1",
   // RPC 端口
