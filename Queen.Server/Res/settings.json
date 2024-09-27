@@ -21,6 +21,10 @@
   "rpctimeout": 500,
   // RPC 超时延长，目标如果收到 RPC 消息 ACK，将会进入这个等待时长
   "rpcdeadtime": 2000,
+  // COMPASS 主机
+  "compasshost": "127.0.0.1",
+  // COMPASS 端口
+  "compassport": 10001,
   // 数据库主机
   "dbhost": "127.0.0.1",
   // 数据库端口
@@ -33,12 +37,14 @@
   "dbuser": "root",
   // 数据库密码
   "dbpwd": "root",
-  // 数据落地时间间隔（秒）
-  "dbsave": 5,
   // 内存数据库主机
   "mdbhost": "127.0.0.1",
   // 内存数据库端口
   "mdbport": 6379,
   // 内存数据库密码
-  "mdbpwd": "root"
+  "mdbpwd": "root",
+  // 数据落地时间间隔（秒）
+  "dbsave": 5,
+  // Role 离线销毁时间（秒）
+  "roledestroy": 300
 }

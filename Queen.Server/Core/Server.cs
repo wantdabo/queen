@@ -3,6 +3,8 @@ using Queen.Core;
 using Queen.Protocols;
 using Queen.Common.DB;
 using Queen.Common.MDB;
+using Queen.Compass.Stores;
+using Queen.Compass.Stores.Common;
 using Queen.Network.Cross;
 using Queen.Server.System.Authentication;
 using Queen.Server.System.Commune;
@@ -49,8 +51,16 @@ public class Server : Engine<Server>
         rpc.Initialize(settings.rpchost, settings.rpcport, settings.rpcidlecc, settings.rpctimeout, settings.rpcdeadtime);
         rpc.Create();
 
-        AddComp<Party>().Create();
-        AddComp<Authenticator>().Create();
+        var party = AddComp<Party>();
+        party.Create();
+        var authenticator = AddComp<Authenticator>();
+        authenticator.Create();
+
+        engine.ticker.Timing((t) =>
+        {
+            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, RouteDef.SET_RPC, new CompassRPCInfo { name = settings.name, host = settings.rpchost, port = settings.rpcport });
+            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, RouteDef.SET_SERVER, new CompassServerInfo { name = settings.name, rpc = settings.name, rolecnt = party.cnt, onlinerolecnt = party.onlinecnt, host = settings.host, port = settings.port });
+        }, 1f, -1);
 
         engine.logger.Info(
             $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +

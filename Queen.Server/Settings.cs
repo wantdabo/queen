@@ -63,6 +63,14 @@ public class Settings : Comp
     /// </summary>
     public uint rpcdeadtime { get; private set; }
     /// <summary>
+    /// COMPASS 主机
+    /// </summary>
+    public string compasshost { get; private set; }
+    /// <summary>
+    /// COMPASS 端口
+    /// </summary>
+    public ushort compassport { get; private set; }
+    /// <summary>
     /// 数据库名
     /// </summary>
     public string dbname { get; private set; }
@@ -82,6 +90,10 @@ public class Settings : Comp
     /// 数据落地时间间隔（秒）
     /// </summary>
     public int dbsave { get; private set; }
+    /// <summary>
+    /// Role 离线销毁时间（秒）
+    /// </summary>
+    public int roledestroy { get; private set; }
 
     protected override void OnCreate()
     {
@@ -98,6 +110,8 @@ public class Settings : Comp
         rpcidlecc = jobj.Value<ushort>("rpcidlecc");
         rpctimeout = jobj.Value<uint>("rpctimeout");
         rpcdeadtime = jobj.Value<uint>("rpcdeadtime");
+        compasshost = jobj.Value<string>("compasshost");
+        compassport = jobj.Value<ushort>("compassport");
         dbhost = jobj.Value<string>("dbhost");
         dbport = jobj.Value<int>("dbport");
         dbname = jobj.Value<string>("dbname");
@@ -105,6 +119,7 @@ public class Settings : Comp
         dbuser = jobj.Value<string>("dbuser");
         dbpwd = jobj.Value<string>("dbpwd");
         dbsave = jobj.Value<int>("dbsave");
+        roledestroy = jobj.Value<int>("roledestroy");
     }
 
     protected override void OnDestroy()

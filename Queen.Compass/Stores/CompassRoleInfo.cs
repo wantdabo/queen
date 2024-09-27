@@ -3,14 +3,12 @@ using Newtonsoft.Json;
 namespace Queen.Compass.Stores;
 
 [JsonObject(MemberSerialization.OptIn)]
-public class RoleInfo
+public class CompassRoleInfo
 {
     [JsonProperty]
     public string uuid { get; set; }
     [JsonProperty]
-    public string point { get; set; }
+    public bool online { get; set; }
     [JsonProperty]
-    public string ip { get; set; }
-    [JsonProperty]
-    public ushort port { get; set; }
+    public string rpc { get; set; }
 }

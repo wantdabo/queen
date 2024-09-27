@@ -15,26 +15,33 @@ namespace Queen.Compass.Stores.Common
     {
         private uint refreshTimingId { get; set; }
         private ConcurrentQueue<string> offlinepoints = new();
-        private Dictionary<string, PointInfo> pointDict = new();
-        private Dictionary<string, RoleInfo> roleDict = new();
+        private Dictionary<string, CompassRPCInfo> rpcDict = new();
+        private Dictionary<string, CompassServerInfo> serverDict = new();
+        private Dictionary<string, CompassRoleInfo> roleDict = new();
 
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.rpc.Routing(RouteDef.GET_POINT, OnGetPoint);
-            engine.rpc.Routing(RouteDef.SET_POINT, OnSetPoint);
+            engine.rpc.Routing(RouteDef.GET_RPC, OnGetRPC);
+            engine.rpc.Routing(RouteDef.SET_RPC, OnSetRPC);
+            engine.rpc.Routing(RouteDef.GET_SERVER, OnGetServer);
+            engine.rpc.Routing(RouteDef.SET_SERVER, OnSetServer);
             engine.rpc.Routing(RouteDef.GET_ROLE, OnGetRole);
             engine.rpc.Routing(RouteDef.SET_ROLE, OnSetRole);
+            engine.rpc.Routing(RouteDef.DEL_ROLE, OnDelRole);
             RefreshTiming();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            engine.rpc.UnRouting(RouteDef.GET_POINT, OnGetPoint);
-            engine.rpc.UnRouting(RouteDef.SET_POINT, OnSetPoint);
+            engine.rpc.UnRouting(RouteDef.GET_RPC, OnGetRPC);
+            engine.rpc.UnRouting(RouteDef.SET_RPC, OnSetRPC);
+            engine.rpc.UnRouting(RouteDef.GET_SERVER, OnGetServer);
+            engine.rpc.UnRouting(RouteDef.SET_SERVER, OnSetServer);
             engine.rpc.UnRouting(RouteDef.GET_ROLE, OnGetRole);
             engine.rpc.UnRouting(RouteDef.SET_ROLE, OnSetRole);
+            engine.rpc.UnRouting(RouteDef.DEL_ROLE, OnDelRole);
             engine.ticker.StopTimer(refreshTimingId);
         }
 
@@ -46,13 +53,13 @@ namespace Queen.Compass.Stores.Common
                 offlineroles.Clear();
                 while (offlinepoints.TryDequeue(out var offlinepoint))
                 {
-                    if (pointDict.ContainsKey(offlinepoint)) pointDict.Remove(offlinepoint);
-                    foreach (var kv in roleDict) if (kv.Value.point.Equals(offlinepoint)) offlineroles.Add(kv.Key);
+                    if (rpcDict.ContainsKey(offlinepoint)) rpcDict.Remove(offlinepoint);
+                    foreach (var kv in roleDict) if (kv.Value.rpc.Equals(offlinepoint)) offlineroles.Add(kv.Key);
                     foreach (string offlinerole in offlineroles) if (roleDict.ContainsKey(offlinerole)) roleDict.Remove(offlinerole);
                 }
 
                 List<(string, string, ushort)> endpoint = new();
-                foreach (var kv in pointDict) endpoint.Add((kv.Value.name, kv.Value.ip, kv.Value.port));
+                foreach (var kv in rpcDict) endpoint.Add((kv.Value.name, kv.Value.host, kv.Value.port));
                 Task.Run(() =>
                 {
                     foreach (var (name, ip, port) in endpoint)
@@ -64,10 +71,10 @@ namespace Queen.Compass.Stores.Common
             }, engine.settings.refreshtime, -1);
         }
 
-        private void OnGetPoint(CrossContext context)
+        private void OnGetRPC(CrossContext context)
         {
             var name = context.content;
-            if (false == pointDict.TryGetValue(name, out var point))
+            if (false == rpcDict.TryGetValue(name, out var point))
             {
                 context.Response(CROSS_STATE.ERROR, "POINT_NOT_FOUND");
 
@@ -77,16 +84,37 @@ namespace Queen.Compass.Stores.Common
             context.Response(CROSS_STATE.SUCCESS, point);
         }
 
-        private void OnSetPoint(CrossContext context)
+        private void OnSetRPC(CrossContext context)
         {
-            engine.logger.Info(context.content);
-            var point = JsonConvert.DeserializeObject<PointInfo>(context.content);
-            if (pointDict.ContainsKey(point.name)) pointDict.Remove(point.name);
-            pointDict.Add(point.name, point);
+            var point = JsonConvert.DeserializeObject<CompassRPCInfo>(context.content);
+            if (rpcDict.ContainsKey(point.name)) rpcDict.Remove(point.name);
+            rpcDict.Add(point.name, point);
 
             context.Response(CROSS_STATE.SUCCESS, "OK");
         }
+        
+        private void OnGetServer(CrossContext context)
+        {
+            var name = context.content;
+            if (false == serverDict.TryGetValue(name, out var server))
+            {
+                context.Response(CROSS_STATE.ERROR, "SERVER_NOT_FOUND");
 
+                return;
+            }
+
+            context.Response(CROSS_STATE.SUCCESS, server);
+        }
+        
+        private void OnSetServer(CrossContext context)
+        {
+            var server = JsonConvert.DeserializeObject<CompassServerInfo>(context.content);
+            if (serverDict.ContainsKey(server.name)) serverDict.Remove(server.name);
+            serverDict.Add(server.name, server);
+
+            context.Response(CROSS_STATE.SUCCESS, "OK");
+        }
+        
         private void OnGetRole(CrossContext context)
         {
             var uuid = context.content;
@@ -102,10 +130,24 @@ namespace Queen.Compass.Stores.Common
 
         private void OnSetRole(CrossContext context)
         {
-            var role = JsonConvert.DeserializeObject<RoleInfo>(context.content);
+            var role = JsonConvert.DeserializeObject<CompassRoleInfo>(context.content);
             if (roleDict.ContainsKey(role.uuid)) roleDict.Remove(role.uuid);
             roleDict.Add(role.uuid, role);
 
+            context.Response(CROSS_STATE.SUCCESS, "OK");
+        }
+        
+        private void OnDelRole(CrossContext context)
+        {
+            var uuid = context.content;
+            if (false == roleDict.TryGetValue(uuid, out var role))
+            {
+                context.Response(CROSS_STATE.ERROR, "ROLE_NOT_FOUND");
+
+                return;
+            }
+
+            roleDict.Remove(uuid);
             context.Response(CROSS_STATE.SUCCESS, "OK");
         }
     }

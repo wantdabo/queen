@@ -1,4 +1,6 @@
 ﻿using Queen.Common;
+using Queen.Compass.Stores;
+using Queen.Compass.Stores.Common;
 using Queen.Core;
 using Queen.Network.Common;
 using Queen.Server.Core;
@@ -70,17 +72,30 @@ public class Party : Sys
     /// 玩家集合
     /// </summary>
     private Dictionary<string, Role> roleDict = new();
+    /// <summary>
+    /// 离线时间记录
+    /// </summary>
+    private Dictionary<string, float> offlineElapsedDict = new();
+    private List<string> deleteElapsedCaches = new();
+    /// <summary>
+    /// 玩家数量
+    /// </summary>
+    public int cnt { get; private set; }
+    /// <summary>
+    /// 在线玩家数量
+    /// </summary>
+    public int onlinecnt { get; private set; }
 
     protected override void OnCreate()
     {
         base.OnCreate();
-        engine.eventor.Listen<ExecuteEvent>(OnExecute);
+        engine.ticker.eventor.Listen<TickEvent>(OnTick);
     }
 
     protected override void OnDestroy()
     {
         base.OnDestroy();
-        engine.eventor.UnListen<ExecuteEvent>(OnExecute);
+        engine.ticker.eventor.UnListen<TickEvent>(OnTick);
     }
 
     /// <summary>
@@ -91,7 +106,7 @@ public class Party : Sys
     public void Join(RoleJoinInfo info)
     {
         var role = GetRole(info.uuid);
-        if (null != role) Quit(role);
+        if (null != role && role.online) Quit(role);
 
         if (null == role)
         {
@@ -104,8 +119,13 @@ public class Party : Sys
         }
         role.session.channel = info.channel;
 
-        if (role.online) return;
         engine.eventor.Tell(new RoleJoinEvent { role = role });
+        engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, RouteDef.SET_ROLE, new CompassRoleInfo
+        {
+            uuid = role.info.uuid,
+            online = true,
+            rpc = engine.settings.name,
+        });
     }
 
     /// <summary>
@@ -115,7 +135,17 @@ public class Party : Sys
     public void Quit(Role role)
     {
         if (false == role.online) return;
+        
+        role.session.channel.Disconnect();
+        role.session.channel = null;
+
         engine.eventor.Tell(new RoleQuitEvent { role = role });
+        engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, RouteDef.SET_ROLE, new CompassRoleInfo
+        {
+            uuid = role.info.uuid,
+            online = false,
+            rpc = engine.settings.name,
+        });
     }
 
     /// <summary>
@@ -139,14 +169,54 @@ public class Party : Sys
     {
         foreach (var kv in roleDict)
         {
+            if (null == kv.Value.session.channel) continue;
             if (channel.id == kv.Value.session.channel.id) return kv.Value;
         }
 
-        return null;
+        return default;
     }
 
-    private void OnExecute(ExecuteEvent e)
+    /// <summary>
+    /// 计数
+    /// </summary>
+    private void Counter()
     {
+        cnt = roleDict.Count;
+        int onlinecnt = 0;
+        foreach (var kv in roleDict) if (kv.Value.online) onlinecnt++;
+        this.onlinecnt = onlinecnt;
+    }
 
+    private void OnTick(TickEvent e)
+    {
+        Counter();
+        foreach (var kv in roleDict)
+        {
+            if (false == kv.Value.online)
+            {
+                offlineElapsedDict.Remove(kv.Key, out var elapsed);
+                elapsed += e.tick;
+                offlineElapsedDict.Add(kv.Key, elapsed);
+                continue;
+            }
+            
+            if (offlineElapsedDict.ContainsKey(kv.Key)) offlineElapsedDict.Remove(kv.Key);
+        }
+        
+        deleteElapsedCaches.Clear();
+        foreach (var kv in offlineElapsedDict)
+        {
+            if (kv.Value < engine.settings.roledestroy) continue;
+            if (false == deleteElapsedCaches.Contains(kv.Key)) deleteElapsedCaches.Add(kv.Key);
+            
+            var role = GetRole(kv.Key);
+            if (null == role) continue;
+            if(role.online) continue;
+            
+            roleDict.Remove(kv.Key);
+            role.Destroy();
+            engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, RouteDef.DEL_ROLE, kv.Key);
+        }
+        foreach (string key in deleteElapsedCaches) if (offlineElapsedDict.ContainsKey(key)) offlineElapsedDict.Remove(key);
     }
 }
