@@ -1,5 +1,8 @@
 namespace Queen.Common.Extensions;
 
+/// <summary>
+/// NewtonJson 扩展
+/// </summary>
 public static class NewtonJsonExtensions
 {
     /// <summary>
