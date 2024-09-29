@@ -13,9 +13,4 @@ namespace Queen.Server.Roles.Bags;
 /// </summary>
 public class BagAdapter : Adapter<Bag>
 {
-    [NetBinding]
-    private void OnC2STest(C2STestMsg msg)
-    {
-        engine.logger.Info($"OnC2STest -> {msg.content}");
-    }
 }
