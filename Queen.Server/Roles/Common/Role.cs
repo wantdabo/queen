@@ -185,6 +185,7 @@ public class Role : Comp
 
     private void Behaviors()
     {
+        // 联系
         contact = AddComp<Contact>();
         contact.Initialize(this);
         contact.Create();
