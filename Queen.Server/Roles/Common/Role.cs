@@ -2,6 +2,7 @@
 using Queen.Common;
 using Queen.Common.DB;
 using Queen.Network.Common;
+using Queen.Network.Cross;
 using Queen.Protocols;
 using Queen.Protocols.Common;
 using Queen.Server.Core;
@@ -102,6 +103,10 @@ public class Role : Comp
     /// 工作中
     /// </summary>
     public bool working { get; private set; }
+    /// <summary>
+    /// RPC 任务列表
+    /// </summary>
+    private ConcurrentQueue<Action> contactjobs = new();
     /// <summary>
     /// 任务列表
     /// </summary>
@@ -241,6 +246,7 @@ public class Role : Comp
     {
         Action<NetChannel, T> callback = (c, m) =>
         {
+            if (null == session.channel) return;
             if (false == c.alive || false == session.channel.alive) return;
 
             if (c.id == session.channel.id) TODO(() => { action?.Invoke(m); });
@@ -256,6 +262,8 @@ public class Role : Comp
     /// <param name="msg">数据</param>
     public void Send<T>(T msg) where T : INetMessage
     {
+        if (null == session.channel) return;
+        
         sends.Enqueue(() => { session.channel.Send(msg); });
     }
 
@@ -299,7 +307,6 @@ public class Role : Comp
     private void TODO(Action job)
     {
         if (false == online) return;
-        if (null == job) return;
 
         jobs.Enqueue(job);
     }
@@ -311,7 +318,7 @@ public class Role : Comp
     {
         if (working) return;
 
-        if (0 == jobs.Count) return;
+        if (0 == contactjobs.Count && 0 == jobs.Count) return;
 
         // 开启任务线程
         Task.Run(() =>
@@ -321,7 +328,7 @@ public class Role : Comp
                 working = true;
                 while (true)
                 {
-                    if (false == jobs.TryDequeue(out var job)) break;
+                    if (false == contactjobs.TryDequeue(out var job)) if (false == jobs.TryDequeue(out job)) break;
 
                     // 备份数据
                     Backup();
@@ -348,6 +355,11 @@ public class Role : Comp
                 working = false;
             }
         });
+    }
+
+    public void OnContact(CrossContext context, ContactInfo info)
+    {
+        contactjobs.Enqueue(()=> contact.OnContact(context, info));
     }
 
     private void OnExecute(Queen.Core.ExecuteEvent e)
@@ -386,7 +398,7 @@ public class Role : Comp
     {
         if (dbcache.Equals(info)) return;
 
-        if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.uuid, info.uuid), new() { uuid = info.uuid, nickname = info.nickname, username = info.username, password = info.password }))
+        if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(r => r.uuid, info.uuid), new() { uuid = info.uuid, nickname = info.nickname, username = info.username, password = info.password }))
         {
             dbcache = info;
         }

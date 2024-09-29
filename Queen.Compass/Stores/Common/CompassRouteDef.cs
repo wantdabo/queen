@@ -1,6 +1,6 @@
 namespace Queen.Compass.Stores.Common
 {
-    public class RouteDef
+    public class CompassRouteDef
     {
         public const string GET_RPC = "COMPASS/GET_RPC";
         public const string SET_RPC = "COMPASS/SET_RPC";

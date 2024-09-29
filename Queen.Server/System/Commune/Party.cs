@@ -3,8 +3,10 @@ using Queen.Compass.Stores;
 using Queen.Compass.Stores.Common;
 using Queen.Core;
 using Queen.Network.Common;
+using Queen.Network.Cross;
 using Queen.Server.Core;
 using Queen.Server.Roles.Common;
+using Queen.Server.Roles.Common.Contacts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -76,6 +78,9 @@ public class Party : Sys
     /// 离线时间记录
     /// </summary>
     private Dictionary<string, float> offlineElapsedDict = new();
+    /// <summary>
+    /// 离线时间记录缓存
+    /// </summary>
     private List<string> deleteElapsedCaches = new();
     /// <summary>
     /// 玩家数量
@@ -90,12 +95,14 @@ public class Party : Sys
     {
         base.OnCreate();
         engine.ticker.eventor.Listen<TickEvent>(OnTick);
+        engine.rpc.Routing(Contact.ROUTE, OnContact);
     }
 
     protected override void OnDestroy()
     {
         base.OnDestroy();
         engine.ticker.eventor.UnListen<TickEvent>(OnTick);
+        engine.rpc.UnRouting(Contact.ROUTE, OnContact);
     }
 
     /// <summary>
@@ -120,7 +127,7 @@ public class Party : Sys
         role.session.channel = info.channel;
 
         engine.eventor.Tell(new RoleJoinEvent { role = role });
-        engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, RouteDef.SET_ROLE, new CompassRoleInfo
+        engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, CompassRouteDef.SET_ROLE, new CompassRoleInfo
         {
             uuid = role.info.uuid,
             online = true,
@@ -140,7 +147,7 @@ public class Party : Sys
         role.session.channel = null;
 
         engine.eventor.Tell(new RoleQuitEvent { role = role });
-        engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, RouteDef.SET_ROLE, new CompassRoleInfo
+        engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, CompassRouteDef.SET_ROLE, new CompassRoleInfo
         {
             uuid = role.info.uuid,
             online = false,
@@ -215,8 +222,21 @@ public class Party : Sys
             
             roleDict.Remove(kv.Key);
             role.Destroy();
-            engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, RouteDef.DEL_ROLE, kv.Key);
+            engine.rpc.CrossAsync(engine.settings.compasshost, engine.settings.compassport, CompassRouteDef.DEL_ROLE, kv.Key);
         }
         foreach (string key in deleteElapsedCaches) if (offlineElapsedDict.ContainsKey(key)) offlineElapsedDict.Remove(key);
+    }
+    
+    private void OnContact(CrossContext context)
+    {
+        var contact = Newtonsoft.Json.JsonConvert.DeserializeObject<ContactInfo>(context.content);
+        var role  = GetRole(contact.uuid);
+        if (null == role)
+        {
+            context.Response(CROSS_STATE.ERROR, "ROLE_NOT_FOUND");
+            return;
+        }
+
+        role.OnContact(context, contact);
     }
 }

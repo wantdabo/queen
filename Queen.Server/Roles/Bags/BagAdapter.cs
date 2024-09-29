@@ -11,7 +11,7 @@ namespace Queen.Server.Roles.Bags;
 /// <summary>
 /// 背包消息适配器
 /// </summary>
-public class Adapter : Adapter<Bag>
+public class BagAdapter : Adapter<Bag>
 {
     [NetBinding]
     private void OnC2STest(C2STestMsg msg)

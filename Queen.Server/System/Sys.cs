@@ -44,6 +44,19 @@ public abstract class Sys<TAdapter> : Sys where TAdapter : Adapter, new()
     }
 
     /// <summary>
+    /// 自动注销消息接收
+    /// </summary>
+    private void NetUnRecv()
+    {
+        foreach (var actionInfo in adapter.actionInfos)
+        {
+            var recvMethod = engine.slave.GetType().GetMethod("UnRecv").MakeGenericMethod(actionInfo.msgType);
+            recvMethod.Invoke(engine.slave, [actionInfo.action]);
+        }
+        adapter.actionInfos.Clear();
+    }
+    
+    /// <summary>
     /// 自动注册消息接收
     /// </summary>
     private void NetRecv()
@@ -68,18 +81,5 @@ public abstract class Sys<TAdapter> : Sys where TAdapter : Adapter, new()
             var recvMethod = engine.slave.GetType().GetMethod("Recv").MakeGenericMethod(msgType);
             recvMethod.Invoke(engine.slave, [action]);
         }
-    }
-
-    /// <summary>
-    /// 自动注销消息接收
-    /// </summary>
-    private void NetUnRecv()
-    {
-        foreach (var actionInfo in adapter.actionInfos)
-        {
-            var recvMethod = engine.slave.GetType().GetMethod("UnRecv").MakeGenericMethod(actionInfo.msgType);
-            recvMethod.Invoke(engine.slave, [actionInfo.action]);
-        }
-        adapter.actionInfos.Clear();
     }
 }

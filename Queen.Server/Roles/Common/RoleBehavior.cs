@@ -221,6 +221,19 @@ public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> 
     }
 
     /// <summary>
+    /// 自动注销消息接收
+    /// </summary>
+    private void NetUnRecv()
+    {
+        foreach (var actionInfo in adapter.actionInfos)
+        {
+            var recvMethod = role.GetType().GetMethod("UnRecv").MakeGenericMethod(actionInfo.msgType);
+            recvMethod.Invoke(role, [actionInfo.action]);
+        }
+        adapter.actionInfos.Clear();
+    }
+    
+    /// <summary>
     /// 自动注册消息接收
     /// </summary>
     private void NetRecv()
@@ -244,18 +257,5 @@ public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> 
             var recvMethod = role.GetType().GetMethod("Recv").MakeGenericMethod(msgType);
             recvMethod.Invoke(role, [action]);
         }
-    }
-
-    /// <summary>
-    /// 自动注销消息接收
-    /// </summary>
-    private void NetUnRecv()
-    {
-        foreach (var actionInfo in adapter.actionInfos)
-        {
-            var recvMethod = role.GetType().GetMethod("UnRecv").MakeGenericMethod(actionInfo.msgType);
-            recvMethod.Invoke(role, [actionInfo.action]);
-        }
-        adapter.actionInfos.Clear();
     }
 }

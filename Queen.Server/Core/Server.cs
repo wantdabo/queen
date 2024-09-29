@@ -58,8 +58,8 @@ public class Server : Engine<Server>
 
         engine.ticker.Timing((t) =>
         {
-            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, RouteDef.SET_RPC, new CompassRPCInfo { name = settings.name, host = settings.rpchost, port = settings.rpcport });
-            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, RouteDef.SET_SERVER, new CompassServerInfo { name = settings.name, rpc = settings.name, rolecnt = party.cnt, onlinerolecnt = party.onlinecnt, host = settings.host, port = settings.port });
+            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, CompassRouteDef.SET_RPC, new CompassRPCInfo { name = settings.name, host = settings.rpchost, port = settings.rpcport });
+            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, CompassRouteDef.SET_SERVER, new CompassServerInfo { name = settings.name, rpc = settings.name, rolecnt = party.cnt, onlinerolecnt = party.onlinecnt, host = settings.host, port = settings.port });
         }, 1f, -1);
 
         engine.logger.Info(

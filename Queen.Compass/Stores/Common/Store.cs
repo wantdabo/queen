@@ -22,26 +22,26 @@ namespace Queen.Compass.Stores.Common
         protected override void OnCreate()
         {
             base.OnCreate();
-            engine.rpc.Routing(RouteDef.GET_RPC, OnGetRPC);
-            engine.rpc.Routing(RouteDef.SET_RPC, OnSetRPC);
-            engine.rpc.Routing(RouteDef.GET_SERVER, OnGetServer);
-            engine.rpc.Routing(RouteDef.SET_SERVER, OnSetServer);
-            engine.rpc.Routing(RouteDef.GET_ROLE, OnGetRole);
-            engine.rpc.Routing(RouteDef.SET_ROLE, OnSetRole);
-            engine.rpc.Routing(RouteDef.DEL_ROLE, OnDelRole);
+            engine.rpc.Routing(CompassRouteDef.GET_RPC, OnGetRPC);
+            engine.rpc.Routing(CompassRouteDef.SET_RPC, OnSetRPC);
+            engine.rpc.Routing(CompassRouteDef.GET_SERVER, OnGetServer);
+            engine.rpc.Routing(CompassRouteDef.SET_SERVER, OnSetServer);
+            engine.rpc.Routing(CompassRouteDef.GET_ROLE, OnGetRole);
+            engine.rpc.Routing(CompassRouteDef.SET_ROLE, OnSetRole);
+            engine.rpc.Routing(CompassRouteDef.DEL_ROLE, OnDelRole);
             RefreshTiming();
         }
 
         protected override void OnDestroy()
         {
             base.OnDestroy();
-            engine.rpc.UnRouting(RouteDef.GET_RPC, OnGetRPC);
-            engine.rpc.UnRouting(RouteDef.SET_RPC, OnSetRPC);
-            engine.rpc.UnRouting(RouteDef.GET_SERVER, OnGetServer);
-            engine.rpc.UnRouting(RouteDef.SET_SERVER, OnSetServer);
-            engine.rpc.UnRouting(RouteDef.GET_ROLE, OnGetRole);
-            engine.rpc.UnRouting(RouteDef.SET_ROLE, OnSetRole);
-            engine.rpc.UnRouting(RouteDef.DEL_ROLE, OnDelRole);
+            engine.rpc.UnRouting(CompassRouteDef.GET_RPC, OnGetRPC);
+            engine.rpc.UnRouting(CompassRouteDef.SET_RPC, OnSetRPC);
+            engine.rpc.UnRouting(CompassRouteDef.GET_SERVER, OnGetServer);
+            engine.rpc.UnRouting(CompassRouteDef.SET_SERVER, OnSetServer);
+            engine.rpc.UnRouting(CompassRouteDef.GET_ROLE, OnGetRole);
+            engine.rpc.UnRouting(CompassRouteDef.SET_ROLE, OnSetRole);
+            engine.rpc.UnRouting(CompassRouteDef.DEL_ROLE, OnDelRole);
             engine.ticker.StopTimer(refreshTimingId);
         }
 
