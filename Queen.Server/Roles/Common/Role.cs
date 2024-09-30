@@ -265,7 +265,12 @@ public class Role : Comp
     {
         if (null == session.channel) return;
         
-        sends.Enqueue(() => { session.channel.Send(msg); });
+        sends.Enqueue(() =>
+        {
+            if (null == session.channel) return;
+            
+            session.channel.Send(msg); 
+        });
     }
 
     /// <summary>
