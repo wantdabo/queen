@@ -52,5 +52,7 @@ public class CrossContext(NetChannel channel, string id, string route, string co
             state = state,
             content = content,
         });
+        
+        if (CROSS_STATE.SUCCESS != state) throw new Exception($"invoke response method, the state of parameter is {state}.");
     }
 }

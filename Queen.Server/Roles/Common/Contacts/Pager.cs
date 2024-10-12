@@ -76,7 +76,13 @@ public class Pager : Comp
     /// <returns>RPC 结果</returns>
     private CrossResult Speak(string api, string content)
     {
-        return engine.rpc.CrossSync(host, port, Contact.ROUTE, new ContactInfo{uuid = objective, api = api, content = content});
+        var result = engine.rpc.CrossSync(host, port, Contact.ROUTE, new ContactInfo{uuid = objective, api = api, content = content});
+        if (CROSS_STATE.SUCCESS != result.state)
+        {
+            throw new Exception("speak failed, timeout or error.");
+        }
+
+        return result;
     }
 
     /// <summary>
