@@ -52,7 +52,7 @@ public class Engine : Comp
     /// <summary>
     /// 主线程 ID
     /// </summary>
-    private readonly int ethreadID;
+    private readonly int ethreadId;
     /// <summary>
     /// 主线程
     /// </summary>
@@ -60,14 +60,14 @@ public class Engine : Comp
     {
         get
         {
-            return Thread.CurrentThread.ManagedThreadId == ethreadID;
+            return Thread.CurrentThread.ManagedThreadId == ethreadId;
         }
     }
 
     public Engine()
     {
         // 记录运行线程
-        ethreadID = Thread.CurrentThread.ManagedThreadId;
+        ethreadId = Thread.CurrentThread.ManagedThreadId;
     }
 
     protected override void OnCreate()
