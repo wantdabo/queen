@@ -1,8 +1,7 @@
 using Queen.Core;
 
-namespace Queen.Compass.Core
+namespace Queen.Compass.Core;
+
+public class Comp : Comp<Compass>
 {
-    public class Comp : Comp<Compass>
-    {
-    }
 }
