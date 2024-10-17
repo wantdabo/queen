@@ -47,7 +47,7 @@ public abstract class NetNode : Comp
     /// <summary>
     /// 注册消息回调集合
     /// </summary>
-    private Dictionary<Type, List<Delegate>> messageActionDict = new();
+    private ConcurrentDictionary<Type, List<Delegate>> messageActionDict = new();
     /// <summary>
     /// 网络消息包缓存
     /// </summary>
@@ -56,12 +56,12 @@ public abstract class NetNode : Comp
     /// <summary>
     /// 通信渠道集合
     /// </summary>
-    private Dictionary<string, NetChannel> channelDict = new();
+    private ConcurrentDictionary<string, NetChannel> channelDict = new();
 
     /// <summary>
     /// PPS 记录
     /// </summary>
-    private Dictionary<string, uint> ppscntDcit = new();
+    private ConcurrentDictionary<string, uint> ppscntDict = new();
 
     /// <summary>
     /// PPS 计时器
@@ -73,7 +73,7 @@ public abstract class NetNode : Comp
         base.OnCreate();
         ppsTimingId = engine.ticker.Timing((t) =>
         {
-            ppscntDcit.Clear();
+            ppscntDict.Clear();
         }, 1, -1);
     }
 
@@ -112,7 +112,7 @@ public abstract class NetNode : Comp
     /// <returns>YES/NO</returns>
     public bool RmvChannel(string id)
     {
-        return channelDict.Remove(id);
+        return channelDict.Remove(id, out var val);
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ public abstract class NetNode : Comp
     {
         if (channelDict.ContainsKey(channel.id)) return false;
 
-        channelDict.Add(channel.id, channel);
+        channelDict.TryAdd(channel.id, channel);
 
         return true;
     }
@@ -136,7 +136,7 @@ public abstract class NetNode : Comp
     /// <returns>该通信渠道 PPS</returns>
     private uint GetPPS(NetChannel channel)
     {
-        if (false == ppscntDcit.TryGetValue(channel.id, out var cnt)) return 0;
+        if (false == ppscntDict.TryGetValue(channel.id, out var cnt)) return 0;
 
         return cnt;
     }
@@ -148,9 +148,9 @@ public abstract class NetNode : Comp
     private void PPSCounter(NetChannel channel)
     {
         uint cnt = 0;
-        if (ppscntDcit.TryGetValue(channel.id, out cnt)) ppscntDcit.Remove(channel.id);
+        if (ppscntDict.TryGetValue(channel.id, out cnt)) ppscntDict.Remove(channel.id, out var val);
         cnt++;
-        ppscntDcit.Add(channel.id, cnt);
+        ppscntDict.TryAdd(channel.id, cnt);
     }
 
     /// <summary>
@@ -176,7 +176,7 @@ public abstract class NetNode : Comp
         if (false == messageActionDict.TryGetValue(typeof(T), out var actions))
         {
             actions = new();
-            messageActionDict.Add(typeof(T), actions);
+            messageActionDict.TryAdd(typeof(T), actions);
         }
 
         if (actions.Contains(action)) return;
