@@ -281,7 +281,7 @@ public class RPC : Comp
             }
         }
 
-        // UDP 与目标主机建立短链接
+        // 目标主机建立短链接
         if (false == client.connected) client.Connect(ip, port);
 
         return client;
