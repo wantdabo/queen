@@ -30,10 +30,6 @@ public class Engine : Comp
     /// </summary>
     public Logger logger { get; private set; }
     /// <summary>
-    /// 配置表
-    /// </summary>
-    public Config cfg { get; private set; }
-    /// <summary>
     /// 事件器
     /// </summary>
     public Eventor eventor { get; private set; }
@@ -85,9 +81,6 @@ public class Engine : Comp
 
         logger = AddComp<Logger>();
         logger.Create();
-
-        cfg = AddComp<Config>();
-        cfg.Create();
 
         eventor = AddComp<Eventor>();
         eventor.Create();

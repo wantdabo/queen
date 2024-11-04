@@ -1,4 +1,5 @@
-﻿using Queen.Network;
+﻿using Queen.Common;
+using Queen.Network;
 using Queen.Core;
 using Queen.Protocols;
 using Queen.Common.DB;
@@ -21,6 +22,10 @@ public class Server : Engine<Server>
     /// </summary>
     public Settings settings { get; private set; }
     /// <summary>
+    /// 配置表
+    /// </summary>
+    public Config cfg { get; private set; }
+    /// <summary>
     /// 数据库
     /// </summary>
     public DBO dbo { get; private set; }
@@ -38,6 +43,9 @@ public class Server : Engine<Server>
         base.OnCreate();
         settings = AddComp<Settings>();
         settings.Create();
+        
+        cfg = AddComp<Config>();
+        cfg.Create();
 
         dbo = AddComp<DBO>();
         dbo.Initialize(settings.dbhost, settings.dbport, settings.dbauth, settings.dbuser, settings.dbpwd, settings.dbname);
@@ -53,6 +61,7 @@ public class Server : Engine<Server>
 
         var party = AddComp<Party>();
         party.Create();
+        
         var authenticator = AddComp<Authenticator>();
         authenticator.Create();
 

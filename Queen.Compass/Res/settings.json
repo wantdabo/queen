@@ -6,7 +6,7 @@
   // RPC 主机
   "rpchost": "127.0.0.1",
   // RPC 端口
-  "rpcport": 10001,
+  "rpcport": 10002,
   // RPC 闲置等待的数量（库存通信用的 RPC.Clinet）
   "rpcidlecc": 5,
   // RPC 超时设定

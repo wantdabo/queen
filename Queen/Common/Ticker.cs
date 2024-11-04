@@ -92,7 +92,7 @@ public class Ticker : Comp
         }
 
         var nms = nowMilliSeconds;
-        elapsed += (nms - lastMilliSeconds) / engine.cfg.thousand;
+        elapsed += (nms - lastMilliSeconds) / Config.thousand;
         lastMilliSeconds = nms;
         while (elapsed >= tick)
         {

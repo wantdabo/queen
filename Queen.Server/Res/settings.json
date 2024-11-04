@@ -24,7 +24,7 @@
   // COMPASS 主机
   "compasshost": "127.0.0.1",
   // COMPASS 端口
-  "compassport": 10001,
+  "compassport": 10002,
   // 数据库主机
   "dbhost": "127.0.0.1",
   // 数据库端口

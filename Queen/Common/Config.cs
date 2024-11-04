@@ -15,41 +15,36 @@ public class Config : Comp
     /// <summary>
     /// 配置表定位器
     /// </summary>
-    public Tables location;
+    public Tables location { get; set; }
     /// <summary>
     /// 系数 0.5
     /// </summary>
-    public float half = 0.5f;
+    public const float half = 0.5f;
     /// <summary>
     /// 系数 1
     /// </summary>
-    public float one = 1f;
+    public const float one = 1f;
     /// <summary>
     /// 系数 1000
     /// </summary>
-    public float thousand = 1000f;
+    public const float thousand = 1000f;
     /// <summary>
     /// 浮点数转整型的乘法系数（10000 表示 1）
     /// </summary>
-    public int float2Int = 10000;
+    public const int float2Int = 10000;
     /// <summary>
     /// 整型转浮点的乘法系数（10000 表示 1）
     /// </summary>
-    public float int2Float = 0.0001f;
+    public const float int2Float = 0.0001f;
     /// <summary>
     /// 资源目录
     /// </summary>
-    public string respath { get { return $"{Directory.GetCurrentDirectory()}/Res/"; } }
+    private string respath { get { return $"{Directory.GetCurrentDirectory()}/Res/"; } }
 
     protected override void OnCreate()
     {
         base.OnCreate();
 
         location = new Tables((cfgName) => { return new ByteBuf(File.ReadAllBytes($"{respath}Configs/{cfgName}.bytes")); });
-    }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
     }
 }
