@@ -221,7 +221,7 @@ public abstract class NetNode : Comp
     protected void EmitReceiveEvent(NetChannel channel, byte[] data)
     {
         // 判断 PPS 是否超过服务器设定
-        // settings.json : maxpps 中定义
+        // maxpps : settings.json 中定义
         var pps = GetPPS(channel);
         if (pps >= maxpps)
         {
