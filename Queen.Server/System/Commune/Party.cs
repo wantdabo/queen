@@ -225,7 +225,7 @@ public class Party : Sys
         Parallel.ForEach(uuidRoleDict, kv =>
         {
             if (kv.Value.working) return;
-            Task.Run(kv.Value.Work);
+            kv.Value.Work();
         });
     }
 
