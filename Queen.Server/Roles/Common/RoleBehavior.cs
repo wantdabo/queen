@@ -104,7 +104,7 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
     {
         get
         {
-            if (false == dirty) Backup();
+            Backup();
             dirty = true;
 
             return mdata;
