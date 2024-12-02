@@ -358,29 +358,35 @@ public class Role : Comp
         if (false == contactjobs.TryDequeue(out var job)) if (false == jobs.TryDequeue(out job)) return;
         
         working = true;
-        
-        try
-        {
-            // 备份数据
-            Backup();
-            // 执行任务
-            job.Invoke();
-            // 重置备份
-            Reset();
 
-            // 任务中产生的有效数据，推送至客户端
-            while (sends.TryDequeue(out var send)) send.Invoke();
-        }
-        catch (Exception e)
+        Task.Run(() =>
         {
-            // 任务失败，恢复数据
-            Restore();
-            // 任务失败，清除任务中的推送消息
-            sends.Clear();
-            // 任务失败，输出日志
-            engine.logger.Error($"role erro, uuid -> {info.uuid}", e);
-        }
-        working = false;
+            try
+            {
+                // 备份数据
+                Backup();
+                // 执行任务
+                job.Invoke();
+                // 重置备份
+                Reset();
+
+                // 任务中产生的有效数据，推送至客户端
+                while (sends.TryDequeue(out var send)) send.Invoke();
+            }
+            catch (Exception e)
+            {
+                // 任务失败，恢复数据
+                Restore();
+                // 任务失败，清除任务中的推送消息
+                sends.Clear();
+                // 任务失败，输出日志
+                engine.logger.Error($"role erro, uuid -> {info.uuid}", e);
+            }
+            finally
+            {
+                working = false;
+            }
+        });
     }
 
     private void OnRoleJoin(RoleJoinEvent e)
