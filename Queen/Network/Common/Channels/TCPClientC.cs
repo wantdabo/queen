@@ -17,7 +17,7 @@ public class TCPClientC(TcpClient socket) : NetChannel<TcpClient>(socket)
     public override void Send(byte[] data)
     {
         if (false == alive) return;
-        socket.Send(data);
+        socket.SendAsync(data);
     }
         
     public override void Disconnect()

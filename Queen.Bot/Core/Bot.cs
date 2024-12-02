@@ -38,40 +38,25 @@ public class Bot : Engine<Bot>
         engine.logger.Info("queen.bot is running...");
         Console.Title = settings.name;
 
-        var rpc1 = AddComp<RPC>();
-        rpc1.Initialize("127.0.0.1", 8801, 5, 5000);
-        rpc1.Create();
-        rpc1.Routing("test/hello", (context) =>
+        var client = AddComp<TCPClient>();
+        client.Initialize(true);
+        client.Create();
+        client.Connect("127.0.0.1", 12801);
+        client.Send(new C2SLoginMsg{username = "", password = ""});
+        client.Recv<S2CLoginMsg>((c, m) =>
         {
-            engine.logger.Info(context.content);
-            context.Response(CROSS_STATE.SUCCESS, "你好，来访者。");
+            if (1 == m.code)
+            {
+                engine.logger.Info("登录成功");
+                client.Send(new C2STestMsg
+                {
+                    text = "Hello"
+                });
+            }
+            else
+            {
+                engine.logger.Info("登录失败");
+            }
         });
-
-        var rpc2 = AddComp<RPC>();
-        rpc2.Initialize("127.0.0.1", 8802, 5, 5000);
-        rpc2.Create();
-
-        // 因为是阻塞同步，因此，这里使用另一个线程模拟在另一个进程上
-        Task.Run(() =>
-        {
-            // 同步 RPC
-            rpc2.CrossSync("127.0.0.1", 8801, "test/hello", "你好，世界！1");
-        });
-        // 异步 RPC
-        rpc2.CrossAsync("127.0.0.1", 8801, "test/hello", "你好，世界！2");
-        // 协程 RPC
-        engine.coroutines.Execute(CSCross(rpc2));
-    }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-    }
-
-    private IEnumerator<Instruction> CSCross(RPC rpc)
-    {
-        var result = rpc.CrossAsync("127.0.0.1", 8801, "test/hello", "你好，世界！3");
-        while (CROSS_STATE.WAIT == result.state) yield return null;
-        engine.logger.Info($"{result.state}, {result.content}");
     }
 }

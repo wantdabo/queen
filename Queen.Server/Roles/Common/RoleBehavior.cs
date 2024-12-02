@@ -87,19 +87,16 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
     /// 标识
     /// </summary>
     public abstract string token { get; }
-
     /// <summary>
     /// 脏标记
     /// </summary>
     private bool dirty { get; set; }
-
     /// <summary>
     /// 备份标记
     /// </summary>
     private bool backedup { get; set; }
 
     private TDBState mdata { get; set; }
-
     /// <summary>
     /// 数据
     /// </summary>
@@ -107,10 +104,8 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
     {
         get
         {
-            if (engine.ethread) return mdata;
-
+            if (false == dirty) Backup();
             dirty = true;
-            Backup();
 
             return mdata;
         }
@@ -214,25 +209,6 @@ public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> 
         NetRecv();
     }
 
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-        NetUnRecv();
-    }
-
-    /// <summary>
-    /// 自动注销消息接收
-    /// </summary>
-    private void NetUnRecv()
-    {
-        foreach (var actionInfo in adapter.actionInfos)
-        {
-            var recvMethod = role.GetType().GetMethod("UnRecv").MakeGenericMethod(actionInfo.msgType);
-            recvMethod.Invoke(role, [actionInfo.action]);
-        }
-        adapter.actionInfos.Clear();
-    }
-    
     /// <summary>
     /// 自动注册消息接收
     /// </summary>

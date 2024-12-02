@@ -95,11 +95,6 @@ public class Engine : Comp
         pool.Create();
     }
 
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-    }
-
     /// <summary>
     /// 确保创建线程与调度线程为同一个
     /// </summary>

@@ -37,6 +37,10 @@ public class Server : Engine<Server>
     /// RPC
     /// </summary>
     public RPC rpc { get; private set; }
+    /// <summary>
+    /// Party
+    /// </summary>
+    public Party party { get; private set; }
 
     protected override void OnCreate()
     {
@@ -59,7 +63,7 @@ public class Server : Engine<Server>
         rpc.Initialize(settings.rpchost, settings.rpcport, settings.rpcidlecc, settings.rpctimeout, settings.rpcdeadtime);
         rpc.Create();
 
-        var party = AddComp<Party>();
+        party = AddComp<Party>();
         party.Create();
         
         var authenticator = AddComp<Authenticator>();
@@ -79,10 +83,5 @@ public class Server : Engine<Server>
         engine.logger.Info("queen.server is running...");
 
         Console.Title = settings.name;
-    }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
     }
 }

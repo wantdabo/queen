@@ -1,15 +1,16 @@
 ﻿using MongoDB.Driver;
 using Queen.Common;
 using Queen.Common.DB;
+using Queen.Core;
 using Queen.Network.Common;
 using Queen.Network.Cross;
 using Queen.Protocols;
 using Queen.Protocols.Common;
-using Queen.Server.Core;
 using Queen.Server.Roles.Bags;
-using Queen.Server.Roles.Common.Contacts;
 using Queen.Server.System.Commune;
 using System.Collections.Concurrent;
+using Queen.Server.Roles.Common.Contacts;
+using Comp = Queen.Server.Core.Comp;
 
 namespace Queen.Server.Roles.Common;
 
@@ -50,10 +51,14 @@ public struct RoleInfo
     /// <returns>YES/NO</returns>
     public bool Equals(RoleInfo other)
     {
-        if (false == uuid.Equals(other.uuid)) return false;
-        if (false == username.Equals(other.username)) return false;
-        if (false == nickname.Equals(other.nickname)) return false;
-        if (false == password.Equals(other.password)) return false;
+        if (false == uuid.Equals(other.uuid))
+            return false;
+        if (false == username.Equals(other.username))
+            return false;
+        if (false == nickname.Equals(other.nickname))
+            return false;
+        if (false == password.Equals(other.password))
+            return false;
 
         return true;
     }
@@ -102,15 +107,15 @@ public class Role : Comp
     /// <summary>
     /// 工作中
     /// </summary>
-    public bool working { get; private set; }
-    /// <summary>
-    /// RPC 任务列表
-    /// </summary>
-    private ConcurrentQueue<Action> contactjobs = new();
+    public bool working  {get; private set; }
     /// <summary>
     /// 任务列表
     /// </summary>
     private ConcurrentQueue<Action> jobs = new();
+    /// <summary>
+    /// RPC 任务列表
+    /// </summary>
+    private ConcurrentQueue<Action> contactjobs = new();
     /// <summary>
     /// 发送列表
     /// </summary>
@@ -122,45 +127,45 @@ public class Role : Comp
     /// <summary>
     /// 协议映射集合
     /// </summary>
-    private Dictionary<Delegate, Delegate> actionDict = new();
+    private Dictionary<Type, List<Delegate>> actionDict = new();
     /// <summary>
     /// 心跳计时器 ID
     /// </summary>
-    private uint heartbeatTiming { get; set; }
+    private uint heartbeatTiming;
     /// <summary>
     /// 数据自动保存计时器 ID
     /// </summary>
-    private uint dbsaveTiming { get; set; }
+    private uint dbsaveTiming;
 
     protected override void OnCreate()
     {
         base.OnCreate();
         eventor = AddComp<Eventor>();
         eventor.Create();
-        engine.eventor.Listen<Queen.Core.ExecuteEvent>(OnExecute);
         engine.eventor.Listen<RoleJoinEvent>(OnRoleJoin);
         engine.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
         eventor.Listen<DBSaveEvent>(OnDBSave);
+
         // 心跳发送
         heartbeatTiming = engine.ticker.Timing((t) =>
         {
+            TODO(() => eventor.Tell<ExecuteEvent>());
             Heartbeat();
         }, 5, -1);
 
         // 数据写盘
         dbsaveTiming = engine.ticker.Timing((t) => TODO(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
-
         Behaviors();
     }
 
     protected override void OnDestroy()
     {
         base.OnDestroy();
-        engine.eventor.UnListen<Queen.Core.ExecuteEvent>(OnExecute);
         engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
         engine.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
         eventor.UnListen<DBSaveEvent>(OnDBSave);
         engine.ticker.StopTimer(dbsaveTiming);
+        engine.ticker.StopTimer(heartbeatTiming);
         jobs.Clear();
     }
 
@@ -189,8 +194,7 @@ public class Role : Comp
         contact = AddComp<Contact>();
         contact.Initialize(this);
         contact.Create();
-        
-        // 背包
+
         bag = AddBehavior<Bag>();
         bag.Create();
     }
@@ -202,9 +206,19 @@ public class Role : Comp
     /// <returns>Behavior 实例</returns>
     public T GetBehavior<T>() where T : RoleBehavior
     {
-        if (false == behaviorDict.TryGetValue(typeof(T), out var behavior)) return null;
+        if (false == behaviorDict.TryGetValue(typeof(T), out var behavior))
+            return null;
 
         return behavior as T;
+    }
+
+    /// <summary>
+    /// 获取所有 Behavior
+    /// </summary>
+    /// <returns>Behavior 集合</returns>
+    public RoleBehavior[] GetBehaviors()
+    {
+        return behaviorDict.Values.ToArray();
     }
 
     /// <summary>
@@ -215,7 +229,8 @@ public class Role : Comp
     /// <exception cref="Exception">不能添加重复的 Behavior</exception>
     public T AddBehavior<T>() where T : RoleBehavior, new()
     {
-        if (behaviorDict.ContainsKey(typeof(T))) throw new Exception("can't add repeat behavior.");
+        if (behaviorDict.ContainsKey(typeof(T)))
+            throw new Exception("can't add repeat behavior.");
 
         T behavior = AddComp<T>();
         behavior.role = this;
@@ -225,35 +240,33 @@ public class Role : Comp
     }
 
     /// <summary>
-    /// 注销协议接收
-    /// </summary>
-    /// <typeparam name="T">协议类型</typeparam>
-    /// <param name="action">协议回调</param>w
-    public void UnRecv<T>(Action<T> action) where T : INetMessage
-    {
-        if (actionDict.TryGetValue(action, out var callback))
-        {
-            engine.slave.UnRecv(callback as Action<NetChannel, T>);
-            actionDict.Remove(action);
-        }
-    }
-
-    /// <summary>
     /// 注册协议接收
     /// </summary>
     /// <typeparam name="T">协议类型</typeparam>
     /// <param name="action">协议回调</param>
     public void Recv<T>(Action<T> action) where T : INetMessage
     {
-        Action<NetChannel, T> callback = (c, m) =>
+        engine.party.Recv(action);
+        if (false == actionDict.TryGetValue(typeof(T), out var list))
         {
-            if (null == session.channel) return;
-            if (false == c.alive || false == session.channel.alive) return;
+            list = new();
+            actionDict.Add(typeof(T), list);
+        }
 
-            if (c.id == session.channel.id) TODO(() => { action?.Invoke(m); });
-        };
-        engine.slave.Recv(callback);
-        actionDict.Add(action, callback);
+        list.Add(action);
+    }
+
+    public void OnRecv<T>(T msg) where T : INetMessage
+    {
+        if (false == actionDict.TryGetValue(typeof(T), out var list)) return;
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            var action = list[i];
+            TODO(() =>
+            {
+                action.DynamicInvoke(msg);
+            });
+        }
     }
 
     /// <summary>
@@ -263,13 +276,15 @@ public class Role : Comp
     /// <param name="msg">数据</param>
     public void Send<T>(T msg) where T : INetMessage
     {
-        if (null == session.channel) return;
-        
+        if (null == session.channel)
+            return;
+
         sends.Enqueue(() =>
         {
-            if (null == session.channel) return;
-            
-            session.channel.Send(msg); 
+            if (null == session.channel)
+                return;
+
+            session.channel.Send(msg);
         });
     }
 
@@ -278,7 +293,10 @@ public class Role : Comp
     /// </summary>
     private void Heartbeat()
     {
-        Send(new S2CHeartbeatMsg { timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds() });
+        Send(new S2CHeartbeatMsg
+        {
+            timestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds()
+        });
     }
 
     /// <summary>
@@ -286,7 +304,8 @@ public class Role : Comp
     /// </summary>
     private void Reset()
     {
-        foreach (var behavior in behaviorDict.Values) behavior.Reset();
+        foreach (var behavior in behaviorDict.Values)
+            behavior.Reset();
     }
 
     /// <summary>
@@ -294,8 +313,10 @@ public class Role : Comp
     /// </summary>
     private void Restore()
     {
-        if (false == info.Equals(backup)) info = new() { uuid = backup.uuid, username = backup.username, nickname = backup.nickname, password = backup.password };
-        foreach (var behavior in behaviorDict.Values) behavior.Restore();
+        if (false == info.Equals(backup))
+            info = new() { uuid = backup.uuid, username = backup.username, nickname = backup.nickname, password = backup.password };
+        foreach (var behavior in behaviorDict.Values)
+            behavior.Restore();
     }
 
     /// <summary>
@@ -312,66 +333,56 @@ public class Role : Comp
     /// <param name="job">任务</param>
     private void TODO(Action job)
     {
+        if (engine.settings.roletaskmax <= jobs.Count) return;
+        
         if (false == online) return;
+        if (null == job) return;
 
         jobs.Enqueue(job);
+    }
+    
+    public void Contact(CrossContext context, ContactInfo info)
+    {
+        if (engine.settings.rolecontactmax <= contactjobs.Count) return;
+        
+        contactjobs.Enqueue(() => contact.OnContact(context, info));
     }
 
     /// <summary>
     /// 进行工作
     /// </summary>
-    private void Work()
+    public Task Work()
     {
-        if (working) return;
-
-        if (0 == contactjobs.Count && 0 == jobs.Count) return;
-
-        // 开启任务线程
-        Task.Run(() =>
+        if (working) return Task.CompletedTask;
+        
+        if (false == contactjobs.TryDequeue(out var job)) if (false == jobs.TryDequeue(out job)) return Task.CompletedTask;
+        
+        working = true;
+        
+        try
         {
-            try
-            {
-                working = true;
-                while (true)
-                {
-                    if (false == contactjobs.TryDequeue(out var job)) if (false == jobs.TryDequeue(out job)) break;
+            // 备份数据
+            Backup();
+            // 执行任务
+            job.Invoke();
+            // 重置备份
+            Reset();
 
-                    // 备份数据
-                    Backup();
-                    // 执行任务
-                    job.Invoke();
-                    // 重置备份
-                    Reset();
+            // 任务中产生的有效数据，推送至客户端
+            while (sends.TryDequeue(out var send)) send.Invoke();
+        }
+        catch (Exception e)
+        {
+            // 任务失败，恢复数据
+            Restore();
+            // 任务失败，清除任务中的推送消息
+            sends.Clear();
+            // 任务失败，输出日志
+            engine.logger.Error($"role erro, uuid -> {info.uuid}", e);
+        }
+        working = false;
 
-                    // 任务中产生的有效数据，推送至客户端
-                    while (sends.TryDequeue(out var send)) send.Invoke();
-                }
-            }
-            catch (Exception e)
-            {
-                // 任务失败，恢复数据
-                Restore();
-                // 任务失败，清除任务中的推送消息
-                sends.Clear();
-                // 任务失败，输出日志
-                engine.logger.Error($"role erro, uuid -> {info.uuid}", e);
-            }
-            finally
-            {
-                working = false;
-            }
-        });
-    }
-
-    public void OnContact(CrossContext context, ContactInfo info)
-    {
-        contactjobs.Enqueue(()=> contact.OnContact(context, info));
-    }
-
-    private void OnExecute(Queen.Core.ExecuteEvent e)
-    {
-        TODO(() => eventor.Tell(e));
-        Work();
+        return Task.CompletedTask;
     }
 
     private void OnRoleJoin(RoleJoinEvent e)
@@ -389,7 +400,10 @@ public class Role : Comp
 
     private void OnRoleQuit(RoleQuitEvent e)
     {
-        if (e.role.info.uuid != info.uuid) return;
+        if (e.role.info.uuid != info.uuid)
+        {
+            return;
+        }
 
         jobs.Clear();
         TODO(() =>
@@ -402,9 +416,10 @@ public class Role : Comp
 
     private void OnDBSave(DBSaveEvent e)
     {
-        if (dbcache.Equals(info)) return;
+        if (dbcache.Equals(info))
+            return;
 
-        if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(r => r.uuid, info.uuid), new() { uuid = info.uuid, nickname = info.nickname, username = info.username, password = info.password }))
+        if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.uuid, info.uuid), new() { uuid = info.uuid, nickname = info.nickname, username = info.username, password = info.password }))
         {
             dbcache = info;
         }

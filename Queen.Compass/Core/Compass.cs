@@ -40,9 +40,4 @@ public class Compass : Engine<Compass>
 
         Console.Title = settings.name;
     }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-    }
 }

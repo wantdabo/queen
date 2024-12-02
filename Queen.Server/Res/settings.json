@@ -46,5 +46,9 @@
   // 数据落地时间间隔（秒）
   "dbsave": 5,
   // Role 离线销毁时间（秒）
-  "roledestroy": 300
+  "roledestroy": 300,
+  // Role 任务最大数量
+  "roletaskmax": 100,
+  // Role 联系最大数量
+  "rolecontactmax": 10
 }

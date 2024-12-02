@@ -94,6 +94,14 @@ public class Settings : Comp
     /// Role 离线销毁时间（秒）
     /// </summary>
     public int roledestroy { get; private set; }
+    /// <summary>
+    /// Role 任务最大数量
+    /// </summary>
+    public int roletaskmax { get; private set; }
+    /// <summary>
+    /// Role 联系最大数量
+    /// </summary>
+    public int rolecontactmax { get; private set; }
 
     protected override void OnCreate()
     {
@@ -120,6 +128,8 @@ public class Settings : Comp
         dbpwd = jobj.Value<string>("dbpwd");
         dbsave = jobj.Value<int>("dbsave");
         roledestroy = jobj.Value<int>("roledestroy");
+        roletaskmax = jobj.Value<int>("roletaskmax");
+        rolecontactmax = jobj.Value<int>("rolecontactmax");
     }
 
     protected override void OnDestroy()
