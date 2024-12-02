@@ -351,11 +351,11 @@ public class Role : Comp
     /// <summary>
     /// 进行工作
     /// </summary>
-    public Task Work()
+    public void Work()
     {
-        if (working) return Task.CompletedTask;
+        if (working) return;
         
-        if (false == contactjobs.TryDequeue(out var job)) if (false == jobs.TryDequeue(out job)) return Task.CompletedTask;
+        if (false == contactjobs.TryDequeue(out var job)) if (false == jobs.TryDequeue(out job)) return;
         
         working = true;
         
@@ -381,8 +381,6 @@ public class Role : Comp
             engine.logger.Error($"role erro, uuid -> {info.uuid}", e);
         }
         working = false;
-
-        return Task.CompletedTask;
     }
 
     private void OnRoleJoin(RoleJoinEvent e)
