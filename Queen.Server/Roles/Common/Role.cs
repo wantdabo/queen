@@ -367,10 +367,10 @@ public class Role : Comp
                 Backup();
                 // 执行任务
                 job.Invoke();
-                // 重置备份
-                Reset();
                 // 保存数据
                 SaveData();
+                // 重置备份
+                Reset();
 
                 // 任务中产生的有效数据，推送至客户端
                 while (sends.TryDequeue(out var send)) send.Invoke();
