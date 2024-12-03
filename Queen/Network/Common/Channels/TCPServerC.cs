@@ -16,7 +16,7 @@ public class TCPServerC(TcpSessionClient socket) : NetChannel<TcpSessionClient>(
     public override void Send(byte[] data)
     {
         if (false == alive) return;
-        socket.Send(data);
+        socket.SendAsync(data);
     }
         
     public override void Disconnect()
