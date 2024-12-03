@@ -258,6 +258,8 @@ public class Role : Comp
 
     public void OnRecv<T>(T msg) where T : INetMessage
     {
+        if (engine.settings.roletaskmax <= jobs.Count) return;
+
         if (false == actionDict.TryGetValue(typeof(T), out var list)) return;
         for (int i = list.Count - 1; i >= 0; i--)
         {
@@ -333,8 +335,6 @@ public class Role : Comp
     /// <param name="job">任务</param>
     private void TODO(Action job)
     {
-        if (engine.settings.roletaskmax <= jobs.Count) return;
-        
         if (false == online) return;
         if (null == job) return;
 
