@@ -41,6 +41,10 @@ public class Server : Engine<Server>
     /// Party
     /// </summary>
     public Party party { get; private set; }
+    /// <summary>
+    /// 数据保存
+    /// </summary>
+    public Truck truck { get; private set; }
 
     protected override void OnCreate()
     {
@@ -65,6 +69,9 @@ public class Server : Engine<Server>
 
         party = AddComp<Party>();
         party.Create();
+
+        truck = AddComp<Truck>();
+        truck.Create();
         
         var authenticator = AddComp<Authenticator>();
         authenticator.Create();

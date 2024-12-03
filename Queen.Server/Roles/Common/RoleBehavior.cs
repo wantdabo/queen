@@ -7,6 +7,7 @@ using Queen.Network;
 using Queen.Network.Common;
 using Queen.Protocols.Common;
 using Queen.Server.Core;
+using Queen.Server.System.Commune;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,6 +51,14 @@ public abstract class RoleBehavior : Comp
     {
         OnBackup();
     }
+    
+    /// <summary>
+    /// 存储数据
+    /// </summary>
+    public void SaveDataReq()
+    {
+        OnSendSaveReq();
+    }
 
     /// <summary>
     /// 重置备份
@@ -64,6 +73,10 @@ public abstract class RoleBehavior : Comp
     /// 备份数据
     /// </summary>
     protected abstract void OnBackup();
+    /// <summary>
+    /// 存储数据
+    /// </summary>
+    protected abstract void OnSendSaveReq();
 }
 
 /// <summary>
@@ -120,14 +133,7 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
     protected override void OnCreate()
     {
         base.OnCreate();
-        role.eventor.Listen<DBSaveEvent>(OnDBSave);
         LoadData();
-    }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-        role.eventor.UnListen<DBSaveEvent>(OnDBSave);
     }
 
     protected override void OnReset()
@@ -157,6 +163,14 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
 
         backup = MessagePackSerializer.Serialize(data);
     }
+    
+    /// <summary>
+    /// 存储数据
+    /// </summary>
+    protected override void OnSendSaveReq()
+    {
+        SaveData();
+    }
 
     /// <summary>
     /// 加载数据
@@ -182,13 +196,14 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
         if (false == dirty) return;
 
         var bytes = MessagePackSerializer.Serialize(data);
-        if (engine.dbo.Replace("datas", Builders<DBDataValue>.Filter.Eq(p => p.prefix, prefix), new() { prefix = prefix, value = bytes }))
+        engine.truck.Save(new DBSaveReq()
         {
-            dirty = false;
-        }
+            collection = "datas",
+            token = prefix,
+            value = bytes
+        });
+        dirty = false;
     }
-
-    private void OnDBSave(DBSaveEvent e) { SaveData(); }
 }
 
 /// <summary>

@@ -14,13 +14,6 @@ using Comp = Queen.Server.Core.Comp;
 
 namespace Queen.Server.Roles.Common;
 
-/// <summary>
-/// 数据保存事件
-/// </summary>
-public struct DBSaveEvent : IEvent
-{
-}
-
 #region 玩家数据结构
 /// <summary>
 /// 玩家数据结构
@@ -144,7 +137,6 @@ public class Role : Comp
         eventor.Create();
         engine.eventor.Listen<RoleJoinEvent>(OnRoleJoin);
         engine.eventor.Listen<RoleQuitEvent>(OnRoleQuit);
-        eventor.Listen<DBSaveEvent>(OnDBSave);
 
         // 心跳发送
         heartbeatTiming = engine.ticker.Timing((t) =>
@@ -153,8 +145,6 @@ public class Role : Comp
             Heartbeat();
         }, 5, -1);
 
-        // 数据写盘
-        dbsaveTiming = engine.ticker.Timing((t) => TODO(() => { eventor.Tell<DBSaveEvent>(); }), engine.settings.dbsave, -1);
         Behaviors();
     }
 
@@ -163,7 +153,6 @@ public class Role : Comp
         base.OnDestroy();
         engine.eventor.UnListen<RoleJoinEvent>(OnRoleJoin);
         engine.eventor.UnListen<RoleQuitEvent>(OnRoleQuit);
-        eventor.UnListen<DBSaveEvent>(OnDBSave);
         engine.ticker.StopTimer(dbsaveTiming);
         engine.ticker.StopTimer(heartbeatTiming);
         jobs.Clear();
@@ -309,6 +298,17 @@ public class Role : Comp
         foreach (var behavior in behaviorDict.Values)
             behavior.Reset();
     }
+    
+    private void SaveData()
+    {
+        var dbRoleValue = new DBRoleValue() { uuid = info.uuid, username = info.username, nickname = info.username, password = info.password };
+        engine.truck.Save(new DBSaveReq
+        {
+            collection = "role",
+            dbRoleValue = dbRoleValue
+        });
+        foreach (var (key, roleBehavior) in behaviorDict) roleBehavior.SaveDataReq();
+    }
 
     /// <summary>
     /// 恢复数据
@@ -369,6 +369,8 @@ public class Role : Comp
                 job.Invoke();
                 // 重置备份
                 Reset();
+                // 保存数据
+                SaveData();
 
                 // 任务中产生的有效数据，推送至客户端
                 while (sends.TryDequeue(out var send)) send.Invoke();
@@ -413,19 +415,8 @@ public class Role : Comp
         TODO(() =>
         {
             eventor.Tell(e);
-            eventor.Tell<DBSaveEvent>();
+            SaveData();
         });
         online = false;
-    }
-
-    private void OnDBSave(DBSaveEvent e)
-    {
-        if (dbcache.Equals(info))
-            return;
-
-        if (engine.dbo.Replace("roles", Builders<DBRoleValue>.Filter.Eq(p => p.uuid, info.uuid), new() { uuid = info.uuid, nickname = info.nickname, username = info.username, password = info.password }))
-        {
-            dbcache = info;
-        }
     }
 }

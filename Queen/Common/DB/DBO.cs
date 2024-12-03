@@ -129,6 +129,22 @@ public class DBO : Comp
 
         return result.ModifiedCount > 0;
     }
+    
+    /// <summary>
+    /// Mongo 批量更新
+    /// </summary>
+    /// <param name="name">集合名字</param>
+    /// <param name="updates">更新的数据</param>
+    /// <typeparam name="T">数据类型（需要与 Mongo 集合字段对上）</typeparam>
+    /// <returns>YES/NO</returns>
+    public bool UpdateMany<T>(string name, List<WriteModel<T>> updates) where T : DBValue, new()
+    {
+        var database = connect.GetDatabase(dbname);
+        var collection = database.GetCollection<T>(name);
+        var result = collection.BulkWrite(updates);
+
+        return result.ModifiedCount > 0;
+    }
 
     /// <summary>
     /// Mongo 覆盖（如有数据，将会更新，否则便新增）
