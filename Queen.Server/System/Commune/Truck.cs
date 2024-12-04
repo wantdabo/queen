@@ -65,31 +65,31 @@ public class Truck : Sys
                 }
                 if (rolesDict.Count > 0)
                 {
-                    var updateRequests = new List<WriteModel<DBRoleValue>>();
+                    var updates = new List<WriteModel<DBRoleValue>>();
                     foreach (var kv in rolesDict)
                     {
-                        updateRequests.Add(new UpdateOneModel<DBRoleValue>(
+                        updates.Add(new UpdateOneModel<DBRoleValue>(
                             Builders<DBRoleValue>.Filter.Eq(r => r.uuid, kv.Value.uuid),
-                            Builders<DBRoleValue>.Update.SetOnInsert(r => r, kv.Value)
+                            Builders<DBRoleValue>.Update.Set(r => r, kv.Value)
                         ));
                     }
-                    engine.dbo.UpdateMany("roles", updateRequests);
+                    engine.dbo.UpdateMany("roles", updates);
                 }
 
                 if (datasDict.Count > 0)
                 {
-                    var updateRequests1 = new List<WriteModel<DBDataValue>>();
+                    var updates = new List<WriteModel<DBDataValue>>();
                     foreach (var kv in datasDict)
                     {
-                        updateRequests1.Add(new UpdateOneModel<DBDataValue>(
+                        updates.Add(new UpdateOneModel<DBDataValue>(
                             Builders<DBDataValue>.Filter.Eq(r => r.prefix, kv.Key),
-                            Builders<DBDataValue>.Update.SetOnInsert(r => r.value, kv.Value)
+                            Builders<DBDataValue>.Update.Set(r => r.value, kv.Value)
                         )
                         {
                             IsUpsert = true
                         });
                     }
-                    engine.dbo.UpdateMany("datas", updateRequests1);
+                    engine.dbo.UpdateMany("datas", updates);
                 }
             });
         }, engine.settings.dbsave, -1);
