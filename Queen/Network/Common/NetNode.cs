@@ -34,7 +34,7 @@ public abstract class NetNode : Comp
         public INetMessage msg;
     }
 
-    /// <summary>z
+    /// <summary>
     /// 是否自动通知消息
     /// </summary>
     protected bool notify { get; private set; }
@@ -246,7 +246,6 @@ public abstract class NetNode : Comp
         while (netpackages.TryDequeue(out var package))
         {
             if (false == messageActionDict.TryGetValue(package.msgType, out var actions)) continue;
-            if (null == actions) continue;
             for (int i = actions.Count - 1; i >= 0; i--) actions[i]?.DynamicInvoke(package.channel, package.msg);
         }
     }

@@ -25,7 +25,6 @@ public class TCPClient : NetNode
     /// 连接状态
     /// </summary>
     public bool connected => null != channel && channel.alive;
-
     /// <summary>
     /// 通信渠道
     /// </summary>

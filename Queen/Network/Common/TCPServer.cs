@@ -64,11 +64,6 @@ public class TCPServer : NetNode
         service.Start();
     }
 
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-    }
-
     /// <summary>
     /// 创建服务端网络节点
     /// </summary>

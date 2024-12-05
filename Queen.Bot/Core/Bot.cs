@@ -29,7 +29,7 @@ public class Bot : Engine<Bot>
         base.OnCreate();
         settings = AddComp<Settings>();
         settings.Create();
-        
+
         coroutines = AddComp<CoroutineScheduler>();
         coroutines.Initialize(ticker);
         coroutines.Create();
@@ -38,25 +38,47 @@ public class Bot : Engine<Bot>
         engine.logger.Info("queen.bot is running...");
         Console.Title = settings.name;
 
-        var client = AddComp<TCPClient>();
-        client.Initialize(true);
-        client.Create();
-        client.Connect("127.0.0.1", 12801);
-        client.Send(new C2SLoginMsg{username = "", password = ""});
-        client.Recv<S2CLoginMsg>((c, m) =>
+        WebSocketTest();
+        // var client = AddComp<TCPClient>();
+        // client.Initialize(true);
+        // client.Create();
+        // client.Connect("127.0.0.1", 12801);
+        // client.Send(new C2SLoginMsg{username = "", password = ""});
+        // client.Recv<S2CLoginMsg>((c, m) =>
+        // {
+        //     if (1 == m.code)
+        //     {
+        //         engine.logger.Info("登录成功");
+        //         client.Send(new C2STestMsg
+        //         {
+        //             text = "Hello"
+        //         });
+        //     }
+        //     else
+        //     {
+        //         engine.logger.Info("登录失败");
+        //     }
+        // });
+    }
+
+    private void WebSocketTest()
+    {
+        // 创建 WebSocket 服务端
+        var wsserv = AddComp<WebSocketServer>();
+        wsserv.Initialize("127.0.0.1", 12800, true, 2048, 4, 100);
+        wsserv.Create();
+        wsserv.Recv((NetChannel c, C2SLoginMsg m) =>
         {
-            if (1 == m.code)
-            {
-                engine.logger.Info("登录成功");
-                client.Send(new C2STestMsg
-                {
-                    text = "Hello"
-                });
-            }
-            else
-            {
-                engine.logger.Info("登录失败");
-            }
+            engine.logger.Info($"username -> {m.username}, password -> {m.password}");
         });
+
+        // 创建 WebSocket 客户端
+        var wsclient = AddComp<WebSocketClient>();
+        wsclient.Initialize(true);
+        wsclient.Create();
+        wsclient.Connect("127.0.0.1", 12800);
+        
+        // 发送消息
+        wsclient.Send(new C2SLoginMsg { username = "wantdabo", password = "abc123" });
     }
 }
