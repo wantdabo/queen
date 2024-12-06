@@ -5,6 +5,7 @@
 ### 大致全貌
 - TCP 通信
 - UDP 可靠通信
+- WebSocket 通信（支持 SSL）
 - RPC 远程调用
 - 轻量协程
 - MessagePack 协议
