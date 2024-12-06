@@ -24,12 +24,12 @@ public abstract class Comp
     /// <summary>
     /// 组件列表
     /// </summary>
-    private List<Comp> compList = null;
+    private List<Comp> comps = null;
 
     /// <summary>
     /// 组件字典，根据组件类型分类
     /// </summary>
-    private Dictionary<Type, List<Comp>> compDict = null;
+    private Dictionary<Type, List<Comp>> compdict = null;
 
     /// <summary>
     /// 创建一个 Queen 对象
@@ -50,57 +50,24 @@ public abstract class Comp
     public void Destroy()
     {
         engine.EnsureThread();
-        parent.RmvComp(this);
-        if (null != compList)
-        {
-            for (int i = compList.Count - 1; i >= 0; i--)
-            {
-                var comp = compList[i];
-                RmvComp(comp);
-                comp.Destroy();
-            }
-            compList.Clear();
-            compDict.Clear();
-        }
+        
         OnDestroy();
+        parent.RmvComp(this);
+
+        if (null != comps)
+        {
+            for (int i = comps.Count - 1; i >= 0; i--)
+            {
+                comps[i].Destroy();
+            }
+            comps.Clear();
+            compdict.Clear();
+        }
     }
 
     protected virtual void OnDestroy()
     {
 
-    }
-
-    /// <summary>
-    /// 获取已挂载的指定类型的组件列表
-    /// </summary>
-    /// <typeparam name="T">组件类型</typeparam>
-    /// <param name="force">强制查询，如果字段快速查询未找到，并且 force 为 true，将以高代价的查询方式获取</typeparam>
-    /// <returns>组件列表</returns>
-    public virtual List<T> GetComps<T>(bool force = false) where T : Comp
-    {
-        List<T> list = null;
-        if (compDict.TryGetValue(typeof(T), out var comps))
-        {
-            list = new List<T>();
-
-            foreach (var item in comps) list.Add(item as T);
-
-            return list;
-        }
-
-        if (false == force) return null;
-
-        // 高代价查表
-        foreach (var comp in compList)
-        {
-            if (comp is T)
-            {
-                if (null == list) list = new();
-                list.Add(comp as T);
-            }
-        }
-
-        return list;
     }
 
     /// <summary>
@@ -110,7 +77,7 @@ public abstract class Comp
     /// <returns>组件</returns>
     public virtual T GetComp<T>(bool force = false) where T : Comp
     {
-        if (false == compDict.TryGetValue(typeof(T), out var comps)) return null;
+        if (false == compdict.TryGetValue(typeof(T), out var comps)) return null;
 
         return comps.Last() as T;
     }
@@ -123,19 +90,19 @@ public abstract class Comp
     public virtual T AddComp<T>() where T : Comp, new()
     {
         engine.EnsureThread();
-        if (null == compList) compList = new();
-        if (null == compDict) compDict = new();
+        if (null == comps) comps = new();
+        if (null == compdict) compdict = new();
 
         T comp = new();
         comp.engine = engine;
         comp.parent = this;
-        if (false == compDict.TryGetValue(typeof(T), out var comps))
+        if (false == compdict.TryGetValue(typeof(T), out var list))
         {
-            comps = new();
-            compDict.Add(typeof(T), comps);
+            list = new();
+            compdict.Add(typeof(T), list);
         }
+        list.Add(comp);
         comps.Add(comp);
-        compList.Add(comp);
 
         return comp;
     }
@@ -147,8 +114,8 @@ public abstract class Comp
     public virtual void RmvComp(Comp comp)
     {
         engine.EnsureThread();
-        if (compDict.TryGetValue(comp.GetType(), out var comps)) comps.Remove(comp);
-        compList.Remove(comp);
+        if (compdict.TryGetValue(comp.GetType(), out var list)) list.Remove(comp);
+        comps.Remove(comp);
     }
 }
 
