@@ -73,6 +73,10 @@ public struct RoleJoinInfo
 public class Party : Sys
 {
     /// <summary>
+    /// 已注册的消息回调
+    /// </summary>
+    private List<Delegate> recvedfuncs = new();
+    /// <summary>
     /// 玩家集合
     /// </summary>
     private Dictionary<string, Role> uuidRoleDict = new();
@@ -115,6 +119,8 @@ public class Party : Sys
         engine.eventor.UnListen<ExecuteEvent>(OnExecute);
         engine.ticker.eventor.UnListen<TickEvent>(OnTick);
         engine.rpc.UnRouting(Contact.ROUTE, OnContact);
+        
+        foreach (var func in recvedfuncs) engine.slave.UnRecv(func as Action<NetChannel, INetMessage>);
     }
 
     /// <summary>
@@ -178,13 +184,16 @@ public class Party : Sys
         if (regedmsgs.Contains(typeof(T))) return;
         regedmsgs.Add(typeof(T));
 
-        engine.slave.Recv((NetChannel c, T msg) =>
+        Action<NetChannel, T> func = (NetChannel c, T msg) =>
         {
             if (false == c.alive) return;
             var role = GetRole(c);
             if (null == role || false == role.session.channel.alive) return;
             role.OnRecv(msg);
-        });
+        };
+        recvedfuncs.Add(func);
+
+        engine.slave.Recv(func);
     }
 
     /// <summary>

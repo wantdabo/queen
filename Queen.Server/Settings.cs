@@ -23,6 +23,10 @@ public class Settings : Comp
     /// </summary>
     public ushort port { get; private set; }
     /// <summary>
+    /// WS 端口
+    /// </summary>
+    public ushort wsport { get; private set; }
+    /// <summary>
     /// 最大连接数
     /// </summary>
     public int maxconn { get; private set; }
@@ -110,6 +114,7 @@ public class Settings : Comp
         name = jobj.Value<string>("name");
         host = jobj.Value<string>("host");
         port = jobj.Value<ushort>("port");
+        wsport = jobj.Value<ushort>("wsport");
         maxconn = jobj.Value<int>("maxconn");
         sthread = jobj.Value<int>("sthread");
         maxpps = jobj.Value<int>("maxpps");

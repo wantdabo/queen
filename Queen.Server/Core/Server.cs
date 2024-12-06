@@ -60,7 +60,7 @@ public class Server : Engine<Server>
         dbo.Create();
 
         slave = AddComp<Slave>();
-        slave.Initialize(settings.host, settings.port, settings.maxconn, settings.sthread, settings.maxpps);
+        slave.Initialize(settings.host, settings.port, settings.wsport, settings.maxconn, settings.sthread, settings.maxpps);
         slave.Create();
 
         rpc = AddComp<RPC>();
@@ -79,11 +79,11 @@ public class Server : Engine<Server>
         engine.ticker.Timing((t) =>
         {
             engine.rpc.CrossAsync(settings.compasshost, settings.compassport, CompassRouteDef.SET_RPC, new CompassRPCInfo { name = settings.name, host = settings.rpchost, port = settings.rpcport });
-            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, CompassRouteDef.SET_SERVER, new CompassServerInfo { name = settings.name, rpc = settings.name, rolecnt = party.cnt, onlinerolecnt = party.onlinecnt, host = settings.host, port = settings.port });
+            engine.rpc.CrossAsync(settings.compasshost, settings.compassport, CompassRouteDef.SET_SERVER, new CompassServerInfo { name = settings.name, rpc = settings.name, rolecnt = party.cnt, onlinerolecnt = party.onlinecnt, host = settings.host, port = settings.port, wsport = settings.wsport});
         }, 1f, -1);
 
         engine.logger.Info(
-            $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\tmaxconn: {settings.maxconn}" +
+            $"\n\tname: {settings.name}\n\tipaddress: {settings.host}\n\tport: {settings.port}\n\twsport: {settings.wsport}\n\tmaxconn: {settings.maxconn}" +
             $"\n\trpchost: {settings.rpchost}\n\trpcport: {settings.rpcport}\n\trpctimeout: {settings.rpctimeout}\n\trpcdeadtime: {settings.rpcdeadtime}" +
             $"\n\tdbhost: {settings.dbhost}\n\tdbport: {settings.dbport}\n\tdbname: {settings.dbname}\n\tdbuser: {settings.dbuser}\n\tdbpwd: {settings.dbpwd}\n\tdbsave: {settings.dbsave}"
         , ConsoleColor.Yellow);

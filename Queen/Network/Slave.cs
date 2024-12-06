@@ -15,6 +15,7 @@ namespace Queen.Network;
 public class Slave : Comp
 {
     private TCPServer tcp { get; set; }
+    private WebSocketServer ws { get; set; }
 
     protected override void OnCreate()
     {
@@ -33,19 +34,25 @@ public class Slave : Comp
     /// </summary>
     /// <param name="ip">地址</param>
     /// <param name="port">端口</param>
+    /// <param name="wsport">WS 端口</param>
     /// <param name="maxconn">最大连接数</param>
     /// <param name="sthread">Slave（主网）最大工作线程</param>
     /// <param name="maxpps">最大网络收发包每秒</param>
-    public void Initialize(string ip, ushort port, int maxconn, int sthread, int maxpps)
+    public void Initialize(string ip, ushort port, ushort wsport, int maxconn, int sthread, int maxpps)
     {
         tcp = AddComp<TCPServer>();
         tcp.Initialize(ip, port, false, maxconn, sthread, maxpps);
         tcp.Create();
+
+        ws = AddComp<WebSocketServer>();
+        ws.Initialize(ip, wsport, false, maxconn, sthread, maxpps);
+        ws.Create();
     }
 
     private void OnExecute(ExecuteEvent e)
     {
         tcp.Notify();
+        ws.Notify();
     }
 
     /// <summary>
@@ -57,6 +64,7 @@ public class Slave : Comp
     {
         engine.EnsureThread();
         tcp.UnRecv(action);
+        ws.UnRecv(action);
     }
 
     /// <summary>
@@ -68,5 +76,6 @@ public class Slave : Comp
     {
         engine.EnsureThread();
         tcp.Recv(action);
+        ws.Recv(action);
     }
 }

@@ -38,4 +38,9 @@ public class CompassServerInfo
     /// </summary>
     [JsonProperty]
     public ushort port { get; set; }
+    /// <summary>
+    /// WS 主机端口
+    /// </summary>
+    [JsonProperty]
+    public ushort wsport { get; set; }
 }
