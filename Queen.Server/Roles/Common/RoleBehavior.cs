@@ -51,7 +51,7 @@ public abstract class RoleBehavior : Comp
     {
         OnBackup();
     }
-    
+
     /// <summary>
     /// 存储数据
     /// </summary>
@@ -101,10 +101,6 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
     /// </summary>
     public abstract string token { get; }
     /// <summary>
-    /// 脏标记
-    /// </summary>
-    private bool dirty { get; set; }
-    /// <summary>
     /// 备份标记
     /// </summary>
     private bool backedup { get; set; }
@@ -118,7 +114,6 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
         get
         {
             Backup();
-            dirty = true;
 
             return mdata;
         }
@@ -163,7 +158,7 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
 
         backup = MessagePackSerializer.Serialize(data);
     }
-    
+
     /// <summary>
     /// 存储数据
     /// </summary>
@@ -193,16 +188,18 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
     /// </summary>
     private void SaveData()
     {
-        if (false == dirty) return;
+        if (false == backedup) return;
 
         var bytes = MessagePackSerializer.Serialize(data);
+
+        if (backup.Length == bytes.Length && ((ReadOnlySpan<byte>)backup).SequenceEqual(bytes)) return;
+
         engine.truck.Save(new DBSaveReq()
         {
             collection = "datas",
             token = prefix,
             value = bytes
         });
-        dirty = false;
     }
 }
 
@@ -213,7 +210,7 @@ public abstract class RoleBehavior<TDBState> : RoleBehavior where TDBState : IDB
 /// <typeparam name="TAdapter">消息适配器的类型></typeparam>
 public abstract class RoleBehavior<TDBState, TAdapter> : RoleBehavior<TDBState> where TDBState : IDBState, new() where TAdapter : Adapter, new()
 {
-    protected TAdapter adapter;
+    protected TAdapter adapter { get; set; }
 
     protected override void OnCreate()
     {
