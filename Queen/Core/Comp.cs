@@ -14,22 +14,22 @@ public abstract class Comp
     /// <summary>
     /// 引擎
     /// </summary>
-    public Engine engine;
+    public Engine engine { get; set; }
 
     /// <summary>
     /// 父组件
     /// </summary>
-    private Comp parent;
+    private Comp parent { get; set; }
 
     /// <summary>
     /// 组件列表
     /// </summary>
-    private List<Comp> comps = null;
+    private List<Comp> comps { get; set; } = null;
 
     /// <summary>
     /// 组件字典，根据组件类型分类
     /// </summary>
-    private Dictionary<Type, List<Comp>> compdict = null;
+    private Dictionary<Type, List<Comp>> compdict { get; set; } = null;
 
     /// <summary>
     /// 创建一个 Queen 对象
