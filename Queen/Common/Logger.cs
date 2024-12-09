@@ -79,19 +79,6 @@ public class Logger : Comp
         var logFilePath = $"{logdir}Log_{DateTime.Now.ToString("yyyy-MM-dd")}{DateTime.Now.ToLongTimeString().Replace(':', '.')}.txt";
         var fs = File.Open(logFilePath, FileMode.OpenOrCreate);
         writer = new StreamWriter(fs);
-
-        AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
-        {
-            Error((e.ExceptionObject as Exception));
-            SaveDisk();
-        };
-
-        TaskScheduler.UnobservedTaskException += (sender, e) =>
-        {
-            Error(e.Exception);
-            SaveDisk();
-            e.SetObserved();
-        };
     }
 
     protected override void OnDestroy()
