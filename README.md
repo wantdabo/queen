@@ -40,17 +40,13 @@
 ---
 
 ### TODO
-- Role 与 Role 之间 RPC 优雅 API 包装支持
 - Role 冷销毁/热内存常驻
 - Eventor Tell 执行过程移除导致 BUG
 - 时间轮，用于定时执行某些任务
 - 增加崩溃容灾数据保存抢救
 - Queen.Bot 设计
 - Ticker 计时器 BUG
-- 事务系统（基于 Redis）
-- 定位系统（基于 Redis）
 - 远程日志存盘系统，因为 Server 这些后面是要分布式的。所以，Logger 系统需要集中远程日志
-- H5 小游戏 WebSocket 支持
 
 ---
 
