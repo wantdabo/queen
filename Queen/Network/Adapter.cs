@@ -23,11 +23,12 @@ public struct ActionInfo
     /// <summary>
     /// 消息类型
     /// </summary>
-    public Type msgType;
+    public Type msgType { get; set; }
+
     /// <summary>
     /// 消息回调
     /// </summary>
-    public Delegate action;
+    public Delegate action { get; set; }
 }
 
 /// <summary>
@@ -38,7 +39,7 @@ public abstract class Adapter : Comp
     /// <summary>
     /// 桥接
     /// </summary>
-    protected Comp bridge;
+    protected Comp bridge { get; set; }
 
     /// <summary>
     /// 消息方法回调

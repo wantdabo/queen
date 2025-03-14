@@ -12,7 +12,7 @@ namespace Queen.Common;
 /// </summary>
 public class ObjectPool : Comp
 {
-    private readonly Dictionary<Type, Dictionary<string, Queue<object>>> pool = new();
+    private Dictionary<Type, Dictionary<string, Queue<object>>> pool { get; } = new();
 
     /// <summary>
     /// 从对象池获得一个实例化对象

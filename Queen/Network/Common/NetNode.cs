@@ -23,15 +23,16 @@ public abstract class NetNode : Comp
         /// <summary>
         /// 通信渠道
         /// </summary>
-        public NetChannel channel;
+        public NetChannel channel { get; set; }
+
         /// <summary>
         /// 消息类型
         /// </summary>
-        public Type msgType;
+        public Type msgType { get; set; }
         /// <summary>
         /// 消息
         /// </summary>
-        public INetMessage msg;
+        public INetMessage msg { get; set; }
     }
 
     /// <summary>
@@ -66,7 +67,7 @@ public abstract class NetNode : Comp
     /// <summary>
     /// PPS 计时器
     /// </summary>
-    private uint ppsTimingId = 0;
+    private uint ppsTimingId { get; set; } = 0;
 
     protected override void OnCreate()
     {

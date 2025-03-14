@@ -39,27 +39,28 @@ public class Logger : Comp
         /// <summary>
         /// 日志等级
         /// </summary>
-        public LogLevel ll;
+        public LogLevel ll { get; set; }
+
         /// <summary>
         /// 日志时间
         /// </summary>
-        public string time;
+        public string time { get; set; }
         /// <summary>
         /// 日志内容
         /// </summary>
-        public string message;
+        public string message { get; set; }
         /// <summary>
         /// 日志颜色
         /// </summary>
-        public ConsoleColor color;
+        public ConsoleColor color { get; set; }
     }
 
     /// <summary>
     /// 日志队列
     /// </summary>
-    private ConcurrentQueue<string> logInfos = new();
+    private ConcurrentQueue<string> logInfos { get; set; } = new();
 
-    private StreamWriter writer;
+    private StreamWriter writer { get; set; }
 
     protected override void OnCreate()
     {
@@ -173,8 +174,7 @@ public class Logger : Comp
     /// </summary>
     private void SaveDisk()
     {
-        while (logInfos.TryDequeue(out var log))
-            writer.WriteLine(log);
+        while (logInfos.TryDequeue(out var log)) writer.WriteLine(log);
         writer.Flush();
     }
 }

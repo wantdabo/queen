@@ -40,10 +40,6 @@ public abstract class Comp
         OnCreate();
     }
 
-    protected virtual void OnCreate()
-    {
-    }
-
     /// <summary>
     /// 销毁一个 Queen 对象
     /// </summary>
@@ -54,20 +50,13 @@ public abstract class Comp
         OnDestroy();
         parent.RmvComp(this);
 
-        if (null != comps)
+        if (null == comps) return;
+        for (int i = comps.Count - 1; i >= 0; i--)
         {
-            for (int i = comps.Count - 1; i >= 0; i--)
-            {
-                comps[i].Destroy();
-            }
-            comps.Clear();
-            compdict.Clear();
+            comps[i].Destroy();
         }
-    }
-
-    protected virtual void OnDestroy()
-    {
-
+        comps.Clear();
+        compdict.Clear();
     }
 
     /// <summary>
@@ -116,6 +105,20 @@ public abstract class Comp
         engine.EnsureThread();
         if (compdict.TryGetValue(comp.GetType(), out var list)) list.Remove(comp);
         comps.Remove(comp);
+    }
+    
+    /// <summary>
+    /// 创建一个 Queen 对象
+    /// </summary>
+    protected virtual void OnCreate()
+    {
+    }
+
+    /// <summary>
+    /// 销毁一个 Queen 对象
+    /// </summary>
+    protected virtual void OnDestroy()
+    {
     }
 }
 

@@ -1,11 +1,7 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Queen.Common.DB;
 
-namespace Queen.Common.DB;
+namespace Queen.Shadow.DB;
 
 /// <summary>
 /// Mongo 对应数据, 玩家信息

@@ -1,12 +1,7 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using Queen.Common.DB;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Queen.Common.DB;
+namespace Queen.Shadow.DB;
 
 /// <summary>
 /// Mongo 对应数据, 游戏数据
@@ -22,7 +17,7 @@ public class DBDataValue : DBValue<DBDataValue>
     /// Value
     /// </summary>
     [BsonElement("value")]
-    public byte[] value { get; set; }
+    public string value { get; set; }
 
     public override void Set(DBDataValue src)
     {
