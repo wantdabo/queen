@@ -34,26 +34,6 @@ public class Engine : Comp
     /// 对象池
     /// </summary>
     public ObjectPool pool { get; private set; }
-    /// <summary>
-    /// 主线程 ID
-    /// </summary>
-    private readonly int ethreadId;
-    /// <summary>
-    /// 主线程
-    /// </summary>
-    public bool ethread
-    {
-        get
-        {
-            return Thread.CurrentThread.ManagedThreadId == ethreadId;
-        }
-    }
-
-    public Engine()
-    {
-        // 记录运行线程
-        ethreadId = Thread.CurrentThread.ManagedThreadId;
-    }
 
     protected override void OnCreate()
     {

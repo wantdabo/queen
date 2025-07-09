@@ -30,11 +30,6 @@ public abstract class NetNode : Comp
     }
 
     /// <summary>
-    /// 是否自动通知消息
-    /// </summary>
-    protected bool notify { get; private set; }
-
-    /// <summary>
     /// 最大网络收发包每秒
     /// </summary>
     protected int maxpps { get; private set; }
@@ -66,6 +61,7 @@ public abstract class NetNode : Comp
     protected override void OnCreate()
     {
         base.OnCreate();
+        engine.eventor.Listen<ExecuteEvent>(OnExecute);
         ppsTimingId = engine.ticker.Timing((t) =>
         {
             ppscntDict.Clear();
@@ -75,17 +71,16 @@ public abstract class NetNode : Comp
     protected override void OnDestroy()
     {
         base.OnDestroy();
+        engine.eventor.UnListen<ExecuteEvent>(OnExecute);
         engine.ticker.StopTimer(ppsTimingId);
     }
 
     /// <summary>
     /// 创建网络节点
     /// </summary>
-    /// <param name="notify">是否自动通知消息（子线程）</param>
     /// <param name="maxpps">最大网络收发包每秒</param>
-    protected void Initialize(bool notify, int maxpps)
+    protected void Initialize(int maxpps)
     {
-        this.notify = notify;
         this.maxpps = maxpps;
     }
 
@@ -187,7 +182,6 @@ public abstract class NetNode : Comp
     private void EnqueuePackage(NetChannel channel, Type msgType, INetMessage msg)
     {
         netpackages.Enqueue(new NetPackage { channel = channel, msgType = msgType, msg = msg });
-        if (notify) Notify();
     }
 
     /// <summary>
@@ -232,11 +226,8 @@ public abstract class NetNode : Comp
         // PPS 计数
         PPSCounter(channel);
     }
-
-    /// <summary>
-    /// 消息通知
-    /// </summary>
-    public void Notify()
+    
+    private void OnExecute(ExecuteEvent e)
     {
         while (netpackages.TryDequeue(out var package))
         {

@@ -92,16 +92,15 @@ public class UDPServer : NetNode
     /// </summary>
     /// <param name="ip">地址</param>
     /// <param name="port">端口</param>
-    /// <param name="notify">是否自动通知消息（子线程）</param>
     /// <param name="maxconn">最大连接数</param>
     /// <param name="acceptkey">连接校验 KEY</param>
     /// <param name="maxpps">最大网络收发包每秒</param>
-    public void Initialize(string ip, ushort port, bool notify, int maxconn, string acceptkey, int maxpps)
+    public void Initialize(string ip, ushort port, int maxconn, string acceptkey, int maxpps)
     {
         this.ip = ip;
         this.port = port;
         this.maxconn = maxconn;
         this.acceptkey = acceptkey;
-        Initialize(notify, maxpps);
+        Initialize(maxpps);
     }
 }

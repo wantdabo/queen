@@ -139,17 +139,16 @@ public class WebSocketServer : NetNode
     /// </summary>
     /// <param name="ip">地址</param>
     /// <param name="port">端口</param>
-    /// <param name="notify">是否自动通知消息（子线程）</param>
     /// <param name="maxconn">最大连接数</param>
     /// <param name="sthread">最大工作线程</param>
     /// <param name="maxpps">最大网络收发包每秒</param>
-    public void Initialize(string ip, ushort port, bool notify, int maxconn, int sthread, int maxpps)
+    public void Initialize(string ip, ushort port, int maxconn, int sthread, int maxpps)
     {
         this.ip = ip;
         this.port = port;
         this.maxconn = maxconn;
         this.sthread = sthread;
-        Initialize(notify, maxpps);
+        Initialize(maxpps);
     }
 
     /// <summary>

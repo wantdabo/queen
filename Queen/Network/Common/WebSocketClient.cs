@@ -45,10 +45,9 @@ public class WebSocketClient : NetNode
     /// <summary>
     /// 创建服务端网络节点
     /// </summary>
-    /// <param name="notify">是否自动通知消息（子线程）</param>
-    public void Initialize(bool notify)
+    public void Initialize()
     {
-        Initialize(notify, int.MaxValue);
+        Initialize(int.MaxValue);
     }
 
     /// <summary>

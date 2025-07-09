@@ -12,18 +12,6 @@ public class Slave : Comp
     private TCPServer tcp { get; set; }
     private WebSocketServer ws { get; set; }
 
-    protected override void OnCreate()
-    {
-        base.OnCreate();
-        engine.eventor.Listen<ExecuteEvent>(OnExecute);
-    }
-
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-        engine.eventor.UnListen<ExecuteEvent>(OnExecute);
-    }
-
     /// <summary>
     /// 配置主网
     /// </summary>
@@ -36,18 +24,12 @@ public class Slave : Comp
     public void Initialize(string ip, ushort port, ushort wsport, int maxconn, int sthread, int maxpps)
     {
         tcp = AddComp<TCPServer>();
-        tcp.Initialize(ip, port, false, maxconn, sthread, maxpps);
+        tcp.Initialize(ip, port, maxconn, sthread, maxpps);
         tcp.Create();
 
         ws = AddComp<WebSocketServer>();
-        ws.Initialize(ip, wsport, false, maxconn, sthread, maxpps);
+        ws.Initialize(ip, wsport, maxconn, sthread, maxpps);
         ws.Create();
-    }
-
-    private void OnExecute(ExecuteEvent e)
-    {
-        tcp.Notify();
-        ws.Notify();
     }
 
     /// <summary>
