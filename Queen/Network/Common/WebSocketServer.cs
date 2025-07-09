@@ -1,5 +1,4 @@
 using Queen.Network.Common.Channels;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;

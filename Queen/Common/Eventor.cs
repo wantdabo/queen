@@ -1,6 +1,4 @@
 ﻿using Queen.Core;
-using System;
-using System.Collections.Generic;
 
 namespace Queen.Common;
 
@@ -40,7 +38,6 @@ public class Eventor : Comp
     /// <param name="func">事件的回调</param>
     public void UnListen<T>(Action<T> func) where T : IEvent
     {
-        engine.EnsureThread();
         if (false == eventdict.TryGetValue(typeof(T), out var funcs)) return;
         funcs.Remove(func);
     }
@@ -52,7 +49,6 @@ public class Eventor : Comp
     /// <param name="func">事件的回调</param>
     public void Listen<T>(Action<T> func) where T : IEvent
     {
-        engine.EnsureThread();
         if (null == eventdict) eventdict = new Dictionary<Type, List<Delegate>>();
 
         if (false == eventdict.TryGetValue(typeof(T), out var funcs))

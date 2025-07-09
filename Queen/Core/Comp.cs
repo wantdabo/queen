@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Queen.Core;
+﻿namespace Queen.Core;
 
 /// <summary>
 /// 组件
@@ -36,7 +30,6 @@ public abstract class Comp
     /// </summary>
     public void Create()
     {
-        engine.EnsureThread();
         OnCreate();
     }
 
@@ -45,8 +38,6 @@ public abstract class Comp
     /// </summary>
     public void Destroy()
     {
-        engine.EnsureThread();
-        
         OnDestroy();
         parent.RmvComp(this);
 
@@ -78,7 +69,6 @@ public abstract class Comp
     /// <returns>组件</returns>
     public virtual T AddComp<T>() where T : Comp, new()
     {
-        engine.EnsureThread();
         if (null == comps) comps = new();
         if (null == compdict) compdict = new();
 
@@ -102,7 +92,6 @@ public abstract class Comp
     /// <param name="comp">组件</param>
     public virtual void RmvComp(Comp comp)
     {
-        engine.EnsureThread();
         if (compdict.TryGetValue(comp.GetType(), out var list)) list.Remove(comp);
         comps.Remove(comp);
     }

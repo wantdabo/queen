@@ -1,15 +1,4 @@
 ﻿using Queen.Common;
-using Queen.Common.Parallel;
-using Queen.Network.Common;
-using Queen.Protocols.Common;
-using Queen.Protocols;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using Queen.Network;
 
 namespace Queen.Core;
 
@@ -93,17 +82,6 @@ public class Engine : Comp
 
         pool = AddComp<ObjectPool>();
         pool.Create();
-    }
-
-    /// <summary>
-    /// 确保创建线程与调度线程为同一个
-    /// </summary>
-    public void EnsureThread()
-    {
-        if (false == ethread)
-        {
-            throw new Exception("this method must be called on main thread.");
-        }
     }
 
     /// <summary>

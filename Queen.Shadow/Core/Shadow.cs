@@ -1,5 +1,3 @@
-using Queen.Common;
-using Queen.Common.DB;
 using Queen.Core;
 
 namespace Queen.Shadow.Core;

@@ -1,11 +1,6 @@
 ﻿using Queen.Core;
 using Queen.Network.Common;
 using Queen.Protocols.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Queen.Network;
 
@@ -62,7 +57,6 @@ public class Slave : Comp
     /// <param name="action">回调</param>
     public void UnRecv<T>(Action<NetChannel, T> action) where T : INetMessage
     {
-        engine.EnsureThread();
         tcp.UnRecv(action);
         ws.UnRecv(action);
     }
@@ -74,7 +68,6 @@ public class Slave : Comp
     /// <param name="action">回调</param>
     public void Recv<T>(Action<NetChannel, T> action) where T : INetMessage
     {
-        engine.EnsureThread();
         tcp.Recv(action);
         ws.Recv(action);
     }

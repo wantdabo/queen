@@ -1,4 +1,3 @@
-using Queen.Network.Common;
 using TouchSocket.Sockets;
 
 namespace Queen.Network.Common.Channels;

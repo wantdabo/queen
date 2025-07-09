@@ -1,4 +1,3 @@
-using MessagePack;
 using Queen.Network.Common;
 using Queen.Protocols.Common;
 

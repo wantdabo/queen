@@ -1,9 +1,4 @@
 ﻿using Queen.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Queen.Common;
 
@@ -147,7 +142,6 @@ public class Ticker : Comp
     /// <param name="tickDef">计时器类型</param>
     public void StopTimer(uint id)
     {
-        engine.EnsureThread();
         if (0 == timerInfos.Count) return;
 
         for (int i = timerInfos.Count - 1; i >= 0; i--)
@@ -169,7 +163,6 @@ public class Ticker : Comp
     /// <returns>计时器 ID</returns>
     public uint Timing(Action<float> action, float duration, int loop)
     {
-        engine.EnsureThread();
         timerIncrementId++;
 
         TimerInfo info = new()
