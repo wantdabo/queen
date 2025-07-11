@@ -18,12 +18,12 @@ public abstract class Comp
     /// <summary>
     /// 组件列表
     /// </summary>
-    private List<Comp> comps { get; set; } = null;
+    private List<Comp> comps { get; set; }
 
     /// <summary>
     /// 组件字典，根据组件类型分类
     /// </summary>
-    private Dictionary<Type, List<Comp>> compdict { get; set; } = null;
+    private Dictionary<Type, List<Comp>> compdict { get; set; }
 
     /// <summary>
     /// 创建一个 Queen 对象

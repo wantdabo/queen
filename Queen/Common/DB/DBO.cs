@@ -35,15 +35,12 @@ public class DBO : Comp
     /// <summary>
     /// Mongo 连接
     /// </summary>
-    private MongoClient connect;
+    private MongoClient connect { get; set; }
 
     protected override void OnCreate()
     {
         base.OnCreate();
-        if (dbauth)
-            connect = new MongoClient($"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}");
-        else
-            connect = new MongoClient($"mongodb://{dbhost}:{dbport}/{dbname}");
+        connect = new MongoClient(dbauth ? $"mongodb://{dbuser}:{dbpwd}@{dbhost}:{dbport}/{dbname}" : $"mongodb://{dbhost}:{dbport}/{dbname}");
     }
 
     protected override void OnDestroy()
