@@ -7,8 +7,5 @@ namespace Queen.Shadow.Core;
 /// </summary>
 public class Shadow : Engine<Shadow>
 {
-    protected override void OnCreate()
-    {
-        base.OnCreate();
-    }
+
 }

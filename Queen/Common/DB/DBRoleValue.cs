@@ -1,7 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
-using Queen.Common.DB;
 
-namespace Queen.Shadow.DB;
+namespace Queen.Common.DB;
 
 /// <summary>
 /// Mongo 对应数据, 玩家信息

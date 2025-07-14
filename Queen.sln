@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Queen.Protocols.Gen", "Quee
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Queen.Shadow", "Queen.Shadow\Queen.Shadow.csproj", "{9EBE3F49-1BBB-4E90-9EF2-88EF484C54EE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Queen.Gateway", "Queen.Gateway\Queen.Gateway.csproj", "{B0E374A8-A3F6-46BC-A463-39298EA59185}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Queen.Location", "Queen.Location\Queen.Location.csproj", "{B7ED2608-C741-4CE3-9B90-E9B97700F1A1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{9EBE3F49-1BBB-4E90-9EF2-88EF484C54EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EBE3F49-1BBB-4E90-9EF2-88EF484C54EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EBE3F49-1BBB-4E90-9EF2-88EF484C54EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0E374A8-A3F6-46BC-A463-39298EA59185}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0E374A8-A3F6-46BC-A463-39298EA59185}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0E374A8-A3F6-46BC-A463-39298EA59185}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0E374A8-A3F6-46BC-A463-39298EA59185}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7ED2608-C741-4CE3-9B90-E9B97700F1A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7ED2608-C741-4CE3-9B90-E9B97700F1A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7ED2608-C741-4CE3-9B90-E9B97700F1A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7ED2608-C741-4CE3-9B90-E9B97700F1A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
