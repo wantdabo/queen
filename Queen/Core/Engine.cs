@@ -12,8 +12,12 @@ public struct ExecuteEvent : IEvent
 /// <summary>
 /// 引擎组件
 /// </summary>
-public class Engine : Comp
+public abstract class Engine : Comp
 {
+    /// <summary>
+    /// Execute
+    /// </summary>
+    public abstract bool execute { get; }
     /// <summary>
     /// 日志
     /// </summary>
@@ -26,14 +30,6 @@ public class Engine : Comp
     /// 随机器
     /// </summary>
     public Common.Random random { get; private set; }
-    /// <summary>
-    /// 事件器
-    /// </summary>
-    public Ticker ticker { get; private set; }
-    /// <summary>
-    /// 对象池
-    /// </summary>
-    public ObjectPool pool { get; private set; }
 
     protected override void OnCreate()
     {
@@ -56,12 +52,6 @@ public class Engine : Comp
 
         random = AddComp<Common.Random>();
         random.Create();
-
-        ticker = AddComp<Ticker>();
-        ticker.Create();
-
-        pool = AddComp<ObjectPool>();
-        pool.Create();
     }
 
     /// <summary>
@@ -71,6 +61,8 @@ public class Engine : Comp
     {
         while (true)
         {
+            if (false == execute) Console.ReadKey();
+            
             Thread.Sleep(1);
             eventor.Tell<ExecuteEvent>();
         }
@@ -95,7 +87,7 @@ public class Engine : Comp
 /// 引擎
 /// </summary>
 /// <typeparam name="T">引擎类型</typeparam>
-public class Engine<T> : Engine where T : Engine, new()
+public abstract class Engine<T> : Engine where T : Engine, new()
 {
     public new T engine { get { return base.engine as T; } }
 }
