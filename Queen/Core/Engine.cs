@@ -15,10 +15,6 @@ public struct ExecuteEvent : IEvent
 public abstract class Engine : Comp
 {
     /// <summary>
-    /// Execute
-    /// </summary>
-    public abstract bool execute { get; }
-    /// <summary>
     /// 日志
     /// </summary>
     public Logger logger { get; private set; }
@@ -30,6 +26,10 @@ public abstract class Engine : Comp
     /// 随机器
     /// </summary>
     public Common.Random random { get; private set; }
+    /// <summary>
+    /// 调用器
+    /// </summary>
+    public Caller caller { get; private set; }
 
     protected override void OnCreate()
     {
@@ -43,6 +43,9 @@ public abstract class Engine : Comp
             "| | | | | | |  _| |  _| |  \\| |\n" +
             "| |_| | |_| | |___| |___| |\\  |\n" +
             " \\__\\_\\\\___/|_____|_____|_| \\_|\n\n");
+
+        caller = new Caller();
+        SynchronizationContext.SetSynchronizationContext(caller);
 
         logger = AddComp<Logger>();
         logger.Create();
@@ -61,9 +64,8 @@ public abstract class Engine : Comp
     {
         while (true)
         {
-            if (false == execute) Console.ReadKey();
-            
-            Thread.Sleep(1);
+            Thread.Sleep(0);
+            caller.Pump();
             eventor.Tell<ExecuteEvent>();
         }
     }
