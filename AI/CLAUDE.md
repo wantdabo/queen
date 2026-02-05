@@ -21,7 +21,7 @@ dotnet publish Queen/Queen.csproj -c Release
 ```
 Queen/           - 核心框架库
 ├── Core/        - 引擎和组件基类（Engine、Comp）
-├── ECS/         - ECS 基础设施（Actor、Behavior、IBehaviorInfo）
+├── ECS/         - ECS 基础设施（Shadow、Behavior、BehaviorInfo）
 ├── Common/      - 通用工具（Logger、Eventor、Config、DBO）
 ├── Network/     - 网络通信
 └── 3rd/         - 第三方库
@@ -52,10 +52,21 @@ Queen.Guild/     - 公会进程，可多实例水平扩展
 
 | ECS 概念 | Queen 命名 | 说明 |
 |---------|-----------|------|
-| Entity | Actor | 实体，只存 ID |
-| Component | IBehaviorInfo | 数据 |
-| System | Behavior | 逻辑，继承 Comp |
-| World | Shadow | 世界，管理 Actor 和 BehaviorInfo |
+| Entity | Actor | 实体，string ID |
+| Component | BehaviorInfo | 数据，抽象类，含 actor 和 dirty |
+| System | Behavior | 逻辑 |
+| World | Shadow | 世界，管理 Actor 上下文和 BehaviorInfo |
+
+### Actor 上下文
+- Shadow 维护 `actor` 表示当前正在处理的 Actor
+- 获取 BehaviorInfo 不需要传参，自动取当前 Actor 的数据
+- 单线程保证 `actor` 不会被并发修改
+- 跨 Actor 操作走消息/RPC
+
+### BehaviorInfo 懒加载
+- BehaviorInfo 按需加载，颗粒度到单个 BehaviorInfo
+- 支持离线交互：加载最小数据，完成任务后写盘释放
+- `dirty` 标记变更，统一 flush
 
 ### 核心组件
 - `Logger` - 异步日志，后台写盘
