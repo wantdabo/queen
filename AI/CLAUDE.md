@@ -96,3 +96,13 @@ Queen.Guild/     - 公会进程，可多实例水平扩展
 ### 类设计
 - 继承 `Comp` 基类
 - 重写 `OnCreate()` / `OnDestroy()`
+
+---
+
+## TODO
+
+- [ ] BehaviorInfo 懒加载（LoadBehaviorInfo / FlushBehaviorInfo）
+- [ ] Actor 状态管理（运行时 State）
+- [ ] 跨 Actor RPC 通信
+- [ ] 网络层集成（消息 Post 到 Caller）
+- [ ] DB 持久化对接
