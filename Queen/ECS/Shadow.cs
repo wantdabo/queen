@@ -3,6 +3,29 @@ using Queen.Core;
 namespace Queen.ECS;
 
 /// <summary>
+/// Actor 运行时状态
+/// </summary>
+public enum ActorRunState
+{
+    /// <summary>
+    /// 未加载
+    /// </summary>
+    None,
+    /// <summary>
+    /// 加载中
+    /// </summary>
+    Loading,
+    /// <summary>
+    /// 运行中
+    /// </summary>
+    Running,
+    /// <summary>
+    /// 卸载中
+    /// </summary>
+    Unloading,
+}
+
+/// <summary>
 /// 世界，管理 Actor 上下文、BehaviorInfo 和 Behavior
 /// </summary>
 public class Shadow : Comp
@@ -11,6 +34,11 @@ public class Shadow : Comp
     /// 当前 Actor
     /// </summary>
     public string actor { get; private set; }
+
+    /// <summary>
+    /// Actor 运行时状态集合
+    /// </summary>
+    private Dictionary<string, ActorRunState> states { get; set; } = new();
 
     /// <summary>
     /// Actor 的 BehaviorInfo 集合
@@ -30,8 +58,32 @@ public class Shadow : Comp
     protected override void OnDestroy()
     {
         base.OnDestroy();
+        states.Clear();
         infos.Clear();
         behaviors.Clear();
+    }
+
+    /// <summary>
+    /// 获取当前 Actor 运行时状态
+    /// </summary>
+    /// <returns>运行时状态</returns>
+    public ActorRunState GetState()
+    {
+        if (null == actor) return ActorRunState.None;
+        if (false == states.TryGetValue(actor, out var state)) return ActorRunState.None;
+
+        return state;
+    }
+
+    /// <summary>
+    /// 设置当前 Actor 运行时状态
+    /// </summary>
+    /// <param name="state">运行时状态</param>
+    public void SetState(ActorRunState state)
+    {
+        if (null == actor) return;
+
+        states[actor] = state;
     }
 
     /// <summary>
