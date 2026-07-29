@@ -1,6 +1,6 @@
 # Queen
 
-基于 .NET 的多进程多线程跨平台游戏服务端。
+基于 .NET 的多进程游戏服务端。每个 Actor 单线程执行业务，进程内 Actor 间并行。
 
 ### 大致全貌
 - TCP 通信
@@ -30,17 +30,17 @@
 - [5.服务器配置](#servsettings)
 - [6.业务架构](#bizframework)
     - [1.大致架构](#bizframework.1)
-    - [2.Role](#bizframework.2)
-        - [1.初识 Role](#bizframework.2.1)
-        - [2.Role 工作方式](#bizframework.2.2)
-        - [3.RoleBehavior](#bizframework.2.3)
-        - [4.IDBState](#bizframework.2.4)
+    - [2.Actor](#bizframework.2)
+        - [1.初识 Actor](#bizframework.2.1)
+        - [2.Actor 工作方式](#bizframework.2.2)
+        - [3.Behavior](#bizframework.2.3)
+        - [4.BehaviorInfo](#bizframework.2.4)
     - [3.定位系统](#bizframework.3)
     - [4.事务系统](#bizframework.4)
 ---
 
 ### TODO
-- Role 冷销毁/热内存常驻
+- Actor 冷销毁/热内存常驻
 - Eventor Tell 执行过程移除导致 BUG
 - 时间轮，用于定时执行某些任务
 - 增加崩溃容灾数据保存抢救
@@ -140,7 +140,7 @@
         // channel 是端对端的 Socket 连接
         channel.Send(new S2CLoginMsg { uuid = uuid, code = 1 });
         ```
-        - 以上的例子，原生的消息监听及发送。在业务的开发过程中。例如，在未登录的阶段，无法确定玩家身份，只能通过这种方式来接收所有的消息及发送。针对确定玩家的消息监听/发送，也是业务最常用的消息监听及发送，详情请看 **[Role](#bizframework.2)** 的概念
+        - 以上的例子，原生的消息监听及发送。在业务的开发过程中。例如，在未登录的阶段，无法确定玩家身份，只能通过这种方式来接收所有的消息及发送。针对确定玩家的消息监听/发送，也是业务最常用的消息监听及发送，详情请看 **[Actor](#bizframework.2)** 的概念
 - #### <span id="config">4.配置表</span>
     - ##### <span id="config.1">1.定义配置</span>
         - `./Config/Datas/` 存放所有 Excel 表
@@ -182,37 +182,37 @@
     - ##### <span id="bizframework.1">1.大致架构</span>
         - [项目结构](#projectdire) 最外层的 `./Queen/` 与 `./Queen.Server/`
         - `Queen` 是一个公共库，包含了，核心库、数据库、网络通信、配置表、RPC 等相关的基础支持
-        - `Queen.Server` 基于 `Queen` 设计了一套以 **[Role](#bizframework.2)** 为核心的业务框架，也是主要的业务逻辑。他是一个多进程，多线程的框架（Role 业务逻辑是单线程处理）
+        - `Queen.Server` 基于 `Queen` 设计了一套以 **[Actor](#bizframework.2)** 为核心的业务框架，也是主要的业务逻辑。他是一个多进程的框架。每个 Actor 自身业务逻辑是单线程的，进程内 Actor 间并行处理。
         - 因此，在整体的设计中。可以选择直接使用 `Queen.Server` 来完成业务。也可以基于 `Queen` 设计一套符合自己预期的业务框架。不论多线程还是单线程
         - 包括，可能需要设计，事务系统、Gameplay、聊天系统，都可以基于 `Queen` 来设计一个进程
-    - ##### <span id="bizframework.2">2.Role</span>
-        - <span id="bizframework.2.1">1.初识 Role</span>
-            - Role 就是玩家，在 `Queen.Server` 中实现的。在 `Queen.Server` Role 是最小并发单位。玩家通过了验证，就会产生一个 Role，与前端保持长连接通信，业务处理
-            - `Queen.Server` 是多线程的设计。但是，Role 自身的业务逻辑处理是单线程的。Role 与 Role 之间是无法直接访问的，尽管他们在同一个 `Queen.Server`
-            - 简单举个例子,`Queen.Server` 中，Role 作为最小单位多线程并发。 **Role [ Bag、Equip、Mail ...]** 自身的业务，均为单线程处理。
-            - 因此，`Queen.Server` 是可以做到一直扩展（开进程），承载无数的 Role 进行服务
-            - 如果需要 Role 与 Role 之间的交互，例如，Role-A 给 Role-B 转账。这种情况，需要依赖 `定位系统`、`事务系统`，因为 Role 在 `Queen.Server-A` 进行业务，也可以在 `Queen.Server-B` 进行业务（同时段，无法共存）。所以，需要定位到 Role 处于哪个 `Queen.Server` 才可以进行 RPC 通信。同时，因为跨了进程/线程进行通信处理业务，所以，Role-A 付款，Role-B 收款，需要借助 `事务系统`，双方业务完成，才是真正完成。任意一方失败/超时，均为失败。此时，双方的数据回滚到业务开始之前。
+    - ##### <span id="bizframework.2">2.Actor</span>
+        - <span id="bizframework.2.1">1.初识 Actor</span>
+            - Actor 就是玩家，在 `Queen.Server` 中实现的。在 `Queen.Server` Actor 是最小并发单位。玩家通过了验证，就会产生一个 Actor，与前端保持长连接通信，业务处理
+            - `Queen.Server` 是多线程的设计。但是，Actor 自身的业务逻辑处理是单线程的。Actor 与 Actor 之间是无法直接访问的，尽管他们在同一个 `Queen.Server`
+            - 简单举个例子,`Queen.Server` 中，Actor 作为最小单位多线程并发。 **Actor [ Bag、Equip、Mail ...]** 自身的业务，均为单线程处理。
+            - 因此，`Queen.Server` 是可以做到一直扩展（开进程），承载无数的 Actor 进行服务
+            - 如果需要 Actor 与 Actor 之间的交互，例如，Actor-A 给 Actor-B 转账。这种情况，需要依赖 `定位系统`、`事务系统`，因为 Actor 在 `Queen.Server-A` 进行业务，也可以在 `Queen.Server-B` 进行业务（同时段，无法共存）。所以，需要定位到 Actor 处于哪个 `Queen.Server` 才可以进行 RPC 通信。同时，因为跨了进程/线程进行通信处理业务，所以，Actor-A 付款，Actor-B 收款，需要借助 `事务系统`，双方业务完成，才是真正完成。任意一方失败/超时，均为失败。此时，双方的数据回滚到业务开始之前。
             - 请查阅，[定位系统]()、[事务系统]()
-        - <span id="bizframework.2.2">2.Role 工作方式</span>
-            - Role 由 N 个 RoleBehavior 构成的。每一个 RoleBehavior 就是 Role 的功能。RoleBehavior 之间可以放心的相互访问，Role 内部是单线程（绝对安全）。例如，`Bag : RoleBehavior、 Mail : RoleBehavior` Mail 接收物品道具，就可以直接调用 Bag 进行物品的新增
-            - Role 每一条任务。例如，接收到玩家的请求消息，会在单线程中队列分发到每一个 RoleBehavior
-            - 因此，Role 只是组合 RoleBehavior，分发任务的一个载体，具体的业务逻辑在 RoleBehavior
-        - <span id="bizframework.2.3">3.RoleBehavior</span>
-            - RoleBehavior 就是单个业务本身
-            - 以 `Bag/背包` 举例。背包中的道具物品，需要持久化，写入到数据库中。逻辑的运行过程中，还需要频繁读写。因此，RoleBehavior 中有 Data 缓存在内存中的
-            - 所以，功能的数据读写，就在 RoleBehavior 的 IDBState 中，Bag 有 BagData : IDBState、 Mail 有 MailData : IDBState。数据的颗粒度在 RoleBehavior 层
-            - 得益于 Role 的单线程调度，RoleBehavior 的逻辑，可以不考虑多线程带来的安全问题。只要是 Role 的 RoleBehavior 业务处理，可以放心的随意调度
-            - RoleBehavior 绑定一个 Data 缓存，逻辑与数据是分离的。开始任务前，数据会备份。如果出现了 `错误、事务超时...` 数据可以安全的回滚到任务前，任务过程中产生对前端的推送也会被取消
-        - <span id="bizframework.2.4">4.IDBState</span>
-            - RoleBehavior 有提到可以绑定一个 Data 来进行业务存储。就是当前所说的 IDBState
-            - IDBState 的数据会根据 RoleBehavior 中的身份特征来写库，也是数据持久化的重要一环
+        - <span id="bizframework.2.2">2.Actor 工作方式</span>
+            - Actor 由 N 个 Behavior 构成的。每一个 Behavior 就是 Actor 的功能。Behavior 之间可以放心的相互访问，Actor 内部是单线程（绝对安全）。例如，`Bag : Behavior、 Mail : Behavior` Mail 接收物品道具，就可以直接调用 Bag 进行物品的新增
+            - Actor 每一条任务。例如，接收到玩家的请求消息，会在单线程中队列分发到每一个 Behavior
+            - 因此，Actor 只是组合 Behavior，分发任务的一个载体，具体的业务逻辑在 Behavior
+        - <span id="bizframework.2.3">3.Behavior</span>
+            - Behavior 就是单个业务本身
+            - 以 `Bag/背包` 举例。背包中的道具物品，需要持久化，写入到数据库中。逻辑的运行过程中，还需要频繁读写。因此，Behavior 中有 Data 缓存在内存中的
+            - 所以，功能的数据读写，就在 Behavior 的 BehaviorInfo 中，Bag 有 BagData : BehaviorInfo、 Mail 有 MailData : BehaviorInfo。数据的颗粒度在 Behavior 层
+            - 得益于 Actor 的单线程调度，Behavior 的逻辑，可以不考虑多线程带来的安全问题。只要是 Actor 的 Behavior 业务处理，可以放心的随意调度
+            - Behavior 绑定一个 Data 缓存，逻辑与数据是分离的。开始任务前，数据会备份。如果出现了 `错误、事务超时...` 数据可以安全的回滚到任务前，任务过程中产生对前端的推送也会被取消
+        - <span id="bizframework.2.4">4.BehaviorInfo</span>
+            - Behavior 有提到可以绑定一个 Data 来进行业务存储。就是当前所说的 BehaviorInfo
+            - BehaviorInfo 的数据会根据 Behavior 中的身份特征来写库，也是数据持久化的重要一环
             - 下方给出定义的例子
             ```csharp
             /// <summary>
             /// 背包数据
             /// </summary>
             [MessagePackObject(true)]
-            public class BagData : IDBState
+            public class BagData : BehaviorInfo
             {
                 /// <summary>
                 /// 自增 ID
@@ -227,10 +227,10 @@
             /// <summary>
             /// 背包
             /// </summary>
-            public class Bag : RoleBehavior<BagData, Adapter> {}
+            public class Bag : Behavior<BagData, Adapter> {}
             ```
-            用背包来举例，BagData 继承 IDBState 接口，同时标记特性 `[MessagePackObject(true)]`，结构使用属性来进行定义，例如 `public int incrementId { get; set; } = 1000;` 如此以来就实现一个专属 Bag 的专属 BagData
-            - IDBState 跟定义协议大同小异。不过是继承 IDBState 而不是 INetMessage
+            用背包来举例，BagData 继承 BehaviorInfo 接口，同时标记特性 `[MessagePackObject(true)]`，结构使用属性来进行定义，例如 `public int incrementId { get; set; } = 1000;` 如此以来就实现一个专属 Bag 的专属 BagData
+            - BehaviorInfo 跟定义协议大同小异。不过是继承 BehaviorInfo 而不是 INetMessage
     - ##### <span id="bizframework.3">3.定位系统</span>
         - 暂未实现
     - ##### <span id="bizframework.4">4.事务系统</span>
@@ -256,7 +256,7 @@
     ├─Core
     ├─Logic
     ├─Res
-    ├─Roles
+    ├─Actors
     └─System
 ```
 
