@@ -1,6 +1,6 @@
 # Queen 游戏服务端架构方案
 
-> **版本**: v0.5 · **日期**: 2026-07-30
+> **版本**: v0.6 · **日期**: 2026-07-30
 > **状态**: 本文档是**目标态设计**与**唯一真理**。当前仓库代码为旧实现,已废弃,将按本文档从头实现。文中标注 `(目标)` 的特性尚未落地。
 
 ## 实现状态声明
@@ -28,7 +28,7 @@
 | IO 异步 offload | 网络收发、DB 读写走 OS 线程池,结果通过 MPSC 队列回进程唯一业务线程 |
 | 业务逻辑同步 | 所有业务方法为 `void` 或返回纯值,单线程执行,**禁止 `async`**(async 引入线程池调度,破坏单线程确定性) |
 | **协程即调度** | Actor 的 Job 在单线程上**协程交替**推进;跨帧等待(定时、DB 读未命中)或跨进程等待(RPC 响应)时 `yield`,调度器切到下一个 Actor,结果回来再 resume |
-| **Virtual Actor** | Actor 永久可寻址(借鉴 Orleans)。在线/离线是业务状态(有无 session/gateway),不是代码路径。对调用方透明:Actor 在内存则直接调,不在则激活(LoadAll)后调。无 Version/乐观锁/离线白名单 |
+| **Virtual Actor** | Actor 永久可寻址(借鉴 Orleans)。在线/离线是业务状态(有无 session/gateway),不是代码路径。对调用方透明:Actor 在内存则直接调,不在则创建壳+按需懒加载 Get<T>。无 Version/乐观锁/离线白名单 |
 | **Behavior/BehaviorInfo 分离** | Behavior = System (单例逻辑,建议无状态以利热迁移); BehaviorInfo = Component (纯数据) |
 | **[Persistent]/[Projector] 双标志** | 一份 BehaviorInfo 结构,字段用 class 级 `[Persistent]`(写盘)/`[Projector]`(推送)独立标记。对齐 KBEngine PERSISTENT/CLIENT、UE SaveGame/Replicated。不分两份数据 |
 | **脏只推送,不回滚** | dirty(projectdirtymask + TGBLList CollectDiff)只用于增量推送。回滚干掉,数据安全靠四件套(见 5.9) |
@@ -511,32 +511,37 @@ public static class PlayerServiceBehaviors
      同一代码路径:
        player.serv#X 业务线程:
          ③ Actor 在内存? → 直接执行
-            Actor 不在内存? → LoadAll(B) → 创建 Actor (session=null, 不可推送) → 加入 Stage → 执行
-         ④ Behavior 正常执行 (单线程, 无锁)
-            _store.Get<FriendBehaviorInfo>(B).friends.Add(A)
+            Actor 不在内存? → 创建 Actor 壳 (session=null, 空 BehaviorInfo 索引) → 加入 Stage → 执行
+         ④ _store.Get<FriendBehaviorInfo>(B) 触发懒加载:
+            → 内存未命中 → 发起 DB 读 (仅 FriendBehaviorInfo, ~200B, ~0.5-1ms)
+            → Job yield → 切到其他 Actor
+            → 下帧 DB 回调 → resume → friends.Add(A)
             // 脏位正常置位 → Truck → WAL → MongoDB (与在线完全相同的持久化路径)
          ⑤ 回复 Ok()
-         ⑥ Actor 保留 ActorDestroySeconds 后钝化 (与在线 Actor 相同的生命周期策略)
+         ⑥ Actor 保留 ActorDestroySeconds 后钝化
          ⑦ 如果有 session → ProjectorSystem 推送脏字段; 无 session → 仅写库
 
-  全程: 无 CAS / 无 Version / 无 [OfflineWritable] 标记 / 无两套代码路径
+  全程: 无 CAS / 无 Version / 无两套代码路径
+  ★ 离线激活不做 LoadAll — 不预加载全量数据
 ```
 
-**离线交互代价**:
-- Actor 不在内存: 首次 DB Load (~1KB, ~1ms) + 正常业务执行
-- Actor 在内存 (缓冲期内): 直接执行, 零额外开销
-- Get<T> 懒加载按需补全其他 BehaviorInfo 类型
+**离线交互代价 (IO 视角)**:
+- Actor 不在内存: 首次按需懒加载单个 BehaviorInfo (~200B-5KB, ~0.5-2ms) + 正常业务执行
+- Actor 在内存 (缓冲期内): 零 IO, 纯内存访问
+- 业务逻辑触及其他 BehaviorInfo → 按需懒加载, 每步独立 yield
+- ★ 不复用在线登录的 LoadAll (全量 50-200KB, 5-10ms), 离线激活按需付费
 
 **Router 角色升级**:
 - 在线穿透 (找 gateway) 和离线穿透 (找 home serv) 统一
 - `players:{id}` 集合区分"离线"和"不存在"— 新玩家/未注册返回 not_found, 防止为不存在的玩家激活空 Actor
 
-**与在线 Actor 的唯一区别**:
+**与在线 Actor 的对比**:
 | 属性 | 在线 Actor | 离线 Actor |
 |------|-----------|-----------|
 | session | 有 (关联 gateway) | null |
 | 推送 | ProjectorSystem → Gateway → Client | 无推送, 仅写库 |
-| 激活方式 | 登录 LoadAll | 首次 RPC LoadAll |
+| 激活方式 | 登录时 LoadAll (全量, 50-200KB) | 首次 RPC 按需懒加载 (单 BehaviorInfo, ~200B-5KB) |
+| 内存占用 | 全量 BehaviorInfo 常驻 (~100KB) | 仅已访问的 BehaviorInfo (~200B-20KB) |
 | 业务代码路径 | 相同 | 相同 |
 | 持久化路径 | DataStore → Truck → WAL → MongoDB | 完全相同 |
 
@@ -621,6 +626,190 @@ public static class PlayerServiceBehaviors
 | **幂等补偿** | 失败显式反向操作(拍卖退款 WAL+幂等 RPC);requestId 去重 |
 
 游戏业务失败 99% 在校验阶段(道具不足/等级不够),此时没改数据,回滚无意义。真正"改一半失败"用四件套覆盖。
+
+### 5.10 级联操作与异步事件总线
+
+**问题**: 一次简单操作触发级联链 — 点赞→任务→经验→升级→属性重算→排行→邮件。若每步触发 IO 懒加载且串联全部同步执行，响应时间爆炸。高并发下 1000 人对同一离线目标操作，串行排队。
+
+**原则**: **局部同步，全局异步。同步写源，异步联级。**
+
+#### 5.10.1 同步/异步分界
+
+```
+  A → B 点赞 (RPC):
+
+  同步部分 (A 等待, ≤1 帧):
+    ① 校验 (A 未重复点赞)
+    ② _store.Get<LikeBehaviorInfo>(B).count++
+    ③ Reply Ok()                       ← A 拿到结果, RPC 结束
+    ④ InternalEventBus.Publish(PostLiked { B, postId, A })
+
+  异步部分 (不阻塞 A, 后续帧处理):
+    PostLiked → QuestSystem 检查任务
+    QuestCompleted → ExpSystem 发经验
+    ExpFilled → LevelSystem 升级
+    LevelUp → AttrSystem 重算
+    AttrChanged → CrossServiceEvent → Rank / Mail (跨服务, 完全异步)
+```
+
+**硬约束**: RPC 请求在"改源数据 + 校验"完成后立刻 reply。之后的级联不阻塞调用方。调用方关心的是"赞写进去了没"，不是"B 升级了没"。
+
+#### 5.10.2 InternalEventBus — Actor 内事件总线
+
+```
+  ┌─────────── B 的 Actor ─────────────────────────┐
+  │                                                  │
+  │  Frame N:                                        │
+  │    RPC(Like) → 校验 → 写 LikeBehaviorInfo        │
+  │    → Reply Ok() → Publish(PostLiked)              │
+  │                                                  │
+  │  Frame N+1: (DrainInternalEvents, 最多 M 个)      │
+  │    PostLiked → QuestBehavior.OnPostLiked()        │
+  │    → Get<QuestBehaviorInfo> → IO yield → 下帧      │
+  │                                                  │
+  │  Frame N+2: (QuestBehaviorInfo 已缓存)            │
+  │    → quest.progress++                            │
+  │    → quest.completed? → Publish(QuestCompleted)   │
+  │                                                  │
+  │  Frame N+3:                                      │
+  │    QuestCompleted → ExpBehavior.OnQuestCompleted  │
+  │    → Get<ExpBehaviorInfo> → IO yield → 下帧        │
+  │    ...                                           │
+  │                                                  │
+  │  ★ 每帧每 Actor 处理 ≤ CascadeBudget 个内部事件     │
+  │  ★ IO 未命中时 yield, 让出 CPU 给其他 Actor        │
+  │  ★ 事件合并: 同帧同类型事件 coalesce                │
+  └──────────────────────────────────────────────────┘
+```
+
+```csharp
+public class InternalEventBus
+{
+    // actorId → 待处理事件队列
+    Dictionary<ulong, Queue<IEvent>> _queues;
+    int _cascadeBudgetPerActor = 5;    // 每 Actor 每帧最多处理 5 个级联事件
+
+    public void Publish(ulong actorId, IEvent e) {
+        var q = _queues[actorId];
+        // ★ Coalesce: 同类型可合并事件 → 合并而非追加
+        if (q.Count > 0 && q.Last() is ICoalesceable last && last.CanCoalesce(e))
+            last.Merge(e);                       // e.g. PostLiked × 50 → PostLiked {count:50}
+        else
+            q.Enqueue(e);
+    }
+
+    // 帧末由 Stage 调用, 每 Actor 最多 drain CascadeBudget 个
+    public void Drain(ulong actorId, int budget);
+}
+
+// Behavior 订阅
+public class QuestBehavior : Behavior<PlayerBehaviorInfo> {
+    [OnInternalEvent]
+    void OnPostLiked(PostLikedEvent e) {
+        var quest = _store.Get<QuestBehaviorInfo>(e.playerId).activeQuests
+                          .Find(q => q.type == QuestType.Likes);
+        if (quest != null) {
+            quest.progress += e.count;   // coalesce 后批量推进
+            if (quest.progress >= quest.target)
+                _eventBus.Publish(e.playerId, new QuestCompleted { questId = quest.id });
+        }
+    }
+}
+```
+
+**Coalescing 场景**:
+
+```
+  1000 人赞离线 B:
+    Frame N: 第 1 个赞 → 激活 Actor → 懒加载 LikeBehaviorInfo → yield
+    Frame N+1: 数据到位 → count++ → Reply → Publish(PostLiked)
+    Frame N+1 同帧: 第 2-1000 个赞排队执行 (Actor 在内存, LikeBehaviorInfo 已缓存)
+      → 每个 Reply Ok
+      → 每次 Publish(PostLiked) → coalesce 合并 count
+    Frame N+2: Drain → 只处理一个 PostLiked{count:1000}
+      → QuestBehavior 一次性推进 1000 步 → 检查一次完成
+
+  ★ 赞 1000 次: 第 1 次 ~1ms IO, 后续 999 次纯内存 (每赞 ~μs)
+  ★ 级联事件: 处理 1 次而非 1000 次
+```
+
+#### 5.10.3 CrossServiceEvent — 跨服务异步
+
+```
+  Actor 内事件链末端 → 发跨服务事件:
+
+  LevelUp → AttrSystem 重算完成
+          → CrossServiceEvent.Publish(PlayerLeveledUp { playerId, newLevel })
+          → NATS / Redis Streams (at-least-once, WAL 兜底)
+
+  Rank.Service 订阅:
+    PlayerLeveledUp → 更新排行榜 (异步, 不阻塞 player.serv)
+
+  Mail.Service 订阅:
+    PlayerLeveledUp → 生成升级奖励邮件 (异步, 失败 WAL 重放补偿)
+```
+
+| 事件类型 | 作用域 | 传输 | 可靠性 |
+|---------|--------|------|--------|
+| **InternalEvent** | Actor 内 (Behavior→Behavior) | 内存队列, 单线程 | 内存保证, 崩溃丢失可重建 |
+| **CrossServiceEvent** | 跨 Service | NATS / Redis Streams | at-least-once, WAL 日志兜底 |
+
+#### 5.10.4 IO 与内存预算
+
+**IO 现实**:
+
+| 操作 | 数据量 | 典型延迟 (NVMe SSD + MongoDB) |
+|------|--------|------|
+| 懒加载单个 BehaviorInfo | 200B - 5KB | 0.5 - 2ms |
+| LoadAll (全量 BehaviorInfo) | 50 - 200KB | 5 - 15ms |
+| WAL append (顺序写) | ~100B | 0.1ms (批量 fsync 摊销) |
+| Truck 批量写 MongoDB | N × 10KB | 批量摊销 ~0.5ms/文档 |
+
+**离线 Actor 按需加载 vs 在线 LoadAll**:
+
+```
+  在线玩家登录: LoadAll → 50-200KB, ~5-15ms → 一次性, 后续零 IO
+    → 合理: 在线玩家会用到大部分 BehaviorInfo
+
+  离线被赞: 懒加载 LikeBehaviorInfo → ~200B, ~0.5ms → 只用此一个
+    → 如果 LoadAll 50KB → 浪费 99.6% IO + 99.6% 内存
+```
+
+**内存预算**:
+
+```
+  在线 Actor:   全量 BehaviorInfo 常驻    ~100KB/Actor × 5000 = 500MB
+  离线 Actor:   仅已访问的 BehaviorInfo   ~200B-20KB/Actor (按需增长)
+
+  批量离线场景 (全服发邮件, 瞬时 10000 个离线 Actor):
+    → 硬上限 MaxOfflineActors (如 2000)
+    → 超出则 ActivationRateLimiter (每秒最多激活 N 个)
+    → ActorDestroySeconds 到期后释放内存
+    → 绝不让离线激活挤占在线玩家的内存和帧预算
+```
+
+**级联 IO 自限性**:
+
+```
+  级联链每步首次访问新 BehaviorInfo → IO yield → 下帧
+  → 级联自然跨越多个帧, 每个 yield 点切到其他 Actor
+  → 一个 Actor 的级联从不独占 CPU
+  → IO 密集级联 (全未缓存) 5 步 ≈ 5 帧 (~80ms)
+  → 内存命中级联 (全已缓存) 5 步 ≈ 同帧 (~μs)
+```
+
+#### 5.10.5 配置
+
+```json
+{
+  "Cascade": {
+    "MaxInternalEventsPerActorPerFrame": 5,
+    "MaxOfflineActors": 2000,
+    "ActivationRateLimitPerSec": 200,
+    "CoalescingWindowMs": 16
+  }
+}
+```
 
 ---
 
@@ -944,7 +1133,7 @@ Behavior + DataStore 两个类独立可测,零 Mock。脏位/派生可验证。�
     - WAL 写到一半进程崩 → 重启 WAL 回放, 数据完整
     - Redis 主从切换瞬间 → Router 降级本地缓存, 业务不中断
     - Gateway 缓存指向已销毁 serv → Redirect → 重试 → 成功或 hop 超限
-    - 离线 Actor 首次 RPC 激活 → LoadAll → 执行 → 正常持久化 → 空闲后钝化
+    - 离线 Actor 首次 RPC 激活 → 按需懒加载 BehaviorInfo → 执行 → 正常持久化 → 空闲后钝化
     - 热迁移中目标 Crash → 源实例回退, 未迁移继续服务
     - 跨进程事务冻结后超时 → 自动解冻, 双方还原
     - 拍卖退款 RPC 失败 → WAL 重放补偿, 金币不丢
@@ -968,7 +1157,8 @@ Queen.sln
 ├── src/
 │   ├── Queen.Core/            # Engine, Comp, Eventor, Ticker, TimerWheel, MpscQueue, CoroutineScheduler
 │   │   ├── Containers/        # GBLList, GBLDict, TGBLList, TGBLDict (1:1 复用 goblin, CollectDiff)
-│   │   └── Scheduling/        # CoroutineScheduler, WaitForRpc, WaitForLoad
+│   │   ├── Scheduling/        # CoroutineScheduler, WaitForRpc, WaitForLoad
+│   │   └── EventBus/           # InternalEventBus, ICoalesceable, CrossServiceEvent
 │   ├── Queen.Rpc/             # [RpcService] [RpcMethod] [Persistent] [Projector], SourceGen, RpcDispatcher, ProjectorSystem, ProjectorPacket
 │   ├── Queen.Network/         # ITransport, TCP/WS/UDP
 │   ├── Queen.Persistence/     # MongoRepository, Truck(BatchWriter), WAL, DataStore
@@ -1004,7 +1194,7 @@ Queen.sln
 | 3 | **Behavior/BehaviorInfo 分离** | 单例 System + 数据 Component; 统一 Service 骨架 | `(目标)` |
 | 4 | **DataStore 单线程无锁 + 懒加载** | 裸 Dictionary 无锁; Get<T> 未命中挂起协程异步读 | `(目标)` |
 | 5 | **[Persistent]/[Projector] 双标志** | 一份结构两标志; 对齐 KBEngine/UE; 不分两份数据 | `(目标)` |
-| 6 | **Virtual Actor — 离线交互透明激活** | 借鉴 Orleans; 在线/离线是业务状态非代码路径; Actor 不在内存则 LoadAll 激活; 无 Version/白名单/特殊路径 | `(目标)` |
+| 6 | **Virtual Actor — 离线交互透明激活** | 借鉴 Orleans; 在线/离线是业务状态非代码路径; Actor 不在内存则按需懒加载; 无 Version/白名单/特殊路径 | `(目标)` |
 | 7 | **下线缓冲期** | ActorDestroySeconds 内可重连; resumeToken HMAC 跨 Gateway | `(目标)` |
 | 8 | **Gateway 安全入口** | Rate Limit + Token + 连接限制 | `(目标)` |
 | 9 | **读写分离** | rank/auction 查询走 Redis 缓存 | `(目标)` |
@@ -1035,6 +1225,10 @@ Queen.sln
 | 29 | **容器/Projector/IGBL 从 goblin 移植** | 1:1 复用 [Projector]/TGBLList/ProjectorSystem/ObjectCache; 前后端同构 | `(目标)` |
 | 30 | **派生事件驱动 (OnEnter/RPC/OnLeave)** | 不 OnTick 全员扫; 不 DependsOn 联动; 不 Rules 算 | `(目标)` |
 | 31 | **容器一层扁平 + 替换式** | 深嵌套拍平; 元素改=替换触发脏; 对齐 goblin/KBEngine | `(目标)` |
+| 32 | **InternalEventBus — 同步/异步分界** | RPC 只等校验+写源数据即返回; 级联通过 Actor 内事件总线异步推进; 跨服务事件完全异步 | `(目标)` |
+| 33 | **离线 Actor 按需懒加载** | 不做 LoadAll; Get<T> 按类型按需加载; 离线激活 IO 代价与操作复杂度成正比,不与玩家数据总量挂钩 | `(目标)` |
+| 34 | **事件合并 (Coalescing)** | 同帧同 Actor 同类型事件合并; 1000 赞 → 1 次事件处理而非 1000 次级联 | `(目标)` |
+| 35 | **离线内存保护** | MaxOfflineActors + ActivationRateLimiter; 离线激活不挤占在线玩家内存和帧预算 | `(目标)` |
 
 ---
 
@@ -1324,7 +1518,7 @@ Orleans Grain:
 |------|---------|-------|------|
 | 虚拟实体 | Grain | Actor | 相同 |
 | 寻址 | Grain Directory | Router + hashring | 相同思路,Queen 用 Redis |
-| 激活 | 首次调用自动 Activate | 首次 RPC 自动 LoadAll | 相同 |
+| 激活 | 首次调用自动 Activate (LoadState) | 首次 RPC 按需懒加载 Get<T> | 相同思路, Queen 更细粒度 |
 | 钝化 | DeactivateOnIdle | ActorDestroySeconds 后销毁 | 相同 |
 | 持久化 | OnActivate/OnDeactivate | Truck + WAL | Queen 批量写更高效 |
 | 在线/离线 | **无此概念** | **业务层有** (session 有无) | Queen 保留此概念用于推送判断 |
@@ -1363,7 +1557,7 @@ Orleans Grain:
 |------|--------|---------|
 | `[OfflineWritable]` | 白名单标记哪些 BehaviorInfo 可离线写 | 所有 BehaviorInfo 都可离线写(激活 Actor 后走正常路径),标记无意义 |
 | `Version` 字段 | 乐观锁版本号,离线 CAS 用 | 单 Actor 单线程,不存在并发写冲突 |
-| 离线直接 DB 写路径 | `db.Load<T>() → CAS → WAL → MongoDB` | 统一为 LoadAll→Behavior 执行→Truck→WAL |
+| 离线直接 DB 写路径 | `db.Load<T>() → CAS → WAL → MongoDB` | 统一为按需懒加载→Behavior 执行→Truck→WAL |
 | "离线 merge" 逻辑 | 登录时合并 WAL 条目 (按 Version 仲裁) | WAL 条目在 Actor 被激活时已正常消费,登录时无需额外合并 |
 
 ---
@@ -1377,3 +1571,4 @@ Orleans Grain:
 | v0.3 | 2026-07-29 | 线程模型回归单线程+协程交替(撤回多线程); Entity→Actor 命名统一; 多核靠多进程 |
 | v0.4 | 2026-07-30 | **数据/同步模型重写**: ① 删除 OpLog/SyncDiff/RollbackLog/oldVal/回滚(回滚干掉,决策#28); ② [SyncField]→对齐 goblin class 级 [Projector]+新增 [Persistent] 双标志(决策#5/#29),类体空 SG 生成,对齐 KBEngine/UE; ③ 脏只推送不回滚,1:1 复用 goblin projectdirtymask/TGBLList.CollectDiff/ProjectorSystem/ProjectorPacket/IGBL/ObjectCache; ④ 派生事件驱动 OnEnter/RPC/OnLeave(决策#30,不 OnTick/不 DependsOn/不 Rules); ⑤ 容器一层扁平+替换式(决策#31,深嵌套拍平,对齐 goblin/KBEngine); ⑥ 写盘 MongoDB 文档整体序列化+Truck(不拆子表); ⑦ 数据安全四件套(先校验/冻结-确认/WAL/幂等补偿); ⑧ ProcessActors 删回滚改异常隔离; ⑨ 热迁移 OnEnter 重算派生; ⑩ **新增第十七章:运维与稳定性待设计方案 (优雅停机/背压/熔断/重连风暴/协议兼容/Schema迁移/灰度发布/监控告警/链路追踪/MongoHA/死信/协程泄漏/传输加密 13 项)** |
 | v0.5 | 2026-07-30 | **离线交互 → Virtual Actor 模型 (借鉴 Orleans)**: ① 删除 `[OfflineWritable]` 白名单(所有 BehaviorInfo 均可离线激活); ② 删除 `Version` 乐观锁(单 Actor 单线程无竞态); ③ **5.5 节完全重写**:离线交互 = 透明 Actor 激活,行为与在线完全相同,单一代码路径(DataStore→Truck→WAL); ④ Router 离线也返回 serv 地址(新增 `players:{id}` 集合区分"离线"vs"不存在"); ⑤ 删除离线直接 DB 写路径和登录 WAL merge; ⑥ 新增 `MaxOfflineActors` 上限保护; ⑦ **新增第十八章:Orleans Virtual Actor 模型对比** |
+| v0.6 | 2026-07-30 | **级联操作与异步事件总线**: ① **新增 5.10 节**: 同步/异步分界(RPC 只等校验+写源数据,级联异步); ② **InternalEventBus**: Actor 内 Behavior→Behavior 事件通信, 每帧级联预算; ③ **Event Coalescing**: 同类型事件合并(1000 赞→1 次事件处理); ④ **CrossServiceEvent**: 跨服务异步事件(NATS/Redis Streams),Rank/Mail 不阻塞 player.serv; ⑤ **离线激活改为按需懒加载**(不做 LoadAll): IO 和内存代价与操作复杂度成正比, 单个 BehaviorInfo ~200B-5KB, ~0.5-2ms; ⑥ 新增 MaxOfflineActors + ActivationRateLimiter 保护; ⑦ 新增决策 #32-#35 |
