@@ -1,6 +1,6 @@
 # Queen 游戏服务端架构方案
 
-> **版本**: v0.4 · **日期**: 2026-07-30
+> **版本**: v0.5 · **日期**: 2026-07-30
 > **状态**: 本文档是**目标态设计**与**唯一真理**。当前仓库代码为旧实现,已废弃,将按本文档从头实现。文中标注 `(目标)` 的特性尚未落地。
 
 ## 实现状态声明
@@ -18,7 +18,7 @@
 
 ## 核心哲学
 
-**多进程,进程内单线程。IO 异步,业务同步。数据逻辑分离,容器自带脏标记。**
+**多进程,进程内单线程。IO 异步,业务同步。数据逻辑分离,容器自带脏标记。Actor 永久可寻址,激活对调用方透明。**
 
 ### 核心原则
 
@@ -28,6 +28,7 @@
 | IO 异步 offload | 网络收发、DB 读写走 OS 线程池,结果通过 MPSC 队列回进程唯一业务线程 |
 | 业务逻辑同步 | 所有业务方法为 `void` 或返回纯值,单线程执行,**禁止 `async`**(async 引入线程池调度,破坏单线程确定性) |
 | **协程即调度** | Actor 的 Job 在单线程上**协程交替**推进;跨帧等待(定时、DB 读未命中)或跨进程等待(RPC 响应)时 `yield`,调度器切到下一个 Actor,结果回来再 resume |
+| **Virtual Actor** | Actor 永久可寻址(借鉴 Orleans)。在线/离线是业务状态(有无 session/gateway),不是代码路径。对调用方透明:Actor 在内存则直接调,不在则激活(LoadAll)后调。无 Version/乐观锁/离线白名单 |
 | **Behavior/BehaviorInfo 分离** | Behavior = System (单例逻辑,建议无状态以利热迁移); BehaviorInfo = Component (纯数据) |
 | **[Persistent]/[Projector] 双标志** | 一份 BehaviorInfo 结构,字段用 class 级 `[Persistent]`(写盘)/`[Projector]`(推送)独立标记。对齐 KBEngine PERSISTENT/CLIENT、UE SaveGame/Replicated。不分两份数据 |
 | **脏只推送,不回滚** | dirty(projectdirtymask + TGBLList CollectDiff)只用于增量推送。回滚干掉,数据安全靠四件套(见 5.9) |
@@ -125,6 +126,7 @@ MongoDB + Redis + WAL
     services:{type}          → Set<instanceAddr>
     services:{type}:hashring → SortedSet<slot, instanceAddr>
     online:{playerId}        → {servAddr, gatewayAddr}  (TTL 5s, player.serv 心跳续期)
+    players:{playerId}       → 1  (永久, 首次登录写入, 表示该玩家已注册)
 
   Router 本地缓存: 500ms 刷新
   Gateway/Service 本地缓存: 30s TTL
@@ -136,10 +138,15 @@ MongoDB + Redis + WAL
   Router.Lookup(actorId, serviceType):
 
     if serviceType == "player":
-      查 online:{actorId} → 命中 → {serv, gateway}
-                           未命中 → "offline"
+      ① 查 online:{actorId} → 命中 → {serv, gateway, status:"online"}
+      ② 未命中 → 查 players:{actorId} (已注册玩家集合)
+         - 存在 → hashring 算 home serv → {serv, gateway:null, status:"offline"}
+         - 不存在 → {status:"not_found"} (新玩家/从未注册)
     else:
       查 hashring → 实例地址 (club: clubId hash, chat: roomId hash, ...)
+
+  ★ 始终返回 serv 地址 (除非玩家不存在)
+  ★ 调用方不关心在线/离线 — 有 serv 地址就发 RPC, 目标 serv 负责激活 Actor
 ```
 
 ### 2.3 缓存失效与迁移重定向
@@ -180,7 +187,7 @@ MongoDB + Redis + WAL
 
 | 概念 | 是什么 | 数量 |
 |------|--------|------|
-| **BehaviorInfo** | Component,纯数据; class 级 `[Persistent]`(写盘)/`[Projector]`(推送)特性声明字段,类体空;`[OfflineWritable]` 标记可离线写 | 每实体每类型一份 |
+| **BehaviorInfo** | Component,纯数据; class 级 `[Persistent]`(写盘)/`[Projector]`(推送)特性声明字段,类体空 | 每实体每类型一份 |
 | **Behavior** | System,单例逻辑,对应一种 BehaviorInfo,建议无状态(利热迁移) | 每种 BehaviorInfo 一个 |
 | **DataStore** | 存储,`Get<T>` 懒加载;单线程访问,无需锁,裸 Dictionary | 每个 Service 一个 |
 | **[Persistent]** | class 级特性,声明写盘字段;SG 生成 MessagePack 持久化序列化 | — |
@@ -208,15 +215,13 @@ MongoDB + Redis + WAL
 // 容器: 一层扁平, 元素 struct/不可变 class (写盘用 GBLList, 推送用 TGBLList)
 [Persistent("items", typeof(GBLList<Item>))] [Projector("items", typeof(TGBLList<Item>))]
 public partial class PlayerBehaviorInfo : BehaviorInfo { }   // 类体空
-
-public ulong Version { get; set; } = 0;   // 乐观锁版本(离线写用), 非投影字段
 ```
 
 **字段组合**(对齐 KBEngine PERSISTENT/CLIENT、UE SaveGame/Replicated):
 - `[Persistent]+[Projector]`:写盘 + 推送(gold/name/items)
 - `[Persistent]` only:只写不推(age,敏感)
 - `[Projector]` only:只推不写(total,派生;hp,运行时)
-- 都不标:内部状态,不写不推(Version)
+- 都不标:内部状态,不写不推
 
 ### 3.3 Behavior (System)
 
@@ -394,7 +399,7 @@ public static class PlayerServiceBehaviors
 |------|---------|----------|----------|
 | 背包 | player.serv | Bag | 私有 |
 | 邮件 | player.serv | Mail | 私有 |
-| 好友 | player.serv | Friend | 私有, 跨服直连 RPC, 离线写 DB |
+| 好友 | player.serv | Friend | 私有, 跨服直连 RPC, 离线 Actor 透明激活 |
 | 任务 | player.serv | Quest | 私有 |
 | 公会 | club.service | Club | ① 共享可变 |
 | 聊天 | chat.service | Chat | ② 全局视角 + ④ 无事务 |
@@ -416,11 +421,10 @@ public static class PlayerServiceBehaviors
     ④ RPC → player.serv: PlayerJoin(playerId, sessionId, gatewayAddr)
     ⑤ player.serv (业务线程):
        DataStore.LoadAll(id) — 从 DB 加载 [Persistent] 字段; 不存在则 new → 默认值
-       ★ 上线合并: 检查离线期间 WAL 中是否有该玩家未合并的离线写
-                   → 有则 merge 到内存 BehaviorInfo (按 Version 仲裁)
        创建 Actor{actorId, session, _jobs} → 加入 Stage
        ★ OnEnter: 全量算派生 (total = gold+money 等 [Projector] only 字段)
        向 Router 注册: online:{playerId} = {servAddr, gatewayAddr}
+       ★ 首次登录: SET players:{playerId} = 1 (标记已注册, 供 Router 判断"不存在 vs 离线")
     ⑥ Gateway 缓存: playerId → serv:port (TTL 30s)
     ⑦ 发 resumeToken 给 Client
 ```
@@ -476,40 +480,65 @@ public static class PlayerServiceBehaviors
 ```
   下线:
     Gateway 检测断连 → Router 删除 online:{playerId}
-    → player.serv: Actor 标记 offline, 保留 ActorDestroySeconds 秒
+    → player.serv: Actor 标记 offline (session=null, 不可推送)
+    → 保留 ActorDestroySeconds 秒 (缓冲期)
     → 缓冲期后: OnLeave → Save([Persistent]字段) → Truck → 销毁
 
   重连:
     Client 发 resumeToken → Gateway 校验 (5min 内有效)
-    → 查 Router: 缓冲期内 → 旧 serv; 已销毁 → 重新登录
-    → player.serv: Reconnect → 更新 session → ProjectorSystem MarkAllDirty 全量推一次
+    → 查 Router: 缓冲期内 → 旧 serv; 已销毁 → 重新走登录流程
+    → player.serv: Reconnect → 绑定 session → ProjectorSystem MarkAllDirty 全量推一次
     → 发新 resumeToken
 
   ★ 重连保活关键: 缓冲期内 Actor 不销毁, 内存数据完整, 无需重新 LoadAll
   ★ resumeToken 跨 Gateway 有效 (HMAC 签发, Gateway 共享密钥)
+  ★ 缓冲期内的 Actor 可被其他玩家正常 RPC 交互 (在线/离线仅影响推送)
 ```
 
-### 5.5 跨服交互 + 离线
+### 5.5 跨服交互 + 离线 — Virtual Actor 模型
+
+**核心理念**: 在线/离线是业务状态(session 有无),不是代码路径。Behavior 不关心目标是否在线 — Actor 在内存则直接调,不在则激活后调。借鉴 Orleans 的 grain 永远可寻址思想。
 
 ```
   Friend.Add(A, B):
 
   ① 查 Router: "B 在哪?"
-  ② 在线 → 跨进程 RPC (协程化, 见 5.6)
-     离线 → 离线写流程:
-        a. 校验 FriendBehaviorInfo 是否标 [OfflineWritable]
-        b. db.Load<FriendBehaviorInfo>(B) (~1KB, ~1ms) — 单类型 [Persistent] 字段, 不加载全量
-        c. CAS 写入: Version 乐观锁
-           - Version 匹配 → 写入 → WAL → 异步存 DB
-           - Version 不匹配 (B 刚上线改过) → 重查 Router
-             · 在线 → 转 RPC
-             · 仍离线 → 退避重试 (最多 3 次)
-  ③ WAL 保证离线写不丢 (崩溃可重放)
+     → {serv: player.serv#X, gateway: gw#Y, status:"online" }  // B 在线
+     → {serv: player.serv#X, gateway: null,   status:"offline"}  // B 离线,仍在 home serv
+     → {status:"not_found"}                                       // B 从未注册,拒绝
+
+  ② RPC → player.serv#X: Friend.Add(A, B)
+     同一代码路径:
+       player.serv#X 业务线程:
+         ③ Actor 在内存? → 直接执行
+            Actor 不在内存? → LoadAll(B) → 创建 Actor (session=null, 不可推送) → 加入 Stage → 执行
+         ④ Behavior 正常执行 (单线程, 无锁)
+            _store.Get<FriendBehaviorInfo>(B).friends.Add(A)
+            // 脏位正常置位 → Truck → WAL → MongoDB (与在线完全相同的持久化路径)
+         ⑤ 回复 Ok()
+         ⑥ Actor 保留 ActorDestroySeconds 后钝化 (与在线 Actor 相同的生命周期策略)
+         ⑦ 如果有 session → ProjectorSystem 推送脏字段; 无 session → 仅写库
+
+  全程: 无 CAS / 无 Version / 无 [OfflineWritable] 标记 / 无两套代码路径
 ```
 
-**离线交互代价恒定 ~1KB ~1ms,不随玩家总数据增长。**
+**离线交互代价**:
+- Actor 不在内存: 首次 DB Load (~1KB, ~1ms) + 正常业务执行
+- Actor 在内存 (缓冲期内): 直接执行, 零额外开销
+- Get<T> 懒加载按需补全其他 BehaviorInfo 类型
 
-**可离线白名单契约**:只有标 `[OfflineWritable]` 的 BehaviorInfo 允许离线写;战斗状态/临时 buff/会话数据禁止;SourceGen 校验调用点。
+**Router 角色升级**:
+- 在线穿透 (找 gateway) 和离线穿透 (找 home serv) 统一
+- `players:{id}` 集合区分"离线"和"不存在"— 新玩家/未注册返回 not_found, 防止为不存在的玩家激活空 Actor
+
+**与在线 Actor 的唯一区别**:
+| 属性 | 在线 Actor | 离线 Actor |
+|------|-----------|-----------|
+| session | 有 (关联 gateway) | null |
+| 推送 | ProjectorSystem → Gateway → Client | 无推送, 仅写库 |
+| 激活方式 | 登录 LoadAll | 首次 RPC LoadAll |
+| 业务代码路径 | 相同 | 相同 |
+| 持久化路径 | DataStore → Truck → WAL → MongoDB | 完全相同 |
 
 ### 5.6 跨进程 RPC (协程化 + 幂等)
 
@@ -534,7 +563,7 @@ public static class PlayerServiceBehaviors
 - **重试**: 超时由调用方协程控制,默认 3 次退避重试
 - **Redirect**: hop ≤ 3,超出 fail
 - **循环防护**: 调用栈深度 ≤ 8;`A→B→A` 第二跳异步化(B 不直接回调 A,A 的协程 yield 等 B 响应)
-- **目标不可达**: Router 报 offline → 调用方按业务选择(离线写/失败/排队)
+- **目标不可达**: Router 报 not_found → 调用方返回失败 (玩家不存在)
 
 ### 5.7 跨进程事务:冻结-确认模式(替代 2PC)
 
@@ -588,7 +617,7 @@ public static class PlayerServiceBehaviors
 |------|------|
 | **先校验后执行** | Job 内校验在前改动在后,执行阶段不失败(失败=bug,靠日志+补偿) |
 | **冻结-确认** | 跨步骤/跨进程交易(5.7);超时自动解冻 |
-| **WAL** | 崩溃恢复,持久化层重放;离线写/拍卖退款不丢 |
+| **WAL** | 崩溃恢复,持久化层重放;拍卖退款不丢 |
 | **幂等补偿** | 失败显式反向操作(拍卖退款 WAL+幂等 RPC);requestId 去重 |
 
 游戏业务失败 99% 在校验阶段(道具不足/等级不够),此时没改数据,回滚无意义。真正"改一半失败"用四件套覆盖。
@@ -685,6 +714,8 @@ public static class PlayerServiceBehaviors
     ★ 单核上限在帧时间预算和公平调度粒度
     ★ 多核靠多实例 (player.serv N 实例 = N 核)
     ★ 上述数字为预估值, Phase 1 完成后用 benchmark 实测校准
+    ★ 离线 Actor 暂用同一内存池; 如批量离线交互(全服发邮件等)瞬时激活大量 Actor,
+      需增加 MaxOfflineActors 上限保护, 超出则排队或限流
 
   Gateway (单进程单线程): 10000 连接 → 5MB 内存 → 2ms/帧
 ```
@@ -913,7 +944,7 @@ Behavior + DataStore 两个类独立可测,零 Mock。脏位/派生可验证。�
     - WAL 写到一半进程崩 → 重启 WAL 回放, 数据完整
     - Redis 主从切换瞬间 → Router 降级本地缓存, 业务不中断
     - Gateway 缓存指向已销毁 serv → Redirect → 重试 → 成功或 hop 超限
-    - 离线写与上线瞬间竞态 → version 冲突 → 转在线或退避
+    - 离线 Actor 首次 RPC 激活 → LoadAll → 执行 → 正常持久化 → 空闲后钝化
     - 热迁移中目标 Crash → 源实例回退, 未迁移继续服务
     - 跨进程事务冻结后超时 → 自动解冻, 双方还原
     - 拍卖退款 RPC 失败 → WAL 重放补偿, 金币不丢
@@ -938,7 +969,7 @@ Queen.sln
 │   ├── Queen.Core/            # Engine, Comp, Eventor, Ticker, TimerWheel, MpscQueue, CoroutineScheduler
 │   │   ├── Containers/        # GBLList, GBLDict, TGBLList, TGBLDict (1:1 复用 goblin, CollectDiff)
 │   │   └── Scheduling/        # CoroutineScheduler, WaitForRpc, WaitForLoad
-│   ├── Queen.Rpc/             # [RpcService] [RpcMethod] [Persistent] [Projector] [OfflineWritable], SourceGen, RpcDispatcher, ProjectorSystem, ProjectorPacket
+│   ├── Queen.Rpc/             # [RpcService] [RpcMethod] [Persistent] [Projector], SourceGen, RpcDispatcher, ProjectorSystem, ProjectorPacket
 │   ├── Queen.Network/         # ITransport, TCP/WS/UDP
 │   ├── Queen.Persistence/     # MongoRepository, Truck(BatchWriter), WAL, DataStore
 │   ├── Queen.Gateway/         # SessionManager, AuthPipeline, RateLimiter
@@ -973,7 +1004,7 @@ Queen.sln
 | 3 | **Behavior/BehaviorInfo 分离** | 单例 System + 数据 Component; 统一 Service 骨架 | `(目标)` |
 | 4 | **DataStore 单线程无锁 + 懒加载** | 裸 Dictionary 无锁; Get<T> 未命中挂起协程异步读 | `(目标)` |
 | 5 | **[Persistent]/[Projector] 双标志** | 一份结构两标志; 对齐 KBEngine/UE; 不分两份数据 | `(目标)` |
-| 6 | **离线写 WAL + 乐观锁 + 白名单** | [OfflineWritable] 限定; version CAS; 恒定代价 | `(目标)` |
+| 6 | **Virtual Actor — 离线交互透明激活** | 借鉴 Orleans; 在线/离线是业务状态非代码路径; Actor 不在内存则 LoadAll 激活; 无 Version/白名单/特殊路径 | `(目标)` |
 | 7 | **下线缓冲期** | ActorDestroySeconds 内可重连; resumeToken HMAC 跨 Gateway | `(目标)` |
 | 8 | **Gateway 安全入口** | Rate Limit + Token + 连接限制 | `(目标)` |
 | 9 | **读写分离** | rank/auction 查询走 Redis 缓存 | `(目标)` |
@@ -1014,7 +1045,7 @@ Queen.sln
 | 阶段 | 内容 | 依赖 |
 |------|------|------|
 | Phase 1 | Queen.Core: Engine(退出/异常/帧控), Comp, Eventor, Ticker, TimerWheel, MpscQueue, CoroutineScheduler, **从 goblin 移植 GBLList/GBLDict/TGBLList/TGBLDict/IGBL/ObjectCache + fuzzing** | 无 |
-| Phase 2 | Queen.Rpc + SourceGen ([RpcService], [Persistent], [Projector], [OfflineWritable], QN1001, ProjectorSystem, ProjectorPacket) | Phase 1 |
+| Phase 2 | Queen.Rpc + SourceGen ([RpcService], [Persistent], [Projector], QN1001, ProjectorSystem, ProjectorPacket) | Phase 1 |
 | Phase 3 | Queen.Network (ITransport, TCP/WS/UDP, 连接断/超时) | Phase 1 |
 | Phase 4 | Queen.Persistence (MongoRepository, Truck, WAL, DataStore 懒加载) | Phase 1, 2 |
 | Phase 5 | Queen.Router (ServiceRegistry+Redis Sentinel, LookupService, Redirect) | Phase 3 |
@@ -1272,6 +1303,71 @@ Schema 版本:
 
 ---
 
+## 十八、借鉴 Orleans — Virtual Actor 模型对比
+
+> Queen 的离线交互设计在讨论中成型为 Virtual Actor 模型。本章记录与 Orleans 的对比及借鉴项。
+
+### 18.1 Orleans Virtual Actor 核心概念
+
+```
+Orleans Grain:
+  - Grain 永久"逻辑存在"，调用方不关心是否在内存
+  - 首次调用 → silo 自动 Activate (ReadStateAsync)
+  - 空闲 → DeactivateOnIdle (WriteStateAsync)
+  - 无"在线/离线"概念 — grain 始终可寻址
+  - Grain Directory 负责 grain→silo 映射
+```
+
+### 18.2 Queen vs Orleans 对照
+
+| 概念 | Orleans | Queen | 差异 |
+|------|---------|-------|------|
+| 虚拟实体 | Grain | Actor | 相同 |
+| 寻址 | Grain Directory | Router + hashring | 相同思路,Queen 用 Redis |
+| 激活 | 首次调用自动 Activate | 首次 RPC 自动 LoadAll | 相同 |
+| 钝化 | DeactivateOnIdle | ActorDestroySeconds 后销毁 | 相同 |
+| 持久化 | OnActivate/OnDeactivate | Truck + WAL | Queen 批量写更高效 |
+| 在线/离线 | **无此概念** | **业务层有** (session 有无) | Queen 保留此概念用于推送判断 |
+| 单线程 | 单 grain 单线程 (Turn-Based) | 整个进程单线程 | Queen 更激进 |
+| 代码路径 | 统一 | 统一 | 相同 |
+
+### 18.3 Queen 直接借鉴的设计
+
+| 借鉴项 | Orleans 来源 | Queen 落地 |
+|------|-------------|-----------|
+| **Actor 永久可寻址** | Grain 始终存在,不区分在线/离线 | Router 离线也返回 serv 地址; `players:{id}` 区分不存在 |
+| **激活对调用方透明** | `GrainFactory.GetGrain<>().Method()` 调用方不关心激活 | `Router.Lookup() → RPC` 调用方不关心目标是否在内存 |
+| **单一代码路径** | 所有 grain 调用走同一路径 | Behavior 不区分在线/离线,DataStore→Truck→WAL 统一 |
+| **空闲钝化** | DeactivateOnIdle | ActorDestroySeconds (在线离线共用同一 TTL) |
+| **无 Version/乐观锁** | Turn-Based Concurrency 天然无竞态 | 单进程单线程天然无竞态,Version 已删除 |
+| **单线程执行保证** | Single-Threaded Execution (每个 grain) | 整个进程单线程 (所有 Actor) |
+
+### 18.4 Queen 故意保留的差异
+
+| 差异 | Orleans | Queen | 理由 |
+|------|---------|-------|------|
+| **在线/离线业务状态** | 无 | 有 (session 有无) | 游戏需要区分"该不该推送";在线有 session→推送,离线无 session→仅写库 |
+| **推送** | Streaming (显式订阅) | ProjectorSystem (脏位自动推送) | 游戏业务逻辑不需要显式订阅,脏位图+帧末增量推送更贴合 |
+| **线程模型** | 每个 silo 多线程, grain 按 Turn 串行 | 整个进程单线程 | Queen 对齐 goblin; 绝对无锁; 确定性 |
+| **存储** | 任意 storage provider | MessagePack + MongoDB + WAL | 游戏数据访问模式固定,不需要 ORM 抽象 |
+
+### 18.5 为什么不是完全照搬 Orleans
+
+- **游戏需要推送**: Orleans Streaming 是通用方案,Queen 的 ProjectorSystem 是游戏专用(脏位图+增量差量),更省带宽且与 goblin 同构
+- **游戏不需要多线程**: Orleans 的 silo 多线程调度适合通用服务,但 Queen 的绝对单线程带来确定性、无锁、与 goblin 客户端同构
+- **游戏有明确的"在线/离线"业务差异**: 玩家离线不应该收到推送,但数据仍然可以被修改。Orleans 没有这个区分,Queen 把它建模为 Actor 的 session 字段
+
+### 18.6 删除的设计 (与旧方案告别)
+
+| 删除项 | 旧方案 | 删除原因 |
+|------|--------|---------|
+| `[OfflineWritable]` | 白名单标记哪些 BehaviorInfo 可离线写 | 所有 BehaviorInfo 都可离线写(激活 Actor 后走正常路径),标记无意义 |
+| `Version` 字段 | 乐观锁版本号,离线 CAS 用 | 单 Actor 单线程,不存在并发写冲突 |
+| 离线直接 DB 写路径 | `db.Load<T>() → CAS → WAL → MongoDB` | 统一为 LoadAll→Behavior 执行→Truck→WAL |
+| "离线 merge" 逻辑 | 登录时合并 WAL 条目 (按 Version 仲裁) | WAL 条目在 Actor 被激活时已正常消费,登录时无需额外合并 |
+
+---
+
 ## 变更记录
 
 | 版本 | 日期 | 变更 |
@@ -1280,3 +1376,4 @@ Schema 版本:
 | v0.2 | 2026-07-29 | OpLog 单源双视图; 并发 Actor→线程绑定; RPC 协程化; 2PC→冻结-确认; 拍卖 WAL 退款; 离线白名单; 热迁移业务时钟; Controller 幂等; 零GC<1KB/帧 |
 | v0.3 | 2026-07-29 | 线程模型回归单线程+协程交替(撤回多线程); Entity→Actor 命名统一; 多核靠多进程 |
 | v0.4 | 2026-07-30 | **数据/同步模型重写**: ① 删除 OpLog/SyncDiff/RollbackLog/oldVal/回滚(回滚干掉,决策#28); ② [SyncField]→对齐 goblin class 级 [Projector]+新增 [Persistent] 双标志(决策#5/#29),类体空 SG 生成,对齐 KBEngine/UE; ③ 脏只推送不回滚,1:1 复用 goblin projectdirtymask/TGBLList.CollectDiff/ProjectorSystem/ProjectorPacket/IGBL/ObjectCache; ④ 派生事件驱动 OnEnter/RPC/OnLeave(决策#30,不 OnTick/不 DependsOn/不 Rules); ⑤ 容器一层扁平+替换式(决策#31,深嵌套拍平,对齐 goblin/KBEngine); ⑥ 写盘 MongoDB 文档整体序列化+Truck(不拆子表); ⑦ 数据安全四件套(先校验/冻结-确认/WAL/幂等补偿); ⑧ ProcessActors 删回滚改异常隔离; ⑨ 热迁移 OnEnter 重算派生; ⑩ **新增第十七章:运维与稳定性待设计方案 (优雅停机/背压/熔断/重连风暴/协议兼容/Schema迁移/灰度发布/监控告警/链路追踪/MongoHA/死信/协程泄漏/传输加密 13 项)** |
+| v0.5 | 2026-07-30 | **离线交互 → Virtual Actor 模型 (借鉴 Orleans)**: ① 删除 `[OfflineWritable]` 白名单(所有 BehaviorInfo 均可离线激活); ② 删除 `Version` 乐观锁(单 Actor 单线程无竞态); ③ **5.5 节完全重写**:离线交互 = 透明 Actor 激活,行为与在线完全相同,单一代码路径(DataStore→Truck→WAL); ④ Router 离线也返回 serv 地址(新增 `players:{id}` 集合区分"离线"vs"不存在"); ⑤ 删除离线直接 DB 写路径和登录 WAL merge; ⑥ 新增 `MaxOfflineActors` 上限保护; ⑦ **新增第十八章:Orleans Virtual Actor 模型对比** |
