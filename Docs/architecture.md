@@ -1,896 +1,635 @@
-# Queen 游戏服务端架构方案
+# Queen 游戏服务端架构
 
-> **版本**: v1.2 · **日期**: 2026-07-30
-> **状态**: 目标态设计, 唯一真理。当前仓库代码为旧实现, 已废弃, 将按本文档从头实现。
-
----
-
-## 一、核心哲学
-
-**多进程, 进程内单线程。IO 异步, 业务同步。Actor 永久可寻址, 激活透明。**
-
-### 1.1 核心原则
-
-| 原则 | 说明 |
-|------|------|
-| **进程内单线程** | 整个进程业务层只有一个线程; 所有 Actor 协程交替执行; 绝对无锁; 多核靠多进程 |
-| **IO 异步 offload** | 网络收发、DB 读写走 OS 线程池, 结果通过 MPSC 队列回业务线程 |
-| **业务逻辑同步** | 所有业务方法为 `void` 或返回纯值; 禁止 `async` (QN1001) |
-| **协程即调度** | Actor Job 在单线程上协程交替; 等待(定时/DB 读/RPC 响应)时 yield, 调度器切到下一个 Actor |
-| **Virtual Actor** | Actor 永久可寻址 (借鉴 Orleans)。在线/离线是业务状态 (有无 session), 不是代码路径。Actor 在内存则直接调, 不在则创建壳 + 按需 Get<T> 懒加载 |
-| **Behavior/BehaviorInfo 分离** | Behavior = System (单例逻辑, 无状态以利热迁移); BehaviorInfo = Component (纯数据, 类体空, SG 生成) |
-| **[Persistent]/[Projector] 双标志** | 一份 BehaviorInfo 结构两个独立标记。写盘用 `[Persistent]`, 推送用 `[Projector]`。 对齐 KBEngine PERSISTENT/CLIENT、UE SaveGame/Replicated |
-| **脏推送, 回滚不推送** | dirty 只用于增量推送。Job 失败 → Rollback() → 清 dirty, 客户端不可见。Commit → 进 ProjectorSystem |
-| **派生事件驱动** | 派生字段在 OnEnter(全量)/RPC(增量)/OnLeave(清理) 算, 不 OnTick 全员扫 |
-
-### 1.2 非目标
-
-| 不做 | 理由 |
-|------|------|
-| 客户端预测/状态插值 | 属 goblin 客户端职责 |
-| 实时语音/视频 | 走专用媒体服务 |
-| Lockstep 帧同步 | 本框架面向异步业务 (背包/邮件/公会/交易) |
-| 通用 ORM | 游戏数据访问模式固定 (MessagePack + MongoDB) |
-| 分布式事务 2PC | 用冻结-确认模式替代 (见 6.7) |
-| 单进程多线程 | 多核靠多进程; 单进程多线程引入锁/竞态, 与 goblin 不同构 |
-| 深嵌套容器 | 拍平成复合 key Dict 或拆 BehaviorInfo |
-
-### 1.3 IO / 业务边界
-
-```
-                    ┌──────────────────────────────────────┐
-                    │         IO 层 (允许 async/Task)       │
-                    │  Queen.Network / Queen.Persistence   │
-                    │  OS 线程池: 收发 / DB 读写             │
-                    └──────────────┬───────────────────────┘
-                                   │ MPSC Queue (唯一跨线程接触点)
-                    ┌──────────────▼───────────────────────┐
-                    │  业务层 (进程内单线程, 禁止 async)    │
-                    │  所有 Actor 唯一业务线程, 协程交替     │
-                    │  Behavior 方法 → void                │
-                    │  Coroutine (跨帧/跨进程 yield)        │
-                    └──────────────────────────────────────┘
-```
+> **版本**：v4.0 · **日期**：2026-07-31
+> **状态**：目标架构；当前仓库代码已作废，按本文档从头实现。
+> **范围**：核心运行时、数据模型、同步、跨进程交互和必要的进程拓扑。
 
 ---
 
-## 二、进程拓扑
+## 1. 定位与目标
 
-```
-                         CLIENT
-            TCP / UDP(KCP) / WebSocket
-                          │
-                          ▼
-   ┌──────────────────────────────────────────────┐
-   │              GATEWAY (N 实例)                  │
-   │  连接管理 · 认证 · session · resumeToken       │
-   └──────────────────────┬───────────────────────┘
-                          │
-                          ▼
-   ┌──────────────────────────────────────────────┐
-   │              ROUTER (2~N 实例, HA)             │
-   │  DNS 模式: 只回答"X 在哪", 不转发             │
-   └──────────────────────┬───────────────────────┘
-                          │  ★ 全直连
-   ┌──────────────────────┼───────────────────────┐
-   ▼          ▼           ▼           ▼           ▼
-player      player      club        chat        rank
-.serv N     .serv N     .service N  .service N  .service 1
-   │          │           │           │           │
-   └──────────┴───────────┴───────────┴───────────┘
-   │                      │
-   ▼                      ▼
-trade.serv 1      auction.svc 1        Ration (HTTP 管理)
-   │
-   ▼ Batch Write
-MongoDB + Redis
+### 1.1 Queen 要解决的问题
 
-                    ┌─────────────────────┐
-                    │    CONTROLLER       │
-                    │  (1 实例, 主备)      │
-                    └─────────────────────┘
+Queen 不是通用 Actor 框架，也不是微服务脚手架。它面向高并发游戏后端，目标是用一套统一运行时收敛四个矛盾：
+
+1. **并发与正确性**：业务代码不依赖锁，不直接处理 Actor 内数据竞争。
+2. **性能与开发体验**：用接近同步的业务代码表达跨帧、数据库和 RPC 流程，同时保持可预算、可观测的调度。
+3. **状态与同步**：同一份 `BehaviorInfo` 同时作为业务状态、持久化输入和客户端投影输入，避免重复维护。
+4. **单体与分布式**：Actor 在单个 Service 内顺序执行，通过多进程和服务拆分获得水平扩展，而不是把业务对象放进多线程竞争环境。
+
+### 1.2 核心模型
+
+```text
+客户端请求
+    ↓
+Gateway：连接、认证、session、重连
+    ↓
+Router：定位 Actor 或 Service，不转发业务流量
+    ↓
+Service：承载 Actor，进程内单线程
+    ↓
+Actor：状态归属和 Job 串行边界
+    ↓
+Behavior：业务逻辑
+    ↓
+BehaviorInfo：业务状态
+    ↓
+Projector / Truck：客户端投影和 MongoDB 持久化
 ```
 
-**每个进程内部单线程, 多核靠多实例。Router 管寻址, Controller 管扩缩容, 职责分离。所有 Service 直连。**
+### 1.3 三个必须成立的不变量
+
+1. **唯一归属**：同一个 Actor 在同一时刻只能由一个 Service 实例负责写入。
+2. **顺序执行**：同一个 Actor 的 Job 在唯一业务线程上串行执行；不同 Actor 之间协作式交替。
+3. **状态可恢复**：已提交状态可以持久化和重建；未提交的本地修改可以回滚；跨边界副作用必须具备幂等或补偿语义。
+
+### 1.4 明确不承诺的能力
+
+以下能力不是第一版运行时的前置条件，不能作为“自动获得”的能力：
+
+- 任意跨 Actor 操作的 ACID 事务
+- 跨进程 exactly-once
+- 任意时刻透明热迁移
+- 挂起 Job 的直接序列化迁移
+- 全链路绝对零 GC
+- 业务代码无需约束的透明异步加载
+
+它们只能通过明确协议、冻结确认、幂等、补偿和运行时限制逐步实现。
 
 ---
 
-## 三、Router — DNS 模式
+## 2. 总体拓扑
 
-### 3.1 数据模型
+```text
+                 CLIENT
+       TCP / UDP-KCP / WebSocket
+                         │
+                         ▼
+             Gateway（N 实例）
+       连接 / 认证 / session / resumeToken
+                         │
+                         ▼
+             Router（HA，DNS 模式）
+          只回答“Actor 或 Service 在哪”
+                         │
+       ┌─────────────────┼─────────────────┐
+       ▼                 ▼                 ▼
+ player.service N   club.service N    chat/rank/auction/trade
+       │                 │                 │
+       └────────── Service 间直连 ──────────┘
 
-```
-Redis (Sentinel/Cluster, HA):
-  services:{type}          → Set<instanceAddr>
-  services:{type}:hashring → SortedSet<slot, instanceAddr>
-  online:{playerId}        → {servAddr, gatewayAddr}  (TTL 5s)
-  players:{playerId}       → 1  (永久, 首次登录写入, 区分"离线"vs"不存在")
-
-Router 本地缓存: 500ms 刷新
-Gateway/Service 本地缓存: 30s TTL
-```
-
-### 3.2 寻址
-
-```
-player 类型提供两个 API:
-
-Seek(actorId):
-  查 online:{actorId}
-    → 命中 → {serv, gateway, status:"online"}
-    → 未命中 → {status:"offline"}              ← 不返回 serv, 不激活
-
-SeekDeep(actorId):
-  查 online:{actorId}
-    → 命中 → {serv, gateway, status:"online"}
-    → 未命中 → 查 players:{actorId}
-        → 存在 → hashring → {serv, gateway:null, status:"offline"}  ← 返回 serv, 允许激活
-        → 不存在 → {status:"not_found"}                          ← 从未注册
-
-非 player 类型 (club/chat/rank/auction/trade):
-  Seek → hashring → 实例地址
+ Controller（主备）：扩缩容和部署编排
+ MongoDB：持久化真相
+ Redis：路由、在线状态、缓存和协调数据
 ```
 
-**Seek vs SeekDeep 的使用边界**:
+| 进程 | 职责 | 实例数 |
+|---|---|---:|
+| `Gateway` | 连接管理、认证、限流、session、重连 | N |
+| `Router` | Actor/Service 寻址、路由版本、重定向 | HA |
+| `Controller` | 扩缩容、部署编排、实例生命周期 | 主备 |
+| `player.service` | 玩家 Actor 的主要归属 | N |
+| `club.service` | 公会等共享可变状态 | N |
+| `chat.service` | 世界频道和聊天状态 | N |
+| `rank.service` | 排行榜等全局视角数据 | 1 或 N |
+| `auction.service` | 拍卖 listing 等共享状态 | 1 或 N |
+| `trade.service` | 交易冻结、确认和补偿 | 1 或 N |
 
-| API | 语义 | 适用场景 | 离线行为 |
-|------|------|------|------|
-| `Seek` | 只找在线 | 聊天/组队/实时交互 | 返回 offline, 调用方自行处理 (发离线消息/拒绝) |
-| `SeekDeep` | 穿透激活 | 好友/邮件/交易/公会 | 返回 home serv, 目标 serv 创建壳 Actor + 懒加载 |
-
-**调用方示例**:
-
-```
-Chat.SendDM(A, B, msg):
-  r = Router.Seek(B)
-  if r.status == "online":  RPC → serv, 实时送达
-  if r.status == "offline": StoreOfflineMessage(B, msg)   ← 不激活 Actor
-
-Friend.Add(A, B):
-  r = Router.SeekDeep(B)
-  if r.status == "not_found": return Error("玩家不存在")
-  RPC → serv  ← 在线也好离线也好，目标 serv 负责确保数据写入
-```
-
-### 3.3 缓存失效与重定向
-
-```
-Actor 迁移后 Gateway 缓存可能指向旧 serv:
-  Gateway → 旧 serv → Redirect {newServ} → Gateway 更新缓存 → 重试
-  ★ 重试上限 3 次, 超出返回失败
-  ★ 每个 Redirect 携带 hop 计数, Service 检测 hop > 3 直接拒绝
-```
-
-### 3.4 Redis 高可用
-
-Sentinel 主从 + 自动故障转移。完全不可用时 Router 从本地缓存应答 (30s 内可用)。
+每个 Service 内部均使用同一骨架：`Engine`、`Stage`、`Actor`、`Behavior`、`BehaviorInfo`、`DataStore`、`Projector` 和 `Truck`。`player.service` 不拥有特殊运行时语义。
 
 ---
 
-## 四、统一 Service 骨架
+## 3. 进程内运行时
 
-**所有业务进程共用一个骨架。player.serv 不特殊。每个进程内部单线程。**
+### 3.1 单线程边界
 
-### 4.1 术语
+每个 Service 的业务层只有一个线程：
 
-| 概念 | 是什么 |
-|------|--------|
-| **BehaviorInfo** | Component, 纯数据; class 级 `[Persistent]`/`[Projector]` 特性声明, 类体空, SG 生成一切 |
-| **Behavior** | System, 单例逻辑, 对应一种 BehaviorInfo, 无状态 (利热迁移) |
-| **DataStore** | 存储, `Get<T>` 懒加载; 单线程访问, 裸 Dictionary 无锁 |
-| **[Persistent]** | 声明写盘字段 → SG 生成 MessagePack 持久化序列化 |
-| **[Projector]** | 声明推送字段 → SG 生成 backing field + 属性 + `projectdirtymask` 脏位 + `IProjectable` (对齐 goblin) |
-| **projectdirtymask** | ulong 位图, 每个 [Projector] 字段一位, set 时置位 |
-| **GBLList / GBLDict** | 持久化容器 (纯写盘) |
-| **TGBLList / TGBLDict** | 推送容器, 带脏追踪。不暴露 `[]` 索引器, 只提供 `Get/Set/Add/RemoveAt`; `CollectDiff` 输出 added/removed 索引差量 |
-| **Actor** | 数据归属单元, 走 Stage 协程交替调度 |
+```text
+IO 层：数据库、网络、Redis 允许使用线程池和 async API
+  ↓ MPSC callback queue
+业务层：唯一线程，裸 Dictionary，Actor/Behavior/Job 全部在此执行
+```
 
-### 4.2 BehaviorInfo — class 级特性声明, 类体空
+规则：
+
+- 业务层禁止 `async/await` 作为 Job 编程模型。
+- 业务层禁止同步网络 IO、同步数据库 IO和阻塞等待。
+- IO 完成后只能通过 MPSC 队列把结果送回业务线程。
+- `DataStore`、Actor 列表和 Behavior 状态不需要锁。
+- 多核通过多个 Service 实例实现；单个实例的容量由内存、帧预算和第三方库开销决定。
+
+禁止 `async/await` 的理由不是它必然破坏单线程，而是 Queen 需要让 Job 成为调度器可见的一等对象，并获得精确的主动让出、预算、取消、统计和池化控制。MongoDB 等异步生态通过 `WaitForTask<T>` 适配到 `IEnumerator`，适配层是基础设施的一部分，不泄漏到业务写法。
+
+### 3.2 Job 与协程
+
+业务方法返回 `IEnumerator`，每个 Actor 的 Job 由调度器持有：
+
+```text
+Job 创建
+  → BeginJob：建立字段快照上下文
+  → MoveNext：执行到下一个 yield
+  → yield null：下帧继续
+  → yield WaitForLoad/WaitForRpc：等待外部结果
+  → 完成：Commit
+  → 异常/超时/取消：Rollback
+```
+
+`IEnumerator` 是可观察的调度对象，但**不承诺跨进程序列化**。Actor 迁移时，挂起 Job 取消并由调用方重试或返回可重试错误；迁移的是已提交 `BehaviorInfo` 快照，而不是运行中的协程状态机。
+
+### 3.3 调度公平性
+
+每帧按 Actor 的 `StarvationFrames` 计算预算：
+
+- 每次 `MoveNext` 到达 `yield` 点，调度器获得一次控制权。
+- 每个 Actor 有最小预算和最大预算，避免活跃 Actor 独占线程。
+- Job 超过时间或步数阈值记录慢 Job。
+- 明确循环必须周期性 `yield return null`；Analyzer 对长循环和同步阻塞 API 报告错误。
+- 排序、聚合、批量计算等长同步任务走专用 Service，不放入普通 Actor Job。
+
+协作式调度的硬风险是“业务不 yield 会卡死整个 Service”，这不是运行时可以完全兜底的问题，必须通过 Analyzer、代码审查和运行时慢 Job 监控共同控制。
+
+---
+
+## 4. Virtual Actor
+
+### 4.1 定义
+
+Actor 是数据归属、调度和生命周期单元。玩家、公会、房间、拍卖 listing 都是 Actor，只是组合的 Behavior 不同。
+
+Actor 可以处于：
+
+- **Online**：有客户端 session，状态可推送。
+- **Offline active**：无 session，但因好友、邮件、交易等请求暂时激活。
+- **Cold**：只有最小身份和路由信息，业务数据不驻留内存。
+- **Migrating**：冻结新写入，准备转移所有权。
+
+在线和离线是业务状态，不是两套业务代码。相同的 Behavior 通过不同的投影目标处理有 session 和无 session 的情况。
+
+### 4.2 永久寻址与路由
+
+Redis 中维护：
+
+```text
+players:{actorId}       → 永久存在，区分“不存在”和“离线”
+online:{actorId}        → {serviceAddr, gatewayAddr}，TTL 5s
+services:{type}         → Service 实例集合
+services:{type}:hashring → 一致性哈希环
+```
+
+Router 提供两个有意不同的 API：
+
+| API | 语义 | 典型场景 |
+|---|---|---|
+| `Seek(id)` | 只查在线状态，不激活 Actor | 聊天、组队、实时交互 |
+| `SeekDeep(id)` | 允许定位归属 Service 并激活离线 Actor | 好友、邮件、交易、公会 |
+
+离线激活是可感知延迟的流程，不伪装成同步 O(1) 查询：寻址、建壳、加载、执行和提交通常跨多个调度周期，调用方必须处理等待、超时和失败。
+
+### 4.3 生命周期与迁移
+
+普通下线流程：
+
+```text
+Gateway 断连
+  → 删除 online 状态
+  → Actor 保留缓冲期（默认 300s）
+  → 缓冲期内可被 RPC 激活或重连
+  → 超时后 OnLeave、Save、销毁
+```
+
+迁移流程必须是排他的状态机：
+
+```text
+Prepare → Freeze → Flush → Transfer → Activate → Redirect
+```
+
+约束：
+
+- `Freeze` 后旧实例拒绝新写 Job，只允许完成必要的收尾。
+- 挂起 Job 取消，客户端或 RPC 调用方根据错误码重试。
+- `Flush` 使用版本条件写，确认目标快照已持久化后才激活新实例。
+- Router 发布带版本的归属变更；旧路由只能返回 `Redirect`，不能继续写。
+- 迁移前刷出已提交的跨服务事件，避免迁移期间重复级联。
+- 新旧实例不能同时成为可写主；这是迁移成功的必要条件。
+
+---
+
+## 5. Gateway、Router 与 Service 边界
+
+### 5.1 Gateway
+
+Gateway 负责客户端边界，不直接修改业务数据：
+
+- 连接、认证、限流和协议解码
+- 签发 `sessionId` 与跨 Gateway 的 `resumeToken`
+- 缓存 `actorId → service` 的短期路由
+- 将业务请求转发至目标 Service
+- 断线重连时恢复 session 并请求全量投影
+
+`resumeToken` 必须有签名、过期时间和撤销策略。重连时客户端不能仅凭旧连接地址恢复业务所有权。
+
+### 5.2 Router
+
+Router 是 DNS 模式的寻址服务，不转发业务流量：
+
+- Service 注册、心跳和实例摘除
+- Actor 在线状态和归属查询
+- 一致性哈希定位离线 Actor 的 home Service
+- 路由版本和 `Redirect`
+- Redis 故障时的短期缓存降级
+
+全直连需要连接池和多路复用，否则 Gateway 与大量 Service 的连接数量会随实例数乘积增长。连接池、重试和故障切换属于 Router/传输层实现，不应由业务 Behavior 自行处理。
+
+### 5.3 Service 拆分原则
+
+满足任一条件时拆出独立 Service：
+
+1. 存在共享可变状态。
+2. 需要全局视角。
+3. 需要中立协调或冻结确认。
+4. 事务模型、容量模型或故障域不同。
+
+典型归属：玩家私有的背包、邮件、好友和任务放在 `player.service`；公会放在 `club.service`；聊天、排行、拍卖和交易分别按全局视角或协调职责拆分。
+
+---
+
+## 6. Behavior 与 BehaviorInfo
+
+### 6.1 Behavior
+
+`Behavior` 是业务逻辑，通常是无状态 System 单例：
+
+- 只通过 `BehaviorInfo` 访问可持久化业务状态。
+- 业务方法返回 `IEnumerator`。
+- `[RpcMethod]` 标注可调用入口，由 Source Generator 生成协议 stub。
+- 派生状态在 `OnEnter`、明确的 RPC 或 `OnLeave` 中计算，不做全员 `OnTick` 扫描。
 
 ```csharp
-[Persistent("gold",  typeof(int))]  [Projector("gold",  typeof(int))]
-[Persistent("money", typeof(int))]  [Projector("money", typeof(int))]
-[Projector("total", typeof(int))]                           // 派生: 只推不写
-[Persistent("name", typeof(string))] [Projector("name", typeof(string))]
-[Persistent("age", typeof(int))]                             // 只写不推 (敏感)
-[Persistent("items", typeof(GBLList<Item>))] [Projector("items", typeof(TGBLList<Item>))]
-public partial class PlayerBehaviorInfo : BehaviorInfo { }   // 类体空
-```
-
-字段组合: `[Persistent]+[Projector]` 写+推 / `[Persistent]` only / `[Projector]` only / 都不标=内部状态。
-
-### 4.3 Behavior — System 单例
-
-```csharp
-public class WalletBehavior : Behavior<PlayerBehaviorInfo>
+public sealed class WalletBehavior : Behavior<PlayerBehaviorInfo>
 {
     [RpcMethod]
-    public void Spend(ulong actorId, int cost)
+    public IEnumerator Spend(ulong actorId, int cost)
     {
-        var p = _store.Get<PlayerBehaviorInfo>(actorId);
-        if (p.gold < cost) return;         // 先校验
-        p.gold -= cost;                     // 改源 → SG setter 置 projectdirtymask
-        p.total = p.gold + p.money;         // 增量算派生
+        var info = yield return _store.Get<PlayerBehaviorInfo>(actorId);
+        if (info.gold < cost)
+            yield break;
+
+        info.gold -= cost;
+        info.total = info.gold + info.money;
     }
-    // 跨 Behavior: _store.Get<BagBehaviorInfo>(id).items.Add(x)
 }
 ```
 
-### 4.4 SourceGen 生成
+### 6.2 Job 边界
+
+- Job 是本地原子边界：成功才发布内部事件、回复和投影。
+- 一个 Job 只直接写自己的 Actor；跨 Actor 写通过目标 Actor 的 `Call` 执行。
+- 禁止无边界的 A → B → A 同步等待循环。
+- 通过 `requestId`、调用 hop 和调用栈深度限制检测循环和重复请求。
+- 外部副作用不能依赖本地回滚自动撤销，必须延迟到 Commit 后发布，或提供补偿。
+
+### 6.3 BehaviorInfo
+
+`BehaviorInfo` 是纯数据 Component，类体只声明字段，Source Generator 生成属性、序列化、脏标记和快照代码：
 
 ```csharp
-partial class BagBehaviorInfo : IProjectable
+[Persistent, Projector]
+public partial class WalletInfo : BehaviorInfo
 {
-    // === SG 生成: 标量字段 ===
-    private int _bagLevel;
-    private int _bak_bagLevel;
-    private bool _dirty_bagLevel;
+    public int gold;
+    public int money;
 
-    public int bagLevel {
-        get => _bagLevel;
-        set {
-            if (!_dirty_bagLevel) { _bak_bagLevel = _bagLevel; _dirty_bagLevel = true; }
-            if (_bagLevel != value) { _bagLevel = value; projectdirtymask |= BAGLEVEL_BIT; }
-        }
-    }
-
-    // === SG 生成: 容器字段 ===
-    // 不暴露 [] 索引器, 不返回元素引用 — 杜绝原地改逃逸
-    private List<Item> _items;
-    private List<Item> _bak_items;
-    private bool _dirty_items;
-
-    public Item Get(int i) => _items[i];              // 只读副本, 不触发备份
-    public int Count => _items.Count;
-
-    public void Set(int i, Item val) {
-        if (!_dirty_items) { _bak_items = DeepCopy(_items); _dirty_items = true; }
-        _items[i] = val;                              // 改内存
-        projectdirtymask |= ITEMS_BIT;
-        // TGBLList: addedIndices.Add(i)
-    }
-
-    public void Add(Item val) {
-        if (!_dirty_items) { _bak_items = DeepCopy(_items); _dirty_items = true; }
-        _items.Add(val);
-        projectdirtymask |= ITEMS_BIT;
-        // TGBLList: addedIndices.Add(Count - 1)
-    }
-
-    public void RemoveAt(int i) {
-        if (!_dirty_items) { _bak_items = DeepCopy(_items); _dirty_items = true; }
-        _items.RemoveAt(i);
-        projectdirtymask |= ITEMS_BIT;
-        // TGBLList: removedIndices.Add(i)
-    }
-
-    // Rollback: 遍历 _dirty_*=true 的字段, 从 _bak_* 恢复
-    // Commit:  清空所有 _bak_*, 重置 _dirty_*=false
+    [ProjectorOnly]
+    public int total;
 }
 ```
 
-- 标量字段 setter 首次写 → 拷贝值到 `_bak_`, 标 `_dirty_`
-- 容器字段 Set/Add/RemoveAt 首次调用 → 深拷贝一层到 `_bak_`, 标 `_dirty_`
-- Get(i) 返回只读副本, 不触发备份
-- Rollback → 遍历 `_dirty_*=true` 的字段, 从 `_bak_` 反向恢复, 清 `projectdirtymask`
-- Commit → 丢弃 `_bak_*`, 清 `_dirty_*`, dirty 进 ProjectorSystem + Truck
+字段语义：
 
-### 4.5 DataStore — 单线程无锁 + 懒加载
+| 声明 | 语义 |
+|---|---|
+| `[Persistent, Projector]` | 写盘并推送 |
+| `[Persistent]` | 只写盘，适合敏感字段 |
+| `[Projector]` | 只推送，适合派生或运行时字段 |
+| 无声明 | 内部状态 |
 
-```csharp
-class DataStore {
-    T Get<T>(ulong actorId) where T : class, new();  // 懒加载: 命中→返回; 未命中→异步DB读→yield→下帧resume
-    void LoadAll(ulong actorId);                      // 全量加载 (在线登录)
-    void Save(ulong actorId);                         // 标记脏 → Truck 批量写 MongoDB
-}
-```
-
-**Get<T> 懒加载时序**: 命中内存 → O(1) 返回。未命中 → 标记 Job Yield → 发起异步 DB 读 (IO 线程) → 挂起 Job → 调度器切到下一个 Actor → MPSC 回调 → 写入索引 → 下帧 Job resume → 命中。
-
-空壳 Actor (离线激活) 的 BehaviorInfo 全部从 `Get<T>` 按需加载。在线登录用 `LoadAll` 一次性加载全部类型。
-
-### 4.6 数据温度 (BehaviorInfo 粒度)
-
-```
-Hot   全量 BehaviorInfo 常驻    ~1.5MB/Actor   在线玩家活跃
-Warm  部分 BehaviorInfo 驻留    ~400KB/Actor   在线空闲 / 离线重度交互
-Cold  空壳                      ~1.5KB/Actor   离线激活初始态
-
-升温: Cold → Get<T> → Warm → 多次 Get<T> → Hot
-降温: Hot → idle 30s → 卸载未引用 BehaviorInfo → Warm → idle → 钝化
-```
-
-不做字段级: BehaviorInfo 已按领域细拆, 离线交互通常只碰 1-2 种类型, 字段级额外复杂度的收益可忽略。
+实际生成代码可以使用属性或字段包装，但业务必须经过生成的写入口，不能绕过脏标记。
 
 ---
 
-## 五、Service 拆分原则
+## 7. DataStore 与数据温度
 
+### 7.1 DataStore
+
+```csharp
+T Get<T>(ulong actorId) where T : BehaviorInfo;
+IEnumerator Load<T>(ulong actorId);
+IEnumerator LoadAll(ulong actorId);
+void MarkSave(ulong actorId);
 ```
-满足任一 → 独立 Service:
-  ① 共享可变状态 (ClubInfo, AuctionListing)
-  ② 全局视角 (排行榜, 世界频道)
-  ③ 中立协调 (冻结-确认交易)
-  ④ 事务模型不同 (聊天/拍卖不需要持久化事务)
 
-不满足 → 在现有 Service 加 Behavior + BehaviorInfo
+- 命中内存时，`Get<T>` 是 O(1) 查询。
+- 未命中时，Job 显式进入等待状态，IO 层异步读取，完成后通过 MPSC 唤醒 Job。
+- 同一 Actor/BehaviorInfo 的并发加载必须合并，不能重复打 MongoDB。
+- 加载失败、取消、Actor 销毁和迁移都必须唤醒并结束等待 Job。
+- 在线登录可使用 `LoadAll`；离线交互按需加载。
+
+`Get<T>` 不应在普通同步代码中隐式阻塞或隐藏不可见的 IO。业务写法可以保持连续，但挂起点必须是调度器可见的 `WaitForLoad`。
+
+### 7.2 数据温度
+
+温度管理以 Actor 为主，只有背包、邮件等大型 BehaviorInfo 进入白名单：
+
+```text
+Hot  ：在线活跃，主要状态驻留
+Warm ：Actor 保留，白名单大型数据可卸载
+Cold ：保留身份和路由信息，业务数据按需加载
 ```
 
-| 业务 | 归属 | 拆出原因 |
-|------|------|----------|
-| 背包/邮件/好友/任务 | player.serv | 私有数据 |
-| 公会 | club.service | 共享可变 |
-| 聊天/世界频道 | chat.service | 全局视角, 无事务 |
-| 排行榜 | rank.service | 全局视角 |
-| 拍卖行 | auction.svc | 全局+共享+无事务 |
-| 交易 | trade.serv | 中立协调 |
+不做所有 BehaviorInfo 的独立引用计数和精细温度管理。那会显著增加加载状态、引用关系和回收复杂度，收益不足以证明其必要性。
 
 ---
 
-## 六、关键流程
+## 8. 持久化、脏标记与投影
 
-### 6.1 登录
+### 8.1 脏标记语义
 
-```
-Client → Gateway:
-  ① 验证账号 + Rate Limit
-  ② 签发 sessionId + resumeToken (HMAC, 5min)
-  ③ Router → hashring 算 home serv → serv 地址
-  ④ RPC → player.serv:
-     DataStore.LoadAll(id) → new/restore → OnEnter 算派生
-     创建 Actor{actorId, session} → 加入 Stage
-     Router 注册 online:{id} = {serv, gateway}
-     首次登录: SET players:{id} = 1
-  ⑤ Gateway 缓存 playerId → serv (TTL 30s)
-  ⑥ 发 resumeToken 给 Client
-```
+脏标记主要表示“需要向外投影的变化”，不承担全局回滚日志职责：
 
-### 6.2 客户端 RPC
+- 标量 setter 置 `projectDirtyMask`。
+- 容器的 `Set/Add/RemoveAt` 记录容器差异并置位。
+- 帧末收集差异后清理投影脏标记。
+- 失败 Job 的回滚同时清理本 Job 产生的投影变化。
 
-```
-Client → Gateway → RPC 直连 player.serv → 封装 Job:
-  Coroutine Handle(actorId, cost):
-    var p = _store.Get<T>(actorId); if (p==null) yield return null
-    _behavior.Spend(actorId, cost)
-    Reply(Ok())
-    // ProjectorSystem 帧末统一推送脏字段
+### 8.2 Projector
 
-★ 无 TaskCompletionSource, 无轮询
-★ 响应延迟 = Job 排队 + 1 帧 (< 5ms)
-★ 大多数纯同步 Job 一步完成
+帧末流程：
+
+```text
+Actor / BehaviorInfo
+  → 检查 projectDirtyMask
+  → 收集标量值和容器差异
+  → Projection Rules 裁剪/格式化
+  → Transport 发送 ProjectorPacket
 ```
 
-### 6.3 增量推送 (ProjectorSystem)
+`ProjectorPacket`、容器差异和临时集合使用对象池或 `ArrayPool`。投影协议必须带：
 
-```
-帧末:
-  foreach proj in projectables:
-    if (proj.projectdirtymask == 0) continue     // 99% 跳过
-    packet = {actor, behaviorinfotype, fieldmask, values}
-    CollectContainerDiffs(info, mask, packet)     // TGBLList.CollectDiff
-    proj.ClearProjectDirty()
-
-  → ProjectionPipeline (Rules 裁剪/格式化, 无状态) → Transport → Client
+```text
+actorId + behaviorInfoType + projectionVersion + baseVersion + payload
 ```
 
-### 6.4 下线与重连
+客户端或 Gateway 发现 `baseVersion` 不连续时请求全量快照，不能继续盲目应用增量。
 
-```
-下线: Gateway 断连 → Router 删 online:{id}
-      → Actor 标记 session=null, 保留 ActorDestroySeconds (300s)
-      → 缓冲期后: OnLeave → Save → 销毁
+### 8.3 差异容器
 
-重连: Client 发 resumeToken (5min 有效)
-      → Router 查: 缓冲期内 → 旧 serv; 已销毁 → 重登录
-      → Reconnect → 更新 session → MarkAllDirty 全量推 → 新 resumeToken
+- `GBLList/GBLDict`：持久化容器。
+- `TGBLList/TGBLDict`：带投影差异追踪的容器。
+- 不暴露会造成引用逃逸的可变元素引用。
+- 元素使用 struct 或不可变 class，修改采用替换式。
+- 深层嵌套拍平成复合 key，或拆成独立 `BehaviorInfo`。
 
-★ 缓冲期内 Actor 不销毁, 其他玩家可正常 RPC 交互
-★ resumeToken 跨 Gateway 有效
-```
-
-### 6.5 离线交互 — Virtual Actor 模型
-
-**在线/离线是业务状态 (session 有无), 不是代码路径。**
-
-```
-Friend.Add(A, B):
-  ① Router.SeekDeep(B)
-     → {serv, gateway, "online"}  /  {serv, null, "offline"}  /  "not_found"→拒绝
-
-  ② RPC → player.serv#X:
-      Actor 在内存? → 直接执行
-      Actor 不在? → 创建壳 (session=null) → Get<FriendBehaviorInfo>(B) 懒加载
-                  → IO yield → 下帧 resume → friends.Add(A)
-      Reply Ok()
-
-  ③ Actor 缓冲期内保留, 后续请求零 IO
-  ④ 有 session → 推送; 无 session → 仅写库
-
-★ 同一代码路径, 无 Version/白名单/CAS
-★ 离线激活不做 LoadAll — 单个 BehaviorInfo 按需加载 (~200B-400KB, 0.5-2ms)
+```text
+本帧 CollectDiff：
+  added / updated / removed
 ```
 
-### 6.6 跨进程 RPC (协程化 + 幂等)
+只记录足以重放到客户端的差异；是否需要旧值由投影协议决定，不把容器旧值自动当成全局回滚日志。
 
-**RPC.Fetch<T> — 只读查询**:
+### 8.4 持久化
 
-```csharp
-// 读远程 Actor 的 BehaviorInfo, 返回快照, 不修改远程数据
-Coroutine Handle(actorId, targetId):
-  var info = yield return Rpc.Fetch<BagBehaviorInfo>(targetId);
-  if (info.items.Any(item => item.Id == needId)) { ... }
-  // info 是快照 — 对它的修改不会写回远程 Actor
-```
+MongoDB 是最终持久化来源，`Truck` 批量写入脏 Actor 的完整持久化字段：
 
-**RPC.Call — 写操作 (目标 Actor 自己执行)**:
-
-```csharp
-// 写必须让远程 Actor 在它自己的 Job 内执行
-Coroutine Handle(actorId, targetId):
-  yield return Rpc.Call(targetId, "Bag.ExchangeItem", myId, itemA, itemB);
-  // 远程 Actor 进入 BeginJob → 修改自己的数据 → Commit/Rollback
-```
-
-**可靠性**:
-- at-least-once + requestId 去重 (窗口 30s)
-- 超时重试 3 次 (退避)
-- Redirect hop ≤ 3, 调用栈深度 ≤ 8
-- 目标不存在 → 调用方返回失败
-
-### 6.7 冻结-确认交易 (替代 2PC)
-
-```
-① A 冻结道具 (BagBehaviorInfo.frozen, 不真删)
-② RPC → trade.serv → RPC → B 冻结金币
-③ 双方冻结成功 → A 提交+解冻, B 提交+解冻
-   任一失败 → 双方解冻 (幂等 RPC)
-④ trade.serv 交易状态 [Persistent] 写盘
-   ★ trade.serv 崩溃 → 重启后扫描未完成交易 → 超时的自动解冻, 未超时的继续等
-⑤ 超时 (TimerWheel) → 自动解冻
-```
-
-### 6.8 拍卖行
-
-```
-浏览: Redis 缓存直接返回
-竞价:
-  ① 验证出价 > 当前价
-  ② 同步写 Redis
-  ③ 退上次竞价者: 写 pendingRefunds ([Persistent]) → RPC → 成功 → 删 pending → 失败 → 每帧重试
-  ④ 冻结本次竞价者金币
-  ⑤ BidOk
-
-成交 (TimerWheel): → Mail + 物品 → 归档 MongoDB
-```
-
-### 6.9 Job 级字段快照回滚
-
-**SG 为每个字段生成 `_bak_` + `_dirty_` 标记。首次写触发备份, Job 失败 → 反向恢复。**
-
-```
-Job 执行:
-  actor.BeginJob()
-
-  // 改标量
-  p.bagLevel = 5        → SG: _dirty_bagLevel? → 否 → _bak_bagLevel = 旧值 → 标脏 → 写入
-  // 改容器
-  p.items.Add(newItem)  → SG: _dirty_items?  → 否 → _bak_items = DeepCopy(items) → 标脏 → 调用 Add
-
-  yield Rpc(toServ, toId) → 超时!
-  → actor.Rollback()      → bagLevel = _bak_bagLevel; items = _bak_items → 清 projectdirtymask
-
-  actor.Commit()           → 清空所有 _bak_*, 重置 _dirty_* → dirty 进 ProjectorSystem + Truck
-```
-
-**约束**:
-
-```
-① Job = 原子边界。Commit 之后才允许产生外部副作用 (InternalEvent, RPC回复, 推送)
-   业务人员不应该在 Job 内手动 Publish 事件 — Commit 时统一发布
-
-② 一个 Job 只写自己的 Actor。跨 Actor 写走 Rpc.Call (远程 Actor 自己的 Job 内执行, 独立 BeginJob→Commit/Rollback)。
-   ✅ p.gold = 70; p.total = p.gold + p.money
-   ✅ yield Rpc.Call(target, "Bag.Add", item)           // 远程 Actor 自己 Commit
-   ❌ yield Rpc.Fetch<BagInfo>(target) → 拿到快照后本地改 → 改的是副本, 不生效
-
-③ 禁止循环 RPC: A→B→A → A 线程被自己的 Job 占着永远等不到 B 的回调 → 死锁
-   → 业务设计阶段杜绝 (hop ≤ 3, 栈深 ≤ 8 兜底检测)
-```
-
-**容器深拷贝: 一层**:
-
-```
-p.items (List<Item>): 深拷贝 list 本身 + 拷贝每个 Item 元素
-  如果 Item 内部有嵌套集合: 只拷贝引用, 不递归
-  → 嵌套容器已经被"一层扁平"约束(1.2)禁止 — 不应该存在
-```
-
-**正常 Commit 路径**:
-
-```
-Job 执行完, 无异常, 无超时 → Commit():
-  ① 丢弃所有 _bak_*, 清 _dirty_* 标记
-  ② 发布挂起的 InternalEvent (6.10 的异步级联起点)
-  ③ dirty (projectdirtymask + TGBLList diff) → ProjectorSystem 帧末推送
-  ④ Truck 攒批 → 异步写入 MongoDB
-  ⑤ Job 标记 Complete → Reply Ok()
-```
-
-### 6.10 级联操作与异步事件总线
-
-**原则: 局部同步, 全局异步。同步写源, 异步联级。**
-
-```
-A → B 点赞:
-
-同步 (A 等待, ≤1 帧):
-  校验 → p.count++ → Reply Ok() → Publish(PostLiked)
-
-异步 (后续帧, B 的 Actor 内):
-  PostLiked → QuestSystem 检查 → QuestCompleted → ExpSystem
-  → LevelUp → AttrSystem → CrossServiceEvent → Rank / Mail (跨服务异步)
-```
-
-**InternalEventBus — Actor 内 Behavior→Behavior 通信**:
-- 每 Actor 独立事件队列, 单线程无锁
-- 每帧每 Actor 处理 ≤ CascadeBudget 个事件 (默认 5)
-- 事件合并 (Coalescing): 同帧同类型事件合并, 1000 赞 → 1 次 PostLiked{count:1000}
-
-**CrossServiceEvent — 跨服务异步** (NATS / Redis Streams, at-least-once):
-- Rank/Mail 等服务订阅事件, 完全异步处理
-
-### 6.11 数据安全
-
-| 机制 | 场景 |
-|------|------|
-| **先校验后执行** | 参数不合法 → 不改数据提前返回 |
-| **Job 级字段快照回滚** | 同步流程中跨进程 RPC 超时/异常 → Rollback() |
-| **冻结-确认** | 跨 Actor 分布式交易; 中间态 [Persistent] 写盘可恢复 |
-| **幂等补偿 + 持久化重试** | 异步跨服事件已发出无法撤回 → 反向操作; [Persistent] 重试列表 |
-
-MongoDB 是唯一持久化来源。进程崩溃 → 丢失最后一次 Truck flush 后的数据 (~200ms), 对游戏可接受。不做 WAL。
+- 使用 `actorId + version` 条件更新。
+- 成功写入后递增持久化版本。
+- 条件更新冲突不能静默覆盖，必须进入迁移、恢复或人工处理路径。
+- 进程崩溃允许丢失最近一个 flush 周期内的已修改数据；第一版不引入 WAL。
+- 数据 Schema 必须带版本，读取时支持懒迁移或显式迁移任务。
 
 ---
 
-## 七、主循环
+## 9. Job 级回滚与跨边界一致性
 
-### 7.1 Engine
+### 9.1 本地 Job 回滚
 
+Source Generator 为可写字段生成首次修改快照：
+
+```text
+首次写字段：保存旧值，标记 dirty
+后续写同字段：只更新当前值
+Job 成功：Commit，丢弃旧值
+Job 失败：Rollback，恢复旧值并清理脏标记
 ```
-while (_running):
-  DrainCallbacks()              // MPSC: IO 结果 + RPC 响应 + DB 读完成 → 唤醒挂起协程
-  DrainTimers()                 // TimerWheel → 触发定时协程 (超时解冻等)
-  DrainInternalEvents()         // InternalEventBus 逐 Actor 消耗事件 (≤CascadeBudget/Actor)
-  DriveCoroutines()             // 推进所有就绪协程一步 (到 yield 点)
-  ProcessActors()               // BeginJob→Execute→Commit/Rollback, 公平调度
-  ProjectorSystem()             // 收集脏 BehaviorInfo → 增量推送
-  EvictColdBehaviorInfos()      // idle 超阈值的 Actor → 卸载未引用的 BehaviorInfo (4.6)
-  PublishCrossServiceEvents()   // CrossServiceEvent → NATS/Redis Streams (6.10)
-  TruckCheck()                  // 批量写 MongoDB (脏数据攒批, 定期 flush)
-  SleepToNextFrame()
+
+标量字段可以保存旧值；容器保存一层深拷贝。元素必须不可变或替换式更新，避免通过内部引用绕过快照和脏标记。
+
+本地回滚只覆盖当前 Job 尚未 Commit 的内存状态，不覆盖已经发生的外部副作用。
+
+### 9.2 跨 Actor 写入
+
+`Fetch<T>` 是只读快照；`Call` 是目标 Actor 自己执行的写操作：
+
+```text
+调用方 → Router 定位目标
+      → Call(requestId, operation, args)
+      → 目标 Actor BeginJob
+      → 校验、修改、Commit/Rollback
+      → 返回幂等结果
+```
+
+RPC 采用 at-least-once，必须具备：
+
+- 全局或调用域内唯一 `requestId`。
+- 目标 Actor 的去重记录和结果缓存。
+- 超时、有限重试和退避。
+- Redirect hop 上限和调用深度上限。
+- 目标不存在、迁移中、过载和版本冲突的明确错误码。
+
+### 9.3 冻结-确认与补偿
+
+跨 Actor 或跨 Service 写操作默认使用异步消息和 Saga；需要多个 Actor 统一提交的关键业务，可以显式使用独立的 `TransactionCoordinator`。协调者是事务状态和提交决议的第三方监工，不持有业务数据，也不要求参与者共享线程或锁。
+
+#### 默认模式：Saga
+
+```text
+校验 → 冻结 → 持久化中间态 → 执行各方操作
+      → 全部确认 → 提交
+      → 超时/失败 → 幂等补偿 → 解冻
+```
+
+#### 强事务模式：Prepare/Commit/Confirm
+
+```text
+Coordinator: Created
+  → Prepare A / Prepare B       // 各 Actor 独立 Job，冻结资源
+  → 持久化 CommitDecision       // 只有协调者写入决议后才允许提交
+  → Confirm A / Confirm B       // 各 Actor 应用提交并解除冻结
+  → Completed
+
+任意 Prepare 失败或取消：
+  → 持久化 AbortDecision
+  → Cancel A / Cancel B         // 幂等解冻
+  → Aborted
+```
+
+这里的“原子性”定义为：**所有参与者对外只暴露 `Committed` 或所有参与者最终回到 `Aborted`，中间状态只能表现为 `Pending`/冻结**。不承诺 N 个 Job 在物理上同一时刻执行；协调者故障期间事务可以暂挂，但恢复后只能依据已持久化的单一决议继续 `Confirm` 或 `Cancel`。
+
+强事务模式必须满足：
+
+- 每个事务有全局唯一 `transactionId`，每个参与者操作还带 `participantId`。
+- `Prepare`、`Confirm`、`Cancel` 和协调者决议全部幂等；超时只表示结果未知，不能直接重做业务操作。
+- 参与者在 `Prepare` 后不得消费或转移被冻结资源；冻结状态属于 `[Persistent]` 数据。
+- `CommitDecision`/`AbortDecision` 持久化成功后不可逆，协调者重启后按决议恢复事务。
+- 客户端只收到 `Pending` 和最终结果；关键资产在 `Confirm` 完成后才产生最终投影。
+- 事务超时、参与者永久离线和重试耗尽进入死信/人工介入，不允许静默解冻或静默提交。
+
+这是一种性能较低但可恢复的可选强一致协议；普通跨 Actor 交互仍然使用 at-least-once 异步消息，不自动升级为全局事务。冻结状态属于 `[Persistent]` 数据，重启后可以恢复。补偿操作必须带原操作 ID，重复执行不能产生额外结果。框架提供 `ICompensatable` 形态和重试模板，业务只实现具体反向操作。
+
+---
+
+## 10. 跨服务事件与级联
+
+同步路径只做当前请求必须完成的最小业务：校验、修改、Commit 和回复。非关键级联通过事件异步推进：
+
+```text
+A Commit
+  → InternalEvent：同 Actor 内 Behavior 级联
+  → CrossServiceEvent：跨服务 at-least-once 消息
+  → 目标 Service 在目标 Actor Job 中处理
+```
+
+规则：
+
+- 同 Actor 内事件受 `CascadeBudget` 限制。
+- 同帧同类型事件可以合并。
+- 跨服务事件必须有 eventId、producer version、幂等消费记录和死信路径。
+- 热迁移前 flush 已提交但未发送的跨服务事件。
+- 事件不能被本地 Job 回滚；失败通过重试或补偿处理。
+
+---
+
+## 11. 主循环
+
+```text
+while running:
+    DrainCallbacks()          // IO、RPC、DB 结果
+    DrainTimers()             // TimerWheel
+    DrainInternalEvents()     // Actor 内事件，受预算限制
+    DriveCoroutines()         // 就绪 Job 推进到 yield
+    ProcessActors()            // 公平预算、Commit/Rollback
+    CollectProjection()       // 收集并发送增量
+    EvictColdData()           // 按 Actor/白名单降温
+    PublishCrossServiceEvents()
+    TruckCheck()              // 批量持久化
+    SleepToNextFrame()
+
 FlushAll()
 ```
 
-### 7.2 ProcessActors — 公平调度
-
-```
-foreach actor in _actors (OrderByDescending StarvationFrames):
-  budget = Clamp(baseBudget + starvationFrames/3, min:5, max:25)
-  while processed < budget && actor.HasJobs:
-    job = actor.DequeueJob()
-    try:
-      actor.BeginJob()          // 进入 Job 上下文 (SG setter/getter 感知)
-      job.Execute()             // 同步完成 或 推进协程到 yield
-      if (job.Yielded):          // 协程挂起 (等 RPC/DB), 快照保留跨帧
-          actor.ReenqueueJob(job); break
-      actor.Commit()            // 清 _bak_*, 清 _dirty_*, dirty → 推送+写库
-      job.Complete()            // Reply Ok()
-    catch (Exception ex):
-      actor.Rollback()          // 遍历 _dirty_*=true, 从 _bak_* 恢复原值 → 清 projectdirtymask
-      Log(ex); job.Fail(ex)     // Reply Error()
-
-    if (frameTimeBudgetExceeded): actor.StarvationFrames++; break
-
-  actor.StarvationFrames = actor.HasJobs ? +1 : 0
-  StarvationFrames > 60 → Alert + 建议热迁移
-```
+停机时先停止接收新请求，再等待或取消可取消 Job，flush 持久化数据和跨服务事件，最后注销 Service 路由。
 
 ---
 
-## 八、安全
+## 12. 运行约束与可行性边界
 
-```
-Gateway 入口:
-  Rate Limit (Token Bucket, Redis)
-  Token 校验 (HMAC session token)
-  MaxConnections / MaxPacketSize / ConnectionTimeout
-Service 间: 内网 RPC + HMAC 签名 + requestId 去重
-```
+### 12.1 第一版必须验证
 
----
+1. 同一 Actor 的 Job 永不并行。
+2. 协程在 `yield` 后能正确恢复，异常和取消不会泄漏 Job。
+3. 同一字段在跨帧 Job 中的快照语义正确。
+4. `GBL/TGBL` 的增量收集在随机 Add/Update/Remove 序列下可重放。
+5. MongoDB 条件写不会被旧版本覆盖。
+6. 投影版本断裂可以回到全量快照。
+7. RPC 重试不会重复执行不可重复操作。
 
-## 九、扩容与容量
+### 12.2 性能目标的表达
 
-### 9.1 单实例容量
+GC 目标分级，而不是宣称绝对零分配：
 
-```
-Actor 壳: ~1.5KB
-中等玩家 BehaviorInfo 全量 (Hot): ~1.5MB
-  背包(200道具×1KB=200KB) + 邮件(200封×2KB=400KB) + 好友(500×200B=100KB)
-  + 任务(~15KB) + 技能/属性(~30KB) + 杂项(~500KB) + GC开销(~200KB)
+- Queen 自有热路径：目标小于 `1KB/帧`，以基准测试验证。
+- 整进程：目标小于 `5KB/帧`，包含第三方库，仅作为工程目标。
+- 真正 SLA：长时间压测下 Gen2 间隔、暂停时间、P99 延迟和吞吐量。
 
-单实例 (3000 Actor 池):
-  2000 Hot:  2000 × 1.5MB = 3,000MB
-  500 Warm:  500 × 400KB  = 200MB
-  500 Cold:  500 × 1.5KB  = <1MB
-  壳+索引:                 ~105MB
-  总计:                    ~3.3GB
+MongoDB 驱动、网络库和序列化库的分配不完全由 Queen 控制，不能把第三方库行为计入“架构保证”。
 
-CPU (20fps, 50ms 帧预算):
-  帧开销 ~2.5ms → CPU ~5%; 高峰 ~12ms → CPU ~24%
+### 12.3 工程可行性分级
 
-★ 瓶颈: 内存, 非 CPU
-★ 8c16g: 4 实例 × 2000 = ~8,000 CCU
-★ 8c32g: 8 实例 × 2000 = ~16,000 CCU
-```
-
-### 9.2 100 万在线
-
-| Service | 实例数 | 机器数 | 机型 |
-|------|------|------|------|
-| player.serv | 500 | ~63 | 8c32g |
-| Gateway | 100 | ~13 | 8c16g |
-| Router/Controller/其他 | ~10 | 复用 | 4c8g |
-| **总计** | **~610** | **~78-82** | |
-
-### 9.3 Actor 热迁移
-
-```
-Freeze (停Job, 等协程到 yield ≤1s) → 序列化 BehaviorInfo (Hot~1.5MB; Cold~1.5KB)
-→ RPC 传输 → 目标反序列化 → OnEnter → Resume
-单 Actor: ~50ms (Hot) / ~1ms (Cold)
-并行 20 个/批, 缩容 2000 Actor ≈ 5-10s
-```
+| 能力 | 判断 | 说明 |
+|---|---|---|
+| 单线程 Service、Actor、Job | 高 | 运行时边界清晰，可先单进程验证 |
+| Behavior/BehaviorInfo、SourceGen | 高 | Roslyn Generator 可实现，测试量较大 |
+| 脏标记、差异投影、MongoDB 条件写 | 高 | 协议版本和容器语义必须先定 |
+| Job 级本地回滚 | 高 | 只覆盖未提交的本地状态 |
+| 单机跨 Service RPC | 中高 | 先验证幂等、超时和 Redirect |
+| Router、Gateway、在线离线 | 中高 | 依赖故障和缓存失效语义 |
+| Actor 迁移 | 中 | 需要排他状态机和版本化所有权 |
+| 跨 Service 交易 | 中 | 依赖冻结、确认、补偿，不能靠回滚自动解决 |
+| 零 GC 与超高 CCU | 未定 | 必须由真实业务基准测试决定 |
 
 ---
 
-## 十、Controller — 自动扩缩容
+## 13. 分阶段落地路线
 
-Controller 是运维中控进程: Monitor → Decider → Executor → CloudDriver。
+### Phase 1：单进程核心运行时
 
-```
-扩容 (满足任一, 冷却 3min):
-  集群 CPU 均值 > 70%, 持续 30s / 实例 ActorCount > 20000 / AvgJobLatencyMs > 10ms
+`Engine`、单线程调度、Actor 生命周期、Job、协程等待、超时、取消、异常隔离、公平调度。
 
-缩容 (全部满足, 冷却 3min):
-  集群 CPU < 30%, 持续 5min / ActorCount < 上限50% / 实例数 > minReplicas
+**退出条件**：Actor 串行性、yield-resume、慢 Job 和异常隔离测试通过。
 
-每次只扩/缩 1 个实例, 30s 观察期。决策幂等 (decisionId)。
-Controller HA: Redis 锁 "controller:leader" (TTL 5s), 脑裂防护。
-```
+### Phase 2：BehaviorInfo 与数据层
 
----
+`Behavior/BehaviorInfo`、DataStore、Persistent SourceGen、MongoDB 版本写、Job 快照回滚、温度管理。
 
-## 十一、故障恢复
+**退出条件**：随机修改、失败恢复、重启加载和条件写冲突测试通过。
 
-```
-club.service Crash:
-  Controller 检测心跳丢失 → 启动新实例
-  → MongoDB LoadAll → OnEnter → Router 注册 → 恢复
-  恢复时间 ~5 秒, 数据损失 < 200ms
-```
+### Phase 3：Projector 与客户端同步
 
----
+Projector SourceGen、TGBL 容器、CollectDiff、快照/增量协议、版本断裂恢复、对象池。
 
-## 十二、零 GC 策略
+**退出条件**：客户端可通过任意增量序列重建正确状态，断线可全量恢复。
 
-```
-MessagePack buffer:  ArrayPool<byte>.Shared
-临时集合:            ObjectPool 租用, 帧末归还
-ProjectorPacket:     ObjectCache 池化 (复用 goblin)
-跨进程 RPC:          协程化, 无 TaskCompletionSource
-核心路径目标:        GC.Alloc < 1KB/帧
-```
+### Phase 4：单机多 Service RPC
 
----
+`Fetch`、`Call`、requestId 去重、超时、重试、Redirect、事件和死信。
 
-## 十三、配置
+**退出条件**：服务重启、重复包、超时重试和迁移中错误码测试通过。
 
-```json
-{
-  "Gateway": { "Port": 12801, "MaxConnections": 10000 },
-  "Router": { "Port": 10010, "Redis": "redis-sentinel:26379" },
-  "PlayerService": { "MaxActors": 20000, "ActorDestroySeconds": 300, "FrameBudgetMs": 50 },
-  "Persistence": { "MongoDB": "mongodb://mongo:27017/queen" }
-}
-```
+### Phase 5：Gateway、Router 与 Actor 迁移
+
+寻址、在线状态、session/resumeToken、路由版本、Freeze/Flush/Transfer/Activate、连接池和多路复用。
+
+**退出条件**：重连、路由缓存失效、单主迁移和迁移失败恢复测试通过。
+
+### Phase 6：分布式一致性与运维
+
+冻结确认、补偿框架、Schema 迁移、协议兼容、灰度、监控、链路追踪、备份恢复和死信人工介入。
+
+**原则**：Phase 1-3 证明运行时和数据模型；Phase 4-6 才扩展分布式边界，不同时实现全部目标。
 
 ---
 
-## 十四、测试
+## 14. 设计决策摘要
 
-### 14.1 单元测试
-
-Behavior + DataStore 两类独立可测, 零 Mock。脏位/派生/回滚可验证。
-
-### 14.2 故障注入
-
-```
-- RPC 半成功 → 调用方超时重试, 幂等去重
-- 进程崩溃 → MongoDB 恢复全部 [Persistent]
-- Redis 主从切换 → Router 降级本地缓存
-- Gateway 缓存指向已销毁 serv → Redirect 自动重试
-- 离线 Actor RPC 激活 → 懒加载 → 正常持久化 → 空闲钝化
-- 热迁移中目标 Crash → 源回退, 未迁移继续服务
-- 冻结超时 → 自动解冻, 双方还原
-- 拍卖退款 RPC 失败 → pendingRefunds 持久化重试
-- Job 执行抛异常 → Rollback() + 隔离
-```
-
-### 14.3 覆盖率
-
-Queen.Core: 90%+ / Rpc: 80%+ / Network: 80%+ / Persistence: 80%+
-
----
-
-## 十五、项目结构
-
-```
-Queen.sln
-├── src/
-│   ├── Queen.Core/          # Engine, Comp, Eventor, TimerWheel, CoroutineScheduler
-│   │   ├── Containers/      # GBLList, GBLDict, TGBLList, TGBLDict
-│   │   ├── Scheduling/      # CoroutineScheduler, WaitForRpc, WaitForLoad
-│   │   └── EventBus/        # InternalEventBus, ICoalesceable, CrossServiceEvent
-│   ├── Queen.Rpc/           # [RpcService] [RpcMethod] [Persistent] [Projector], SourceGen
-│   ├── Queen.Network/       # ITransport, TCP/WS/UDP
-│   ├── Queen.Persistence/   # MongoRepository, Truck(BatchWriter), DataStore
-│   ├── Queen.Gateway/       # SessionManager, AuthPipeline, RateLimiter
-│   ├── Queen.Router/        # ServiceRegistry(Redis), LookupService
-│   ├── Queen.Controller/    # Monitor, Decider, Executor, CloudDriver
-│   ├── Queen.Server/        # player.serv
-│   ├── Queen.Club/Chat/Rank/Auction/Trade/
-│   ├── Queen.Ration/        # HTTP 管理 API
-│   ├── Queen.Bot/           # 压测
-│   └── Queen.DBObserve/     # DB 观测
-├── tests/
-├── configs/
-└── analyzers/Queen.Analyzers/  # QN1001 (禁 async)
-```
-
----
-
-## 十六、设计决策
-
-### 架构决策
-
-| # | 决策 | 理由 |
-|------|------|------|
-| 1 | Router DNS 模式 | 只寻址不转发; 全直连; 压力极低 |
-| 2 | Redis Sentinel HA | 主从+故障转移; 不可用降级本地缓存 |
-| 3 | Behavior/BehaviorInfo 分离 | 单例 System + 数据 Component; 统一 Service 骨架 |
-| 4 | DataStore 单线程无锁 + 懒加载 | 裸 Dictionary; Get<T> 未命中挂起协程异步读 |
-| 5 | [Persistent]/[Projector] 双标志 | 一份结构两标志; 对齐 KBEngine/UE; SG 生成 |
-| 6 | Virtual Actor 离线交互 | 在线/离线是业务状态非代码路径; Actor 不在则建壳+Get<T> 懒加载; 单一代码路径 |
-| 7 | 下线缓冲期 | 300s 内可重连; resumeToken HMAC 跨 Gateway |
-| 8 | Gateway 安全入口 | Rate Limit + Token + 连接限制 |
-| 9 | 读写分离 | rank/auction 查询走 Redis 缓存 |
-| 10 | 扩缩容 = 部署配置 | 加实例只改 Router hashring; Behavior 代码零改动 |
-| 11 | Controller 自动化 + 幂等 | decisionId 防脑裂; TTL 5s |
-| 12 | 故障从 MongoDB 恢复 | 不做 WAL; 丢失 < 200ms, 可接受 |
-| 13 | Service 间直连 | Router 不碰业务流量 |
-
-### 实现决策
-
-| # | 决策 | 理由 |
-|------|------|------|
-| 14 | 进程内单线程 + 协程交替 | 绝对无锁; 确定性; 与 goblin 同构 |
-| 15 | 禁止 async (QN1001) | 破坏单线程确定性 |
-| 16 | IEnumerator 协程跨帧/跨进程 | yield 不阻塞; 单线程交替 |
-| 17 | 干掉 Protocols | [RpcService] + SourceGen; MessagePack 统一 |
-| 18 | 跨进程 RPC 协程化 + 幂等 | yield 让出线程; at-least-once + requestId 去重 |
-| 19 | 冻结-确认替代 2PC | 本地冻结无锁; 幂等确认; 超时解冻 |
-| 20 | 公平调度 + 长尾保护 | 饥饿感知 + 动态预算; 帧超时下帧 |
-| 21 | TimerWheel O(1) | 替代线性列表 |
-| 22 | 持久化中间态 + 幂等重试 | 拍卖退款/交易冻结 [Persistent] 存储; 不做 WAL |
-| 23 | IOptions 统一配置 | 环境分层 |
-| 24 | Behavior 独立可测 | DataStore + Behavior 零 Mock; 脏位可验证 |
-| 25 | 热迁移业务时钟 + 协程可重建 | 迁移期暂停时钟; OnEnter 重算派生 |
-| 26 | 零 GC 现实化 | < 1KB/帧; dotnet-counters 实测 |
-| 27 | 多核靠多进程 | 单进程单线程; N 实例 = N 核 |
-| 28 | Job 级字段快照回滚 | 标量 setter / 容器 Set/Add/RemoveAt 首次写 → `_bak_`+`_dirty_`; Rollback() 反向恢复; Commit() 丢弃; 容器一层深拷贝 |
-| 29 | [Projector]/TGBLList 从 goblin 移植 | 前后端同构; CollectDiff 元素级差量 |
-| 30 | 派生事件驱动 | OnEnter/RPC/OnLeave; 不 OnTick 全员扫 |
-| 31 | 自定义容器 + 一层扁平 | 不暴露 `[]` 索引器, 杜绝元素引用逃逸; Get/Set/Add/RemoveAt; 深嵌套拍平 |
-| 32 | InternalEventBus + Coalescing | 级联异步; 同帧同类型事件合并 |
-| 33 | 离线 Actor 按需懒加载 | 不做 LoadAll; Get<T> 按类型按需; IO 代价与操作复杂度成正比 |
-| 34 | 离线内存保护 | MaxOfflineActors + ActivationRateLimiter |
-| 35 | 数据温度 BehaviorInfo 级 | Hot/Warm/Cold; idle 卸载; 不做字段级 |
-
-### 借鉴 Orleans 的关键设计
-
-| 借鉴项 | Queen 落地 |
-|------|------|
-| Actor 永久可寻址 | Router 离线也返回 serv; `players:{id}` 区分不存在 |
-| 激活对调用方透明 | Router.SeekDeep → RPC, 调用方不关心目标是否在内存 |
-| 单一代码路径 | Behavior 不区分在线/离线 |
-| 空闲钝化 | ActorDestroySeconds (在线离线同一 TTL) |
-| 无 Version/锁 | 单进程单线程天然无竞态 |
-
----
-
-## 十七、实施阶段
-
-| 阶段 | 内容 | 依赖 |
-|------|------|------|
-| Phase 1 | Queen.Core: Engine, CoroutineScheduler, TimerWheel, MpscQueue, goblin 容器/Projector 移植 + fuzzing | 无 |
-| Phase 2 | Queen.Rpc + SourceGen ([RpcService], [Persistent], [Projector], QN1001, JobContext+回滚快照, ProjectorSystem) | Phase 1 |
-| Phase 3 | Queen.Network (ITransport, TCP/WS/UDP) | Phase 1 |
-| Phase 4 | Queen.Persistence (MongoRepository, Truck, DataStore 懒加载) | Phase 1, 2 |
-| Phase 5 | Queen.Router (Redis Sentinel, LookupService, Redirect) | Phase 3 |
-| Phase 6 | Queen.Gateway (SessionManager, resumeToken, AuthPipeline) | Phase 3, 5 |
-| Phase 7 | Queen.Server (Stage+协程, Behaviors, 推送, 派生, 回滚) | Phase 1-4 |
-| Phase 8 | Queen.Club/Chat/Rank/Auction | Phase 7 |
-| Phase 9 | Queen.Trade (冻结-确认) | Phase 7 |
-| Phase 10 | Queen.Controller (扩缩容) | Phase 5, 7 |
-| Phase 11 | Queen.Ration/Bot/DBObserve/Analyzers | Phase 7 |
-| Phase 12 | Tests & Polish | 全部 |
-
-**Phase 1 是关键路径地基 — 必须先 fuzzing 覆盖 TGBLList CollectDiff/协程 yield-resume/projectdirtymask 置位。**
-
----
-
-## 十八、运维与稳定性待办
-
-> 以下 13 项为生产级硬性要求, 需逐项补设计后实施。
-
-### A 组 — 不补会出事故
-
-**18.1 优雅停机**: SIGTERM → drain Job → 迁移/保存 → Truck flush → 退出 (30s 超时)
-
-**18.2 背压**: Job 队列满 → 拒绝 + 上游感知; 推送满 → 断慢客户端; 逐级反压
-
-**18.3 服务间熔断**: 熔断器 (Closed→Open→HalfOpen); 按目标实例粒度; 限流补充
-
-**18.4 重连风暴**: 客户端指数退避+抖动; Gateway Token bucket 分批放行; resumeToken 优先
-
-### B 组 — 不补会卡迭代
-
-**18.5 协议版本兼容**: [RpcService] version; MinClientVersion; 未知字段忽略
-
-**18.6 Schema 演进**: BehaviorInfo SchemaVersion; 懒迁移 (加载时补默认值); 显式脚本
-
-**18.7 灰度发布**: 金丝雀/蓝绿; Router 切流; 新老版本并存 (依赖 18.5)
-
-### C 组 — 不补是黑盒
-
-**18.8 监控告警**: Webhook/IM; 分级 (Info/Warn/Critical); 阈值+持续时间; 静默期
-
-**18.9 结构化日志/追踪**: JSON 格式; requestId 跨进程; Prometheus metrics
-
-**18.10 MongoDB HA**: 3 节点副本集; 全量/增量备份; 恢复演练
-
-**18.11 死信队列**: 补偿 N 次失败 → dead_letters; Ration HTTP API 人工介入
-
-### D 组 — 健壮性边界
-
-**18.12 协程超时**: WaitForRpc timeoutMs 5s; Actor 销毁级联取消; 泄漏检测 60s 告警
-
-**18.13 传输加密**: TLS (TCP/WS); KCP 加密层 (AES-GCM/ChaCha20); 合法 CA
-
----
-
-## 变更记录
-
-| 版本 | 变更 |
-|------|------|
-| v0.1-v0.3 | 原始设计; 线程模型迭代; 2PC→冻结-确认; RPC 协程化 |
-| v0.4 | [Persistent]/[Projector] 双标志; 删除 OpLog/回滚; 数据安全四件套; 第十七章运维待办 |
-| v0.5 | Virtual Actor 离线交互; 删除 [OfflineWritable]/Version; Router 离线穿透 |
-| v0.6 | 级联+InternalEventBus+Coalescing; 离线按需懒加载 |
-| v0.7 | 数据温度三层模型; 8.1/8.2 容量修正 (瓶颈→内存); 字段级讨论后否决 |
-| v0.8 | 干掉 WAL; 三件套; 持久化中间态替代 |
-| v0.9 | Job 级字段快照回滚; 四件套 V2 |
-| v1.0 | 文档重整理: 合并冗余, 精简章节, 统一术语, Orleans 对比并入决策 |
-| v1.1 | Router Seek/SeekDeep 双 API; 自定义容器禁用 `[]` 索引器; 回滚: 容器一层深拷贝, Commit→发布 InternalEvent; Job=原子边界 |
-| v1.2 | 跨进程 RPC 拆为 Rpc.Fetch\<T\> (只读快照) + Rpc.Call (目标 Actor 自己执行); 6.9 跨 Actor 写约束对齐 |
+| # | 决策 |
+|---:|---|
+| 1 | 进程内单线程，协程交替；多核靠多进程 |
+| 2 | 业务层禁 `async/await`，IO 通过适配层接入 |
+| 3 | Actor 是唯一状态归属和 Job 调度边界 |
+| 4 | Online、Offline active、Cold、Migrating 是显式生命周期状态 |
+| 5 | Router 只寻址不转发，Gateway 只做客户端边界 |
+| 6 | 所有 Service 共用统一运行时骨架 |
+| 7 | `Behavior` 管逻辑，`BehaviorInfo` 管纯数据 |
+| 8 | `[Persistent]` 和 `[Projector]` 由 Source Generator 生成实现 |
+| 9 | DataStore 懒加载必须显式挂起，不能隐藏阻塞 IO |
+| 10 | 脏标记服务于投影；Job 级快照服务于本地失败回滚 |
+| 11 | 容器采用替换式元素和一层扁平结构 |
+| 12 | MongoDB 是持久化真相，使用版本条件写，第一版不做 WAL |
+| 13 | `Fetch` 读快照，`Call` 由目标 Actor 自己执行写入 |
+| 14 | RPC 使用 at-least-once、requestId 去重和有限重试 |
+| 15 | 跨边界默认使用异步 Saga；关键业务可选 `TransactionCoordinator` 的 Prepare/Confirm/Cancel 强事务 |
+| 16 | 投影带版本，断裂时回退全量快照 |
+| 17 | 级联使用本地事件和跨服务事件，跨服务事件必须幂等 |
+| 18 | Actor 迁移取消挂起 Job，迁移已提交快照，不迁移协程状态机 |
+| 19 | 协作式风险由 Analyzer、预算和慢 Job 监控共同约束 |
+| 20 | 性能目标必须由真实压测验证，不把零 GC 当作架构保证 |
