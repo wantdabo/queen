@@ -35,3 +35,10 @@ Queen.Server/Queen.Server.csproj.user
 /Queen.Ration/bin
 /Queen.Ration/obj
 /Queen.Ration/Res/Logs
+/Queen.Tests/bin
+/Queen.Tests/obj
+/Queen/Queen.Generator/bin
+/Queen/Queen.Generator/obj
+/*_out.txt
+/*.log
+/.codebuddy/
