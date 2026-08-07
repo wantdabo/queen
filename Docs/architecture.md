@@ -24,7 +24,7 @@ Queen 面向高并发游戏后端，用一套统一运行时收敛四个矛盾�
     ↓
 Gateway：连接、认证、session、重连
     ↓
-Router：定位 Actor 或 Service，不转发业务流量
+Compass：定位 Actor 或 Service，不转发业务流量
     ↓
 Service：承载虚拟 Actor 注册表（ID→DataStore）与行为生命周期，进程内单线程
     ↓
@@ -70,7 +70,7 @@ Projector / Truck：客户端投影和 MongoDB 持久化
        连接 / 认证 / session / resumeToken
                          │
                          ▼
-             Router（HA，DNS 模式）
+             Compass（HA，DNS 模式）
           只回答“Actor 或 Service 在哪”
                          │
        ┌─────────────────┼─────────────────┐
@@ -87,7 +87,7 @@ Projector / Truck：客户端投影和 MongoDB 持久化
 | 进程 | 职责 | 实例数 |
 |---|---|---:|
 | `Gateway` | 连接管理、认证、限流、session、重连 | N |
-| `Router` | Actor/Service 寻址、路由版本、重定向 | HA |
+| `Compass` | Actor/Service 寻址、路由版本、重定向 | HA |
 | `Controller` | 扩缩容、部署编排、实例生命周期 | 主备 |
 | `player.service` | 玩家 Actor 的主要归属 | N |
 | `club.service` | 公会等共享可变状态 | N |
@@ -96,7 +96,7 @@ Projector / Truck：客户端投影和 MongoDB 持久化
 | `auction.service` | 拍卖 listing 等共享状态 | 1 或 N |
 | `trade.service` | 交易冻结、确认和补偿 | 1 或 N |
 
-每个 Service 内部均使用同一骨架：`Engine`、`Stage`、`Service`（容器）、`Behavior`、`BehaviorInfo`、`DataStore`、`Projector` 和 `Truck`。Actor 不是类型——是 Service 容器内的 `ulong` ID 键，无独立 class（见 4.1）。`player.service` 不拥有特殊运行时语义。
+每个 Service 内部均使用同一骨架：`Engine`（怎么跑）、`Service`（容器，谁是谁）、`JobScheduler`（调度）、`Behavior`、`BehaviorInfo`、`DataStore`、`Projector` 和 `Truck`。Actor 不是类型——是 Service 容器内的 `ulong` ID 键，无独立 class（见 4.1）。`player.service` 不拥有特殊运行时语义。
 
 ---
 
@@ -197,15 +197,15 @@ Job 持有引用的 `BehaviorInfo` 受引用计数保护：Job 通过 `DataStore
 
 **Actor 收窄为纯身份：一个 `ulong` ID，没有 class。** 玩家、公会、房间、拍卖 listing 都是 actorId，只是挂载的 `BehaviorInfo`/`Behavior` 不同。"把 BehaviorInfo 串起来"的机制是 **Service 容器的 ID→DataStore 注册表**（`Service.stores`）：
 
-- `Service.AddActor(id)`：登记虚拟 Actor，返回其 `DataStore`（重复 ID 抛异常）——数据注册表入口。
+- `Service.AddActor(id)`：登记虚拟 Actor，返回其 `DataStore`（重复 ID 抛异常）——数据注册表入口；同时自动装配默认行为集（Service 创建事件反射扫描到的全部 `Behavior` 子类，见 6.1/11），业务零注册。
 - `store.AddInfo<T>()`：显式把某个 `BehaviorInfo` 挂到该 Actor 名下（`new T()` + 注册），数据全部挂在 DataStore 上。
-- `Service.Load/Enter/Leave/Unload(id)`：驱动该 Actor 所有 Behavior 的四阶段生命周期；`Service.RemoveActor(id)`：对称收尾（在线先 Leave → 逐行为 Unload → 销毁 store）。
-- 调度边界：`JobScheduler.Post` 经 `engine.service.GetStore(actorId)` 把 Job 直连到该 Actor 的 DataStore，Job 内 `JobContext.Get/Load<T>()` 恒取本 Actor 数据。
+- `Service.Active/Deact(id)`：驱动该 Actor 所有 Behavior 的活跃生命周期（两件套）；`Service.RemoveActor(id)`：对称收尾（在线先 Deact → 销毁 store）。**无 `Load/Unload` API**——数据进出内存是框架内部事务（7.1/7.2），业务无感。
+- 调度边界：`JobScheduler.Post` 经 `engine.service.GetStore(actorId)` 把 Job 直连到该 Actor 的 DataStore，Job 内 `JobContext.Get<T>()` 恒取本 Actor 数据——未命中时框架自动挂起加载，开发者无感。
 
 Actor 生命周期由两个正交维度构成：
 
-- **活跃（Enter/Leave）**：是否有可推送投影目标。player 的活跃 = session 建立（原 Online）；club 等无 session 类型的活跃 = 有在线成员/被激活。进入活跃触发 `OnEnter`，离开活跃触发 `OnLeave`。
-- **激活（Load/Unload）**：业务数据是否在内存（Hot）。数据进出内存触发 `OnLoad`/`OnUnload`，与活跃维度独立——被 `SeekDeep` 拉起的离线 Actor 只有激活没有活跃。
+- **活跃（Active/Deact）**：是否有可推送投影目标。player 的活跃 = session 建立（原 Online）；club 等无 session 类型的活跃 = 有在线成员/被激活。进入活跃触发 `OnActive`，离开活跃触发 `OnDeact`。
+- **激活（框架内部概念，无业务钩子）**：业务数据是否在内存（Hot）。虚拟化的本质承诺 = **开发者眼里 actor 存在 = 数据存在**，"拉到存在"是框架义务（7.1 懒加载 / 7.2 冷卸载的内部事务），**没有 `OnLoad`/`OnUnload` 钩子**——数据在不在内存开发者无感，任何 `Get<T>()` 拿到就是拿到了，中间是否触发加载、是否挂起无感；被 `SeekDeep` 拉起的离线 Actor 只有激活没有活跃。
 
 派生状态：
 
@@ -227,7 +227,7 @@ services:{type}         → Service 实例集合
 services:{type}:hashring → 一致性哈希环
 ```
 
-Router 提供两个 API：
+Compass 提供两个 API：
 
 | API | 语义 | 典型场景 |
 |---|---|---|
@@ -236,9 +236,9 @@ Router 提供两个 API：
 
 离线激活是跨多个调度周期的可感知延迟流程（寻址 → 建壳 → 加载 → 执行 → 提交），调用方必须处理等待、超时和失败。
 
-**离线激活即排他归属获取（R16 否决定案）**：`SeekDeep` 的 home 由一致性哈希**确定性**定位——同一 actorId 在同一哈希环视图下恒指向唯一 home Service，离线激活只在该 home 上发生一次。多个调用方并发 `SeekDeep` 同一 actorId（A 的好友邮件、B 的交易请求）按同一哈希**收敛到同一 home**，由 home 单线程调度 + 激活幂等（已激活复用 / 激活中等待）消化并发，**无需额外激活锁**。唯一可能破坏确定性的因素是哈希环视图不一致（节点增减）——该窗口由 4.3 迁移状态机覆盖（版本条件写 + Router 版本化归属 + `Redirect`，新旧实例不可同时可写），与离线激活共用同一条排他归属防线，不新增机制。
+**离线激活即排他归属获取（R16 否决定案）**：`SeekDeep` 的 home 由一致性哈希**确定性**定位——同一 actorId 在同一哈希环视图下恒指向唯一 home Service，离线激活只在该 home 上发生一次。多个调用方并发 `SeekDeep` 同一 actorId（A 的好友邮件、B 的交易请求）按同一哈希**收敛到同一 home**，由 home 单线程调度 + 激活幂等（已激活复用 / 激活中等待）消化并发，**无需额外激活锁**。唯一可能破坏确定性的因素是哈希环视图不一致（节点增减）——该窗口由 4.3 迁移状态机覆盖（版本条件写 + Compass 版本化归属 + `Redirect`，新旧实例不可同时可写），与离线激活共用同一条排他归属防线，不新增机制。
 
-**在线状态续期（R6 定案）**：`online:{actorId}` 由 **Actor 宿主的 Service** 续期——只要 Actor 处于内存活跃态（Hot 或下线缓冲期 4.3）就保持续期，频率 ≤ TTL/2（默认 2s，可配），由 Service 的 Actor 管理循环**批量续期**（合并 Redis 往返）。看门狗心跳（3.1）是进程级 liveness，与 Actor 级 online 续期解耦：Service 崩溃 → online 自然过期 → Router 停止向该实例寻址，重启或迁移后重新注册。**Gateway 不续期 online**：连接与 Actor 活跃解耦，缓冲期 300s 内 Actor 仍在内存、路由必须保持。
+**在线状态续期（R6 定案）**：`online:{actorId}` 由 **Actor 宿主的 Service** 续期——只要 Actor 处于内存活跃态（Hot 或下线缓冲期 4.3）就保持续期，频率 ≤ TTL/2（默认 2s，可配），由 Service 的 Actor 管理循环**批量续期**（合并 Redis 往返）。看门狗心跳（3.1）是进程级 liveness，与 Actor 级 online 续期解耦：Service 崩溃 → online 自然过期 → Compass 停止向该实例寻址，重启或迁移后重新注册。**Gateway 不续期 online**：连接与 Actor 活跃解耦，缓冲期 300s 内 Actor 仍在内存、路由必须保持。
 
 ### 4.3 生命周期与迁移
 
@@ -249,7 +249,7 @@ Gateway 断连（投影目标消失）
   → 删除 online 路由状态
   → Actor 保留缓冲期（默认 300s）
   → 缓冲期内可被 RPC 激活或重连
-  → 超时后 OnLeave（离开活跃）、Save、销毁
+  → 超时后 OnDeact（离开活跃）、Save、销毁
 ```
 
 迁移是排他状态机：
@@ -263,14 +263,14 @@ Prepare → Freeze → Flush → Transfer → Activate → Redirect
 - `Freeze` 后旧实例拒绝新写 Job，只允许完成必要的收尾。
 - 挂起 Job 取消，客户端或 RPC 调用方根据错误码重试。
 - `Flush` 使用版本条件写，确认目标快照已持久化后才激活新实例。
-- Router 发布带版本的归属变更；旧路由只能返回 `Redirect`，不能继续写。
+- Compass 发布带版本的归属变更；旧路由只能返回 `Redirect`，不能继续写。
 - 迁移前刷出已提交的跨服务事件，避免迁移期间重复级联。
 - 新旧实例不能同时成为可写主；这是迁移成功的必要条件。
 - 迁移期间保活续期（R6 定案）：进入 `Prepare` 时对 `online:{actorId}` 做**显式保活**（TTL 覆盖整个迁移窗口，如 30s），归属变更发布后由新实例接管常规续期；旧实例在 `Redirect` 前不撤销该记录。
 
 ---
 
-## 5. Gateway、Router 与 Service 边界
+## 5. Gateway、Compass 与 Service 边界
 
 ### 5.1 Gateway
 
@@ -291,11 +291,11 @@ Gateway 负责客户端边界，不直接修改业务数据：
 - **归属切换的投影一致性**：投影寻址复用 `online:{actorId}.gatewayAddr`（8.2），顶号后该映射已指向新 Gateway，Service 的自然投递即转向新连接；旧 Gateway 在撤销完成前发出的残留投影随 session 撤销丢弃，重连/重登走全量快照兜底（8.2 commitId 校验）。
 - **与断线重连的区分**：`resumeToken` 只能恢复"仍是当前有效"的 session（epoch 未变）；被顶号后 epoch 已变，旧端重连视为新认证或直接拒绝——不会出现"旧端以为自己在线、投影还投给旧端"的幻象。
 
-**安全边界（R11 定案）**：**公网边界 = Gateway 客户端侧，且只有 KCP 走公网**；Gateway 与服务端（Router/Service）之间、Service 之间全部内网明文，不加密。因此加密只做一件事：**Gateway 公网侧 KCP 数据面加密**（KCP 是可靠传输层，加密加在协议层——应用层包级对称加密，会话密钥随认证/`resumeToken` 流程协商；具体方案属 Phase 3 网络层实现细节，这里只承诺"公网边界加密必须存在"）。内网链路不引入任何加密开销。
+**安全边界（R11 定案）**：**公网边界 = Gateway 客户端侧，且只有 KCP 走公网**；Gateway 与服务端（Compass/Service）之间、Service 之间全部内网明文，不加密。因此加密只做一件事：**Gateway 公网侧 KCP 数据面加密**（KCP 是可靠传输层，加密加在协议层——应用层包级对称加密，会话密钥随认证/`resumeToken` 流程协商；具体方案属 Phase 3 网络层实现细节，这里只承诺"公网边界加密必须存在"）。内网链路不引入任何加密开销。
 
-### 5.2 Router
+### 5.2 Compass
 
-Router 是 DNS 模式的寻址服务，不转发业务流量：
+Compass 是 DNS 模式的寻址服务，不转发业务流量：
 
 - Service 注册、心跳和实例摘除
 - Actor 在线状态和归属查询
@@ -303,9 +303,9 @@ Router 是 DNS 模式的寻址服务，不转发业务流量：
 - 路由版本和 `Redirect`
 - Redis 故障降级（见下）
 
-**Redis 故障降级（R6 定案）**：Router **读路径全走内存镜像**（`online`/`players`/hashring 常驻镜像，Redis 只做真相源）。Redis 故障时按可配置**陈旧窗口**（默认 60s）继续服务读；写（注册/续期/归属变更）失败进入**待同步队列**，Redis 恢复后回放。超过陈旧窗口仍未恢复 → 新寻址/注册拒绝，或回退一致性哈希 fallback（离线 Actor 定位 home Service 不依赖 `online`）。**Redis 故障只影响"新变更可见"，不影响既有寻址**。
+**Redis 故障降级（R6 定案）**：Compass **读路径全走内存镜像**（`online`/`players`/hashring 常驻镜像，Redis 只做真相源）。Redis 故障时按可配置**陈旧窗口**（默认 60s）继续服务读；写（注册/续期/归属变更）失败进入**待同步队列**，Redis 恢复后回放。超过陈旧窗口仍未恢复 → 新寻址/注册拒绝，或回退一致性哈希 fallback（离线 Actor 定位 home Service 不依赖 `online`）。**Redis 故障只影响"新变更可见"，不影响既有寻址**。
 
-连接池、多路复用、重试和故障切换属于 Router/传输层实现（全直连下 Gateway 与 Service 的连接数随实例数乘积增长），业务 Behavior 不自行处理。
+连接池、多路复用、重试和故障切换属于 Compass/传输层实现（全直连下 Gateway 与 Service 的连接数随实例数乘积增长），业务 Behavior 不自行处理。
 
 ### 5.3 Service 拆分原则
 
@@ -324,22 +324,20 @@ Router 是 DNS 模式的寻址服务，不转发业务流量：
 
 ### 6.1 Behavior
 
-`Behavior` 是业务逻辑，**纯逻辑、不强绑定 BehaviorInfo**：不继承组件树（无 `Comp`），由 Service 注入 `actorId` + `engine`，通过四个生命周期钩子接入调度；`Behavior<T> where T : BehaviorInfo` 泛型基类作废，Job 内取数据一律 `JobContext.Get/Load<T>()`：
+`Behavior` 是业务逻辑，**纯逻辑、不强绑定 BehaviorInfo**：不继承组件树（无 `Comp`），注入面只有 `actorId` + **受限门面**（日志/时钟，不含 Service、不含容器；waitable/timer 均不入面——等待器是 `yield return` API 的一部分，TimerWheel 是 Service 级系统家政设施见 3.4），通过两个活跃生命周期钩子接入调度；**装配由框架自动完成**——Service 创建事件反射扫描全部 `Behavior` 子类，`AddActor` 自动实例化挂载默认行为集，业务零注册（见 11）；`Behavior<T> where T : BehaviorInfo` 泛型基类作废，Job 内取数据一律 `JobContext.Get<T>()`（IWaitable，命中即续、未命中自动挂起加载）：
 
 - 只通过 `BehaviorInfo` 访问可持久化业务状态。
 - 业务方法返回 `IEnumerator`。
 - `[RpcMethod]` 标注可调用入口，由 Source Generator 生成协议 stub。
 - `[RpcMethod]` 的执行主体（actorId）**由框架从 session/认证上下文注入，调用者恒为自己**，签名不允许客户端指定目标（R5 定案，见 9.3）；需要作用于其他玩家时，目标作为**业务参数**传入，由业务代码做关系/权限校验。
-- 派生状态在 `OnEnter`、明确的 RPC 或 `OnLeave` 中计算，不做全员 `OnTick` 扫描。
+- 派生状态在 `OnActive`、明确的 RPC 或 `OnDeact` 中计算，不做全员 `OnTick` 扫描。
 
-**生命周期四件套（R20 定案，由 Service 驱动）**：行为/数据生命周期由四个钩子完整覆盖，数据生命周期与在线生命周期分离，不引入 `OnTick` 扫描。钩子挂在 Behavior 上，由 Service 统一驱动：`Service.Load(id)` 触发该 Actor 全部 Behavior 的 `OnLoad`，`Enter/Leave/Unload` 同理，`RemoveActor` 在线先 Leave 再 Unload 对称收尾：
+**生命周期两件套（2026-08-04 修正：撤销 `OnLoad`/`OnUnload`，由 Service 驱动）**：行为生命周期只保留**活跃维度**两个钩子，不引入 `OnTick` 扫描。**数据进/出内存（激活维度）不是业务钩子**——虚拟化后"数据在不在内存"是框架数据层（7.1 懒加载 / 7.2 冷卸载）的内部事务，业务无感。钩子挂在 Behavior 上，由 Service 统一驱动：`Service.Active(id)` 触发该 Actor 全部 Behavior 的 `OnActive`，`Deact` 同理，`RemoveActor` 在线先 Deact 再销毁 store：
 
-- `OnLoad` 加载（激活）：BehaviorInfo 从持久层进入内存后触发（懒加载路径 7.1），初始化派生状态/缓存。
-- `OnUnload` 卸载（失活）：冷卸载前触发（dirty 先写回，7.2），清理派生状态。
-- `OnEnter` 进入活跃：Actor 进入活跃态（出现可推送投影目标：player = session 建立；club = 有在线成员）时触发，登录 Job 挂载点。
-- `OnLeave` 离开活跃：Actor 离开活跃态（投影目标消失：player = 缓冲期 4.3 结束；club = 最后成员离线）时触发，收尾/注销。
+- `OnActive` 进入活跃：Actor 进入活跃态（出现可推送投影目标：player = session 建立；club = 有在线成员）时触发，登录 Job 挂载点。
+- `OnDeact` 离开活跃：Actor 离开活跃态（投影目标消失：player = 缓冲期 4.3 结束；club = 最后成员离线）时触发，收尾/注销。
 
-四件套即"数据进/出内存 + 在线进/出"两个正交维度的四个端点；周期性派生刷新走 Actor 级周期任务（11），不在此列。
+派生状态在 `OnActive`、明确的 RPC 或 `OnDeact` 中计算；周期性派生刷新走 Actor 级周期任务（11），不在此列。
 
 ```csharp
 public sealed class WalletBehavior : Behavior
@@ -347,8 +345,8 @@ public sealed class WalletBehavior : Behavior
     [RpcMethod]
     public IEnumerator Spend(int cost)
     {
-        // 无参：恒取本 Actor 的 Info（同步 O(1)，未命中需先 Load 挂起）
-        var info = JobContext.Get<PlayerBehaviorInfo>();
+        // 无参：恒取本 Actor 的 Info（IWaitable：命中即续、未命中自动挂起加载）
+        var info = yield return JobContext.Get<PlayerBehaviorInfo>();
         if (info.gold < cost) yield break;
 
         info.gold -= cost;
@@ -457,31 +455,30 @@ public partial class WalletInfo : BehaviorInfo
 
 - `var store = service.AddActor(actorId);` 登记虚拟 Actor（ID→DataStore 注册表），重复 ID 抛异常；`service.GetStore(id)` 查询（未登记返回 null）。
 - `store.AddInfo<T>();` 显式挂载某个 BehaviorInfo（`new T()` + 注册）。
-- `service.Load(id)` / `Enter(id)` / `Leave(id)` / `Unload(id)` / `RemoveActor(id)` 驱动生命周期，触发该 Actor 所有 Behavior 的对应钩子（6.1）。
-- Job 内访问不经过 Service：`JobScheduler.Post` 已把 Job 直连到 store（`engine.service.GetStore(actorId)`），`JobContext.Get/Load<T>()` 恒取本 Actor 数据（经 `current.data` 直达）。
+- `service.Active(id)` / `Deact(id)` / `RemoveActor(id)` 驱动生命周期（两件套），触发该 Actor 所有 Behavior 的对应钩子（6.1）；**无 `Load/Unload` API**——数据进出内存由框架在 `Get<T>()` 背后自动做。
+- Job 内访问不经过 Service：`JobScheduler.Post` 已把 Job 直连到 store（`engine.service.GetStore(actorId)`），`JobContext.Get<T>()` 恒取本 Actor 数据（经 `current.data` 直达）。
+- **Service 不对 Behavior 暴露（决策 #51）**：Behavior/Job 在编译期无法感知 Service 下其他 Actor——Job 内唯一数据入口是 `JobContext.Get<T>()`（本 Actor，IWaitable）与带参 `Get<R>(actorId)`（跨 Actor Radio 壳），`engine.service` 只存在于 Engine 的调度/装配层（`JobScheduler.Post`、生命周期驱动、`AddActor`），不进入 Behavior 注入面。
 
 ```csharp
-// 无参：恒取当前 Job 所属 Actor 的 Info（可变）
-T Get<T>() where T : BehaviorInfo;
+// 无参：恒取当前 Job 所属 Actor 的 Info（IWaitable：命中即续、未命中自动挂起加载）
+IWaitable Get<T>() where T : BehaviorInfo;
 // 带参：其他 Actor 的 Radio 壳引用（O(1) 零拉取；info 子壳按需拉取 + behavior 内部 RPC）
 R Get<R>(ulong actorId) where R : Radio;
-// 按需加载本 Actor 的指定 BehaviorInfo
-IEnumerator Load<T>();
-// 登录/激活时全量加载本 Actor
-IEnumerator LoadAll();
 // 标记本 Actor 待写回
 void MarkSave();
 ```
 
 `DataStore` 的本 Actor 入口**无参、恒作用于当前 Job 所属 Actor**——唯一归属（1.3）由 API 形态强制：Job 无法通过无参 `Get<T>` 获取非本 Actor 的数据本体；跨 Actor 访问统一走带参 `Get<R>(actorId)` 返回的 **Radio 壳引用**（O(1) 零拉取；`radio.info.*` 子壳用才拉、`radio.behavior.*` 内部 RPC 天然按需，见 9.3）。无参与带参由类型参数区分：`where T : BehaviorInfo` 取数据（可变），`where R : Radio` 取壳（只读）；must 临界区内的参与方字段访问走框架注入的专用入口（9.2），不经过 DataStore.Get。
 
-- 命中内存时，`Get<T>` 是 O(1) 查询。
-- 未命中时，Job 显式进入等待状态，IO 层异步读取，完成后通过 MPSC 唤醒 Job。
+**`Get<T>()` 是 IWaitable（2026-08-04 定案，方案 A）**——`yield return ctx.Get<T>()`，与 Radio 子壳 `yield return radio.info.bag` 完全同形态，业务写法统一：
+
+- 命中内存时，`Get<T>` 立即续跑，等价 O(1) 查询。
+- 未命中时，框架自动创建 `WaitForLoad` 挂起，IO 层异步读取，完成后通过 MPSC 唤醒 Job——**开发者不感知"加载"这件事**（虚拟化承诺：actor 存在 = 数据存在）。
 - 同一 Actor/BehaviorInfo 的并发加载必须合并，不能重复打 MongoDB。
 - 加载失败、超时、Actor 销毁和迁移都必须唤醒并结束等待 Job；"取消"仅来自生命周期事件（销毁/迁移），**玩家下线不取消挂起 Job**——业务逻辑与在线状态无关，离线所需的 BehaviorInfo 走按需加载路径，Job 照常推进（3.2）。
-- 在线登录可使用 `LoadAll`；离线交互按需加载。
+- **无 `Load<T>()`/`LoadAll()` 显式加载入口**：加载是框架在 Get 背后的内部行为，业务没有"手动加载/全量加载"动作（2026-08-04 撤销）。
 
-挂起点必须是调度器可见的 `WaitForLoad`：业务写法可以保持连续，但 `Get<T>` 不在同步代码中隐式阻塞或隐藏 IO。
+挂起点必须是调度器可见的 `WaitForLoad`：业务写法可以保持连续，`Get<T>` 不在同步代码中隐式阻塞或隐藏 IO。
 
 ### 7.2 数据温度
 
@@ -520,11 +517,13 @@ Actor / BehaviorInfo
   → 检查 projectDirtyMask
   → 收集标量值和容器差异
   → Projection Rules 裁剪/格式化
-  → 查 Router 取投影目标（见下）
+  → 查 Compass 取投影目标（见下）
   → Transport 发送 ProjectorPacket
 ```
 
-**投影目标寻址（R3 定案）**：Service 不维护客户端 session，投影投递复用 4.2 既有路由——`online:{actorId}` 记录 `{serviceAddr, gatewayAddr}`，其中 `gatewayAddr` 即玩家当前连接所属 Gateway 实例。投影时 Service 查 Router 取 `online:{actorId}.gatewayAddr`，将 `ProjectorPacket` 发往该 Gateway，由 Gateway 用本地 session 直发客户端。**无需新增连接映射表**：`gatewayAddr` 本身就是 session 归属映射，映射实体由 Gateway 自持，Router 数据面只需保留现有 `online:{actorId} → gatewayAddr`。离线 Actor 无 `online` 路由 → 投影挂起或丢弃，重连时 Gateway 请求全量快照（5.1）。
+**投影目标寻址（R3 定案）**：Service 不维护客户端 session，投影投递复用 4.2 既有路由——`online:{actorId}` 记录 `{serviceAddr, gatewayAddr}`，其中 `gatewayAddr` 即玩家当前连接所属 Gateway 实例。投影时 Service 查 Compass 取 `online:{actorId}.gatewayAddr`，将 `ProjectorPacket` 发往该 Gateway，由 Gateway 用本地 session 直发客户端。**无需新增连接映射表**：`gatewayAddr` 本身就是 session 归属映射，映射实体由 Gateway 自持，Compass 数据面只需保留现有 `online:{actorId} → gatewayAddr`。离线 Actor 无 `online` 路由 → 投影挂起或丢弃，重连时 Gateway 请求全量快照（5.1）。
+
+**投影与冷热卸载（交叉点）**：冷热卸载（7.2）不影响投影。投影 diff 产生于 **Job 提交**（8.1：写入动作当场记录差异并置 `projectDirtyMask`），是写入动作的副产品，而非"内存状态 vs 客户端基线"的差值计算——卸载掉的是内存副本，不是产生 diff 的能力。主循环内投影收集（`CollectProjection`）严格先于卸载判定（`EvictColdData`，11 章）：同一轮中 Job 提交修改 → 投影整包发出并清投影脏标记 → 数据闲置超阈值才进入卸载候选，**不存在"有未发 diff 却被卸载"的窗口**。被卸载的数据再次被 `Get<T>()` 触碰时自动懒加载（7.1），修改后 Commit → diff 照常收集照常发送，业务与投影系统对"是否曾被卸载"无感。离线无路由时 diff 丢弃、重连走全量快照（见上），全量快照数据来源 MongoDB（8.4）与冷卸载落库（7.2）同源——冷卸载不但不破坏全量恢复，反而是全量恢复的数据基础。
 
 **投影打包与顺序（R8 定案）**：一次 Job 提交 = 一个投影整包，包内含该提交改动的**所有** BehaviorInfo 的 diff（钱包、背包同包下发）。客户端以包为原子接收单元**整体应用，绝不部分应用**——从机制上杜绝"钱包扣了、背包没加"的中间帧。包与包之间按提交顺序发送，客户端按接收顺序应用。`ProjectorPacket`、容器差异和临时集合使用对象池或 `ArrayPool`。投影协议必须带：
 
@@ -536,7 +535,7 @@ commitId（提交序，单调递增）+ actorId + 包内 diff 列表（每个 di
 
 **重启语义（R18 定案，重启 = 全量基线重置）**：进程重启后内存中的提交序列丢失（投影不持久化、Mongo 是唯一真理），增量连续性无从继续——**全量基线重置是必然语义**，不做跨重启 commitId 单调（时间戳/实例 id 组合无法避免全量，只会把"受控通知"退化成"各客户端盲目探测"）。定案：
 
-- Service 重启后 `commitId` **归零重新计数**；Gateway 通过 Service 实例标识变化（注册 Router 的实例 id）检测会话重置。
+- Service 重启后 `commitId` **归零重新计数**；Gateway 通过 Service 实例标识变化（注册 Compass 的实例 id）检测会话重置。
 - Gateway **主动通知**受影响连接"丢弃旧 commitId 记忆"；客户端收到后丢弃旧 commitId（不再与新实例 commitId 比对），统一请求全量快照重建基线，全量包带新基线 commitId。
 - 全量是**受控一次性**：由 Gateway 统一触发、按连接有序下发，杜绝"各客户端各自发现 `5→1` 不连续、各自盲目全量"的随机风暴。
 - 重启全量与重连全量（5.1）走同一条路径，客户端无需区分触发原因。
@@ -649,7 +648,7 @@ public sealed class MustTransferGold : Must
 跨 Actor 读写统一走 Radio 壳（`Get<R>(actorId)`，见下文）：`radio.info.*` 是只读快照；`radio.behavior.*` 上的 `[Remote]` 方法即 `Call`——目标 Actor 自己执行的写操作：
 
 ```text
-调用方 → Router 定位目标
+调用方 → Compass 定位目标
       → Call(requestId, operation, args)
       → 目标 Actor BeginJob
       → 校验、修改、Commit/Rollback
@@ -665,7 +664,7 @@ RPC 采用 at-least-once，必须具备：
 - 目标不存在、迁移中、过载和版本冲突的明确错误码。
 - 去重记录和结果缓存必须有界：requestId 记录带保留窗口（如 24h TTL 过期删除），结果缓存设 LRU 上限。
 
-**RPC 主体鉴权（R5 定案）**：客户端发起的 `[RpcMethod]`，执行主体恒等于认证 session 所属的 actorId——**由框架注入，客户端无法以他人身份发起调用（自己就是自己，这是鉴权）**。"对哪个玩家操作"是业务需求，作为**业务参数**（如 `targetActorId`）传入，由服务端业务代码做关系/权限/黑名单校验，框架不做业务拦截。`Call`（`radio.behavior.*` 的 `[Remote]` 方法）等服务端间调用（Service → Service）目标由服务端代码指定，属于受信上下文，经 Router 寻址，不涉及客户端越权。
+**RPC 主体鉴权（R5 定案）**：客户端发起的 `[RpcMethod]`，执行主体恒等于认证 session 所属的 actorId——**由框架注入，客户端无法以他人身份发起调用（自己就是自己，这是鉴权）**。"对哪个玩家操作"是业务需求，作为**业务参数**（如 `targetActorId`）传入，由服务端业务代码做关系/权限/黑名单校验，框架不做业务拦截。`Call`（`radio.behavior.*` 的 `[Remote]` 方法）等服务端间调用（Service → Service）目标由服务端代码指定，属于受信上下文，经 Compass 寻址，不涉及客户端越权。
 
 **Radio 壳（R15 定案，统一跨 Actor 入口）**：跨 Actor 访问统一走 `Get<R>(actorId)` 返回的 **Radio 壳**——SG 生成的强类型 ActorRef。壳树分**两棵独立子树**，**Behavior 与 Info 不强制成对**，按名字独立生成、只生成有声明的一侧：
 
@@ -768,9 +767,9 @@ public partial class PlayerInfo : BehaviorInfo
 
 **硬边界（R12 补充）**：Service 级周期任务**只扫内存批次表本身**（到期广播 / 过期移除），**绝不遍历玩家集合、绝不 `SeekDeep` 激活离线玩家**——离线玩家的待领资格由玩家自己上线/被激活时惰性求差集得出（9.5），不是后台替玩家扫描得出；任何"对批量玩家做点什么"的需求都必须落到玩家自己的 Job（在线广播让玩家自领、玩家激活时自兑），不落 Service 级周期任务。违反此边界 = 百万级离线激活加载风暴。
 
-**领取检测时机（R20 + R22 定案）**：批次领取是**惰性检测**，不是持续一致性/广播一致性问题——检测挂在生命周期钩子上：在线玩家 `OnEnter`（进入活跃、登录 Job）、离线玩家 `OnLoad`（被 `SeekDeep` 激活拉起时求差集），一次求差、逐批兑奖。**在线漏广播者自愈（R22）**：广播是尽力投递（10.2），漏广播的在线玩家不会主动打开邮件/活动面板——故在**既有 Actor 级周期任务（每日刷新 Job，11）顺手求一次差集**，在线漏收者最迟次日自愈；这是"通知/感知失效"时的正确性兜底（保险丝），与广播/轮询提醒并行，非替代。永远不上线的玩家不领、过期作废。**归属与多实例**：批次为 Service 级共享缓存——各实例自载内存副本、Mongo 权威，不参与 Actor 私有归属模型；多实例各广播/各移除退化为通知噪音——开放广播重复仅损表现（R19），过期移除以玩家激活时刻所在实例内存副本为准（一次性快照判定，批次过期作废天然容忍实例间时序偏差），无需唯一 holder、无需跨实例广播仲裁。
+**领取检测时机（R20 + R22 定案，2026-08-04 修正）**：批次领取是**惰性检测**，不是持续一致性/广播一致性问题——检测挂在**业务 Job 首次触碰玩家数据**的时刻：在线玩家 `OnActive`（进入活跃、登录 Job）、离线玩家被 `SeekDeep` 拉起后，触发它的业务 Job `Get<T>()` 时框架已保证数据在，求差集自然发生（**不依赖生命周期钩子**，无 `OnLoad`），一次求差、逐批兑奖。**在线漏广播者自愈（R22）**：广播是尽力投递（10.2），漏广播的在线玩家不会主动打开邮件/活动面板——故在**既有 Actor 级周期任务（每日刷新 Job，11）顺手求一次差集**，在线漏收者最迟次日自愈；这是"通知/感知失效"时的正确性兜底（保险丝），与广播/轮询提醒并行，非替代。永远不上线的玩家不领、过期作废。**归属与多实例**：批次为 Service 级共享缓存——各实例自载内存副本、Mongo 权威，不参与 Actor 私有归属模型；多实例各广播/各移除退化为通知噪音——开放广播重复仅损表现（R19），过期移除以玩家激活时刻所在实例内存副本为准（一次性快照判定，批次过期作废天然容忍实例间时序偏差），无需唯一 holder、无需跨实例广播仲裁。
 
-**就绪形态与提醒来源（R22 定案）**：领取机制同一套（批次/模板 + 差集 + 惰性校验），就绪时刻分两类。**广播型（未知事件）**：就绪由运营/系统随时触发（临时补偿、事件达成奖励），玩家预先不知——模板/批次发布时实时广播在线玩家"有可领"：Service 向各 Gateway 群发一条轻量通知，粒度 O(Gateway 数) 而非玩家数（复制在 Gateway 连接层，本职能力），只发"未读数+1"小包、内容玩家打开时渲染，代价可忽略；广播为提醒层（10.2 尽力投递），可丢。**计时型（已知时间轴）**：就绪时刻确定性可算（任务冷却、N 分钟后可领）——服务端下发 `readyAt` 绝对时间戳（BehaviorInfo 字段进投影整包），客户端本地展示倒计时，**点击时服务端惰性校验 `now ≥ readyAt`**；服务端**不跑 per-player 定时器**（到点触发仅对在线玩家有意义、数量随玩家数爆炸，是反模式）；"到点自动入账"同样做惰性（下次激活/周期补 `readyAt ≤ now` 未领者），不做到点定时。**通知永远只是提醒层**：正确性靠"打开拉取 / 差集 / 惰性校验"兜底，通知丢失仅损表现。
+**就绪形态与提醒来源（R22 定案）**：领取机制同一套（批次/模板 + 差集 + 惰性校验），就绪时刻分两类。**广播型（未知事件）**：就绪由运营/系统随时触发（临时补偿、事件达成奖励），玩家预先不知——模板/批次发布时实时广播在线玩家"有可领"：Service 向各 Gateway 群发一条轻量通知，粒度 O(Gateway 数) 而非玩家数（复制在 Gateway 连接层，本职能力），只发"未读数+1"小包、内容玩家打开时渲染，代价可忽略；广播为提醒层（10.2 尽力投递），可丢。**计时型（已知时间轴）**：就绪时刻确定性可算（任务冷却、N 分钟后可领）——服务端下发 `readyAt` 绝对时间戳（BehaviorInfo 字段进投影整包），客户端本地展示倒计时，**点击时服务端惰性校验 `now ≥ readyAt`**；服务端**不跑 per-player 定时器**（到点触发仅对在线玩家有意义、数量随玩家数爆炸，是反模式）；**Actor 级 `[TimerWheel]` 声明钟（11）同样不为失活 actor 跑定时器**——定时器随 `OnActive` 挂载、`OnDeact` 摘除，离线欠账由下次激活结算，定时器只是提醒层；"到点自动入账"同样做惰性（下次激活/周期补 `readyAt ≤ now` 未领者），不做到点定时。**通知永远只是提醒层**：正确性靠"打开拉取 / 差集 / 惰性校验"兜底，通知丢失仅损表现。
 
 ---
 
@@ -854,6 +853,8 @@ TimerWheel 是 **Service 进程级**定时设施，主循环每轮 `DrainTimers(
 - **Service 级全局周期任务**：注册在 Service 进程上，与任何玩家在线与否无关，离线/无人时照样推进——**只做系统家政**：online 批量续期（4.2）、幂等表 TTL/LRU 清理（9.3）、过期批次移除、开放广播（通知投递）、慢 Job 监控统计等；**不改变任何业务状态**。任何"对批量玩家做点什么"（领取判定、入账、补偿）都禁止在此层出现。
 - **Actor 级周期任务**：挂载在具体 Actor 上，跟随 Actor 生命周期，业务逻辑所在——玩家每日刷新、buff 到期、领取资格判定、入账、漏广播批次/邮件差集自愈（R22）等。
 
+**Actor 级声明钟（`[TimerWheel]` 方法级特性，2026-08-04 定案）**：Actor 级周期任务的声明形态 = **方法级 `[TimerWheel(ID)]` 特性**——业务在自己 Behavior 的任意方法（返回 `IEnumerator`、方法名自定、声明 `public`）上挂特性，即声明"该方法参与定时任务 ID"。频率与生效区间由 Luban 配置表 `timer_wheel`（`id / interval_ms / start_at / end_at`，空 = 永久生效）决定，代码不写频率数字：**配置表只给参数、特性只做声明、方法只管到点做什么，三者互不越界，不从配置表生成代码**。装配全自动：**Service 创建事件反射扫描全部 `Behavior` 子类**，收集各自带 `[TimerWheel]` 的方法并建成开放实例委托（启动一次、运行期零反射；启动期校验方法签名须返回 `IEnumerator`，不符装配期即报错）；`AddActor` 自动实例化默认行为集并登记定时候选；`OnActive` 挂钟（jitter 打散）、`OnDeact` 摘钟——**定时器生命周期 = actor 活跃生命周期，绝不为失活 actor 跑定时器**；离线欠账由下次激活（`OnActive` 挂钟后首个周期）或业务 Job 触碰时惰性结算，定时器只是提醒层（与 9.5 计时型就绪同语义）。一个方法一个 `[TimerWheel]`（要双频率就拆两个方法）。**业务零注册**：没有 `AddBehavior`、没有注册调用，Behavior 类只需继承基类 + 可选特性。
+
 停机时先停止接收新请求，再等待或取消可取消 Job，flush 持久化数据和跨服务事件，最后注销 Service 路由。
 
 ---
@@ -886,12 +887,13 @@ TimerWheel 是 **Service 进程级**定时设施，主循环每轮 `DrainTimers(
 - must 参与方加载失败按 must 定义的重试次数/超时重试，耗尽整体失败返回原因码；must 只有全成或全败（9.2）。
 - must 完成后投影与事件由 must 内部发送：各参与方各自整包投影（各自 commitId）+ 全部投影后尾随"完成事件"RPC；全败无投影无事件（8.2、9.2）。
 - 每个等待器（WaitForLoad/WaitForRpc）带 deadline，超时=唤醒+Job 失败回滚；挂起期间调度器继续执行其他 Actor 的 Job；玩家下线不取消挂起 Job（3.2/7.1）。
-- Redis 故障时 Router 按陈旧窗口继续寻址，恢复后待同步队列回放；漏续期（Service 崩溃）→ online 过期停止寻址；迁移期间 TTL 保活不中断（4.2/4.3/5.2）。
+- Redis 故障时 Compass 按陈旧窗口继续寻址，恢复后待同步队列回放；漏续期（Service 崩溃）→ online 过期停止寻址；迁移期间 TTL 保活不中断（4.2/4.3/5.2）。
 - 卡死防护边界：等待段超时（deadline → 唤醒 → 回滚）可验证；墙钟预算（MoveNext 段计时 → 慢 Job 记录/告警 → 下一个 yield 点取消回滚）可验证；无 yield 的 CPU 密集段不承诺进程内强制中断，验证路径为专用 Service 进程级杀+重启（崩溃窗口语义）（3.3）。
 - 重启后所有连接强制全量：Gateway 检测 Service 实例标识变化、主动通知客户端丢弃旧 commitId 记忆、统一请求全量重建基线；重启全量与重连全量同路径（8.2）。
 - 事件通知 RPC 无 eventId、无应用层重试：一次发起一次送达、重复不存在；传输层重传保留（TCP/KCP 自带），只有不可抗力（断连/崩溃/背压丢弃）才丢，仅损表现、投影全量兜底、不重放（8.2）。
-- 生命周期四件套：OnLoad 加载 / OnUnload 卸载 / OnEnter 进入活跃 / OnLeave 离开活跃；批次领取检测 = 激活时刻（OnEnter/OnLoad 求差集）+ 在线漏广播者 Actor 级周期兜底（每日刷新差集，最迟次日自愈），无后台扫描（6.1、9.5、11）。
-- Actor 无 class、纯 `ulong` ID：ID→DataStore 注册表由 Service 容器承载（`AddActor`/`GetStore`/`RemoveActor`），数据经 `store.AddInfo<T>()` 显式挂载，生命周期经 `service.Load/Enter/Leave/Unload` 驱动；Job 内 `JobContext.Get/Load<T>()` 经 `current.data` 直达本 Actor store（4.1、7.1）。
+- 生命周期两件套：OnActive 进入活跃 / OnDeact 离开活跃（无 OnLoad/OnUnload，数据进出内存是框架内部事务）；批次领取检测 = 业务 Job 首次触碰玩家数据时求差集（在线 OnActive / 离线被拉起后其 Job Get 时）+ 在线漏广播者 Actor 级周期兜底（每日刷新差集，最迟次日自愈），无后台扫描（6.1、9.5、11）。
+- Actor 无 class、纯 `ulong` ID：ID→DataStore 注册表由 Service 容器承载（`AddActor`/`GetStore`/`RemoveActor`），数据经 `store.AddInfo<T>()` 显式挂载，活跃生命周期经 `service.Active/Deact` 驱动（无 Load/Unload API）；Job 内 `JobContext.Get<T>()`（IWaitable，未命中自动挂起加载）经 `current.data` 直达本 Actor store（4.1、7.1）。
+- Behavior 自动装配与 Actor 级声明钟：Service 创建事件反射扫全部 `Behavior` 子类并收集 `[TimerWheel]` 方法级特性（开放委托、运行期零反射）；`AddActor` 自动挂载默认行为集（无 `AddBehavior`）；在线活跃 `OnActive` 挂钟、失活 `OnDeact` 摘钟，不为失活 actor 跑定时器，离线欠账下次激活惰性结算（4.1、6.1、11）。
 
 ### 12.2 GC 与性能
 
@@ -935,6 +937,33 @@ MongoDB 驱动、网络库和序列化库的分配不完全由 Queen 控制，�
 
 `IWaitable` 抽象（恢复/超时/取消）在本阶段定义，后续阶段的 `WaitForLoad`、`WaitForRpc` 只追加具体等待类型。
 
+**Queen.Core 工程结构（Phase 1 骨架）**：
+
+```text
+Queen.Core/
+├── Core/
+│   ├── Engine.cs               # 进程运行时宿主：单线程主循环
+│   ├── Service.cs              # 虚拟 Actor 容器（ID→DataStore 注册表 + 生命周期驱动）
+│   ├── Behavior.cs             # 纯逻辑基类：actorId + 受限门面 + 生命周期钩子
+│   ├── BehaviorInfo.cs         # 数据基类：[Persistent]/[Projector] 三用
+│   ├── DataStore.cs            # BehaviorInfo 挂载点（纯数据容器）
+│   ├── BehaviorAssembler.cs    # #54：Service 创建事件反射扫 Behavior 子类 → 开放委托工厂表
+│   └── Radio.cs                # 抽象壳基类（跨 Actor 引用契约，骨架阶段空壳）
+├── Scheduling/
+│   ├── Job.cs                  # 调度器一等对象：BeginJob→MoveNext→Commit/Rollback
+│   ├── JobContext.cs           # Job 内唯一数据入口：Get<T>()/Get<R>（未命中自动挂起加载，无显式 Load）
+│   ├── JobScheduler.cs         # 就绪集合 + 预算 + 背压限额 + 慢 Job（含 must 独立队列 + MUST_BUDGET_PER_FRAME）
+│   ├── Must.cs                 # 9.2：框架级 N 边批原子原语（声明基类 + 临界区执行 + 全成或全败 + R9 重试 + R17 收尾）
+│   ├── MustContext.cs          # must 内 N 边字段专用访问入口（禁 yield/禁 Get/禁循环，O(1) 临界区）
+│   ├── TimerWheel.cs           # 时间轮：主循环 DrainTimers，到点投定时 Job 给 JobScheduler
+│   └── IWaitable.cs            # 等待原语：恢复/超时/取消
+├── Watchdog/                   # 心跳 >500ms 判死 → dump 协程栈
+├── Projection/                 # 投影收集（Job 提交边界，Phase 1 骨架）
+└── Attributes.cs               # [Persistent]/[Projector]/[RpcMethod]/[Remote]/[Fetchable]/[TimerWheel]
+```
+
+must 与 Job 同级的一等调度对象：Service 级独立队列 + FIFO + 配额由 `JobScheduler` 调度（决策表 #36），执行形态禁 `yield`（非 IEnumerator、临界区直跑），故独立于 `Job` 单独成文件；must 参与方字段走 `MustContext` 专用访问入口，不经过 `DataStore.Get`（#43）。
+
 **退出条件**：Actor 串行性、yield-resume、慢 Job、异常隔离和看门狗心跳超时触发 dump 测试通过。
 
 ### Phase 2：持久化与同步（约 4-6 周）
@@ -958,7 +987,7 @@ MongoDB 驱动、网络库和序列化库的分配不完全由 Queen 控制，�
 
 ### Phase 4：多进程分布式（约 4-6 周）
 
-- Router、Gateway 多实例
+- Compass、Gateway 多实例
 - Service 间 RPC、消息路由、幂等去重
 - 在线迁移、版本化寻址
 - 分布式运维、监控、日志链路
@@ -1012,7 +1041,7 @@ MongoDB 驱动、网络库和序列化库的分配不完全由 Queen 控制，�
 | 26 | 投影寻址 | Service 查 `online:{actorId}.gatewayAddr` 路由投影到目标 Gateway 直发，不新增映射表（8.2） |
 | 27 | 调度容量 | 就绪集合（ready set）结构性先行避免每轮 O(N) 全扫；容量数字以 Phase 5 实测校准，不拍脑袋（R4） |
 | 28 | RPC 鉴权 | 执行主体由框架从 session 注入恒为自己；目标玩家是业务参数由业务鉴权；服务端间调用受信（6.1、9.3） |
-| 29 | 在线路由与降级 | online 由 Actor 宿主 Service 续期（≤TTL/2 批量）；Router 内存镜像 + 陈旧窗口 + 待同步回放；迁移显式保活（4.2/4.3/5.2） |
+| 29 | 在线路由与降级 | online 由 Actor 宿主 Service 续期（≤TTL/2 批量）；Compass 内存镜像 + 陈旧窗口 + 待同步回放；迁移显式保活（4.2/4.3/5.2） |
 | 30 | lastAccessAt 语义 | 读写都算访问（Job Get 触发）；只存内存不落 DB；在线不保鲜、闲置照样卸载；重启从加载时刻计时接受偏差（7.2） |
 | 31 | 投影一致性 | 一次 Job 提交 = 一个投影整包（含全部 BehaviorInfo diff）；客户端整体应用绝不分拆；commitId 包级连续性校验，缺号全量（8.2） |
 | 32 | 投影与事件通知 | 投影整包=状态正确性；尾随事件 RPC=时机表达（同通道有序：先应用状态后触发表现）；事件不承载真相，丢失仅损表现、全量兜底不重放（8.2） |
@@ -1026,11 +1055,16 @@ MongoDB 驱动、网络库和序列化库的分配不完全由 Queen 控制，�
 | 40 | 配置热更 | 配置带版本+原子切换+灰度；Job 开始时固定版本快照，一个 Job 内只读同一版本（9.5） |
 | 41 | 时钟统一 | NTP 对齐；时间敏感判定（lastAccessAt/批次时间窗/TTL）归权威时钟，跨 Service 不做强时钟同步假设（12） |
 | 42 | 客户端感知一致性 | 收到投影 = 暂态成功 ≠ 持久化确认；高价值写入可配置"提交即立即 flush 单文档"；崩溃回滚可对账解释（8.4、12.1） |
-| 43 | DataStore 归属强制 | 本 Actor 入口（`Get`/`Load`/`LoadAll`/`MarkSave`）全部无参、恒取当前 Job 所属 Actor；跨 Actor 访问统一走 Radio 壳 `Get<R>(actorId)`（`radio.info.*` 只读 + `radio.behavior.*` = Call，见 #44）；must 参与方字段走框架注入专用入口（6.2、7.1、9.2） |
+| 43 | DataStore 归属强制 | 本 Actor 入口（`Get`/`MarkSave`，`Load`/`LoadAll` 已撤销见 #55）全部无参、恒取当前 Job 所属 Actor；跨 Actor 访问统一走 Radio 壳 `Get<R>(actorId)`（`radio.info.*` 只读 + `radio.behavior.*` = Call，见 #44）；must 参与方字段走框架注入专用入口（6.2、7.1、9.2） |
 | 44 | Radio 壳 | 跨 Actor 统一入口：`Get<R>(actorId)` 返回 SG 强类型壳引用（O(1) 零拉取），分 `radio.info.*`（子壳按需拉取，只暴露 `[Fetchable]` 只读字段，弱一致快照，同 actor 同子壳幂等缓存）与 `radio.behavior.*`（只暴露 `[Remote]` 内部 RPC，Call，天然按需）两棵独立子树；Behavior 与 Info 不强制成对，按名字独立生成；客户端 `[RpcMethod]` 不进壳（6.1、7.1、9.3） |
 | 45 | must 提交/投影/事件 | must 全部成功 = 一次原子提交：各参与方按 Actor 各自投影整包（各自 commitId 推进），全部投影后 must 内部按序尾随"完成事件"RPC（语义由 must 类声明，不承载真相）；全败不投影不事件零副作用；发起方读返回值即获保证（9.2、8.2） |
 | 46 | commitId 重启语义 | 进程重启 = 全量基线重置：commitId 归零重新计数；Gateway 检测实例标识变化主动通知客户端丢弃旧 commitId 记忆、统一请求全量重建基线；不做跨重启单调（增量无从继续，只会把受控全量退化成盲目探测）（8.2） |
 | 47 | 事件通知 RPC | 服务器→客户端一次性单向通知（fire-and-forget）：无 eventId、无应用层重试、无去重，一次发起一次送达、重复不存在（at-least-once 重试仅属请求-响应式 Call）；传输层重传保留（TCP/KCP 自带），只有不可抗力（断连/崩溃/背压主动丢弃）才丢，仅损表现、投影全量兜底、不重放（8.2） |
-| 48 | 生命周期四件套 + 批次领取时机 | 行为生命周期四钩子：OnLoad 加载 / OnUnload 卸载 / OnEnter 进入活跃 / OnLeave 离开活跃（数据+活跃两维度四端点，无 OnTick 扫描）；批次领取检测 = 玩家激活时做一次（OnEnter 活跃 / OnLoad 离线被拉起求差集）+ **在线漏广播者 Actor 级周期兜底（每日刷新差集，最迟次日自愈，R22）**；就绪时刻分广播型（未知事件，实时广播提醒、可丢）/计时型（`readyAt` 时间戳下发、客户端倒计时、点击惰性校验，服务端无 per-player 定时器）；批次为 Service 级共享缓存非 Actor 归属，多实例广播/移除为通知噪音，无需唯一 holder（6.1、9.5） |
+| 48 | 生命周期两件套 + 批次领取时机 | 行为生命周期两钩子：OnActive 进入活跃 / OnDeact 离开活跃（无 OnLoad/OnUnload——数据进出内存是框架内部事务，2026-08-04 修正）；批次领取检测 = 业务 Job 首次触碰玩家数据时求差集（在线 OnActive / 离线被拉起后其 Job Get 时）+ **在线漏广播者 Actor 级周期兜底（每日刷新差集，最迟次日自愈，R22）**；就绪时刻分广播型（未知事件，实时广播提醒、可丢）/计时型（`readyAt` 时间戳下发、客户端倒计时、点击惰性校验，服务端无 per-player 定时器）；批次为 Service 级共享缓存非 Actor 归属，多实例广播/移除为通知噪音，无需唯一 holder（6.1、9.5） |
 | 49 | CPU 密集 Job 卡死 | 超时检测分两层：等待段 deadline（R10）保证"唤醒+回滚"；无 yield 的 CPU 密集段不超时、看门狗仅 dump。进程内强制中断+回滚不可实现（协作式协程无抢占点、回滚执行不到）；兜底在进程级：CPU 密集工作下沉专用 Service + 外部看门狗杀进程重启 = 崩溃窗口语义（Mongo 真相恢复、<200ms 丢失可接受）（3.3）；**墙钟预算层（R21 追加）**：每轮 MoveNext 段打点计时，超预算记慢 Job + 告警 + 下一个 yield 点协作式取消回滚；只抓"慢但会返回"的段，不抓永不返回的卡死段 |
-| 50 | Actor 形态（裁决④，2026-08-03） | Actor 收窄为纯 `ulong` ID、无 class；"串起 BehaviorInfo" = Service 容器的 ID→DataStore 注册表（`AddActor`/`GetStore`/`RemoveActor`），数据经 `store.AddInfo<T>()` 显式挂载；行为生命周期四件套由 `service.Load/Enter/Leave/Unload` 驱动；Actor 虚拟化（离线激活/迁移）以此为前提。Behavior 为纯逻辑（注入 actorId + engine 四钩子），与 BehaviorInfo 不强绑定、无泛型基类（`Behavior<T>` 作废），Job 内取数据一律 `JobContext.Get/Load<T>()`（4.1、6.1、7.1） |
+| 50 | Actor 形态（裁决④，2026-08-03） | Actor 收窄为纯 `ulong` ID、无 class；"串起 BehaviorInfo" = Service 容器的 ID→DataStore 注册表（`AddActor`/`GetStore`/`RemoveActor`），数据经 `store.AddInfo<T>()` 显式挂载；活跃生命周期由 `service.Active/Deact` 驱动（无 Load/Unload API，2026-08-04）；Actor 虚拟化（离线激活/迁移）以此为前提。Behavior 为纯逻辑（注入受限门面见 #51，两钩子），与 BehaviorInfo 不强绑定、无泛型基类（`Behavior<T>` 作废），Job 内取数据一律 `JobContext.Get<T>()`（IWaitable，4.1、6.1、7.1） |
+| 51 | Service 不对 Behavior 暴露（2026-08-03） | Behavior/Job 编译期不可感知 Service 下其他 Actor：Job 内唯一数据入口是 `JobContext.Get<T>()`（本 Actor，IWaitable）与带参 `Get<R>(actorId)`（跨 Actor Radio 壳）；`engine.service`（`AddActor`/`GetStore`/生命周期驱动）只存在于 Engine 的调度/装配层，不进 Behavior 注入面；Behavior 注入面 = `actorId` + 受限门面（日志/时钟），waitable/timer 均不入面（6.1、7.1） |
+| 52 | Engine/Service 不合并（2026-08-03） | 保持三份独立：Engine（怎么跑：主循环/IO 回收入口/看门狗挂载）、Service（谁是谁：stores 注册表 + 生命周期）、JobScheduler（调度）；合并会让 Behavior 为拿日志而面对装着整个容器注册表的巨型对象、摧毁 #51；1:1 实例比例不构成合并理由（职责维度不同、可独立单测） |
+| 53 | Radio 分层（2026-08-03） | Radio 契约（`Radio` 基类 `where R : Radio` + `JobContext.Get<R>(actorId)` 入口）入 Core（与 `Get<T>` 同组归属强制契约，骨架阶段空壳，O(1) 同 Service 内存命中取壳引用）；壳类型（`radio.info.*`/`radio.behavior.*`）由 SG 生成（后置）；子壳拉取/幂等缓存/RPC 投递/寻址后置（Phase 2 懒加载 / Phase 3 网络层）；与 Projection/Redis/Mongo 同模式：契约入 Core、实体后置（6.1、7.1、9.3） |
+| 54 | Actor 级声明钟 + Behavior 自动装配（2026-08-04） | Actor 级周期任务声明形态 = **方法级 `[TimerWheel(ID)]` 特性**（方法名自定、返回 `IEnumerator`、`public`）；频率/生效区间由配置表 `timer_wheel`（id/interval_ms/start_at/end_at，空=永久）决定，表只给参数、特性只做声明、方法只管执行，不从配置表生成代码。**Behavior 注册走反射**：Service 创建事件扫全部 `Behavior` 子类（同读 `[TimerWheel]` 注解）→ 建开放委托工厂表（启动一次、运行期零反射；启动期校验签名须返回 `IEnumerator`）；`AddActor` 自动实例化默认行为集并登记定时候选，业务零注册（无 `AddBehavior`、DataStore 回归纯数据容器）；`OnActive` 挂钟（jitter 打散）/`OnDeact` 摘钟，**不为失活 actor 跑定时器**，离线欠账下次激活惰性结算、定时器仅提醒层。一方法一特性（双频率拆两方法）；一进程多 Service 归属后置（当前拓扑每进程一 Service 天然无冲突）（4.1、6.1、9.5、11） |
+| 55 | Get 即 IWaitable + 生命周期两件套（2026-08-04） | `Get<T>()` 返回 IWaitable、`yield return ctx.Get<T>()` 与 Radio 子壳同形态：命中立即续、未命中自动创建 `WaitForLoad` 挂起加载——开发者不感知"加载"（虚拟化承诺 actor 存在 = 数据存在）；撤销显式加载入口 `Load<T>()`/`LoadAll()`（加载是框架在 Get 背后的内部行为）；撤销 `OnLoad`/`OnUnload` 钩子与 `Service.Load/Unload(id)` API，激活维度降级为框架内部概念，生命周期只留 `OnActive`/`OnDeact`（6.1、7.1、9.5、11） |

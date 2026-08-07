@@ -58,12 +58,12 @@ public partial class WalletInfo : BehaviorInfo
 ### 1.3 类/方法 PascalCase，钩子 `On` 前缀
 
 ```csharp
-public sealed class WalletBehavior : Behavior<PlayerBehaviorInfo> { ... }
-protected override void OnLoad() { ... }
+public sealed class WalletBehavior : Behavior { ... }
+protected override void OnActive() { ... }
 public void Run() { ... }
 ```
 
-生命周期钩子固定 `On` 前缀：Actor 四件套 `OnLoad` / `OnUnload` / `OnEnter` / `OnLeave`。
+生命周期钩子固定 `On` 前缀：Actor 两件套 `OnActive` / `OnDeact`（无 `OnLoad`/`OnUnload`——数据进出内存是框架内部事务，业务无感）。
 
 ### 1.4 常量 SCREAMING_SNAKE_CASE
 
@@ -99,7 +99,7 @@ public class S2CLoginMsg : INetMessage { ... }
 
 ### 1.7 泛型约束
 
-- `Get<T>()` 无参恒取本 Actor 的 Info，约束 `where T : BehaviorInfo`。
+- `Get<T>()` 无参恒取本 Actor 的 Info，约束 `where T : BehaviorInfo`；返回 IWaitable（`yield return ctx.Get<T>()`），命中即续、未命中自动挂起加载——无显式 `Load<T>()`/`LoadAll()`。
 - `Get<R>(actorId)` 取其他 Actor 的 Radio 壳，约束 `where R : Radio`。
 
 ---
@@ -107,7 +107,7 @@ public class S2CLoginMsg : INetMessage { ... }
 ## 2. 协程与 Job（Queen 特有，强制）
 
 - Job 方法返回 `IEnumerator`，挂起点用 `yield return`：
-  - `yield return Get<T>()` / `yield return Load<T>()` / `yield return LoadAll()`——数据加载；
+  - `yield return Get<T>()`——取本 Actor 的 Info（命中即续、未命中自动挂起加载；无显式 `Load<T>()`/`LoadAll()`）；
   - `yield return radio.info.bag`——子壳获取器（按需拉取）；
   - `yield return radio.behavior.bag.Give(...)`——内部 RPC（`[Remote]`）；
   - `yield return WaitForXxx(...)`——其他 IWaitable 等待器。
@@ -193,15 +193,17 @@ public void Tick() {  // 每帧调用            ← 行尾注释，禁止！
 
 - 4 空格缩进（不用 Tab）。
 - 文件级命名空间（`namespace Queen.Core;` 末尾分号）。
-- CRLF 行尾、UTF-8 BOM。
+- **LF 行尾、UTF-8 BOM（2026-08-03 用户裁决：统一 LF，原 CRLF 作废）。**
 - 不要在代码行后加注释。
 
 ---
 
-## 7. 零分配
+## 7. 分配意识（2026-08-03 用户裁决：池化后置）
 
-- 容器元素 struct/不可变，改 = 替换式；`IGBL Clone/Reset` + `ObjectCache` 池化复用。
-- 投影打包、容器差异和临时集合使用对象池或 `ArrayPool`。
+- GC 是软目标而非硬指标（architecture.md 12.2），不设字节级硬预算；骨架阶段不建池化设施（无 ObjectCache）。
+- 后续在敏感热路径（Job 对象 / 等待器 / 投影包 / 快照上下文）再提供池化能力，框架与业务共用，业务也可自行使用。
+- 投影打包、容器差异和临时集合在池化启用后使用对象池或 `ArrayPool`。
+- 容器元素 struct/不可变，改 = 替换式（与池化解耦，独立成立）。
 - 帧末延迟删除（`rmvactorset` / `rmvbehaviors`），不在遍历中删除。
 - 热路径禁止 LINQ 装箱与隐式分配。
 
@@ -238,5 +240,5 @@ public void Tick() {  // 每帧调用            ← 行尾注释，禁止！
 - 数据归属：谁的数据放谁身上；跨 Service 只传通知不传真相（10.3 SOP）。
 - 冷热卸载单元 = BehaviorInfo；判定 = `lastAccessAt` 超阈值 **且** Job 引用计数为零。
 - Source Generator：`partial class` + 标记特性生成属性/序列化/脏标记/快照/Radio 壳；生成物 `SG` 前缀。
-- 生命周期：Actor `OnLoad`/`OnUnload`/`OnEnter`/`OnLeave`；Info 无方法；Behavior 只声明 `[RpcMethod]`/`[Remote]` 协程方法。
+- 生命周期：Actor 两件套 `OnActive`/`OnDeact`（无 `OnLoad`/`OnUnload`）；Info 无方法；Behavior 只声明 `[RpcMethod]`/`[Remote]` 协程方法。
 - 详细架构见 [architecture.md](architecture.md)。
